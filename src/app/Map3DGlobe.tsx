@@ -183,6 +183,8 @@ export default function Map3DGlobe({ className }: { className?: string }) {
   const deadRef         = useRef(false);
   const selectedCodeRef = useRef<string | null>(null);
   const selDirtyRef     = useRef(false);
+  const autoSigRef      = useRef<{ cancelled: boolean } | null>(null);
+  const resumeRef       = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [routes,     setRoutes]     = useState<GlobeRoute[]>([]);
   const [selected,   setSelected]   = useState<GlobeRoute | null>(null);
@@ -222,18 +224,56 @@ export default function Map3DGlobe({ className }: { className?: string }) {
         map.tilt            = 0;
         map.heading         = 0;
         map.mode            = MapMode.HYBRID;
-        map.gestureHandling = 'COOPERATIVE';
+        map.gestureHandling = 'GREEDY';
         map.style.cssText   = 'width:100%;height:100%;display:block;';
 
         containerRef.current.appendChild(map);
         mapRef.current = map;
         setMapReady(true);
+
+        // ── Auto-rotation: slow globe spin when user is idle ──────────────────
+        const startRotate = () => {
+          if (deadRef.current || !mapRef.current) return;
+          const sig: { cancelled: boolean } = { cancelled: false };
+          autoSigRef.current = sig;
+          (async () => {
+            while (!sig.cancelled && !deadRef.current) {
+              try {
+                await (mapRef.current as any).flyCameraAround({
+                  camera: {
+                    center:  mapRef.current.center,
+                    range:   mapRef.current.range,
+                    tilt:    mapRef.current.tilt,
+                    heading: mapRef.current.heading,
+                  },
+                  durationMillis: 240_000,
+                  rounds: 1,
+                });
+              } catch { break; }
+            }
+          })();
+        };
+
+        const pauseRotate = () => {
+          if (autoSigRef.current) { autoSigRef.current.cancelled = true; autoSigRef.current = null; }
+          if (resumeRef.current) clearTimeout(resumeRef.current);
+          resumeRef.current = setTimeout(startRotate, 4000);
+        };
+
+        map.addEventListener('pointerdown', pauseRotate);
+        map.addEventListener('touchstart', pauseRotate, { passive: true });
+        map.addEventListener('wheel',       pauseRotate, { passive: true });
+
+        resumeRef.current = setTimeout(startRotate, 1500);
+
       } catch (e) { console.error('[Map3DGlobe] init:', e); }
     })();
 
     return () => {
       deadRef.current = true;
       cancelAnimationFrame(rafRef.current);
+      if (autoSigRef.current) { autoSigRef.current.cancelled = true; autoSigRef.current = null; }
+      if (resumeRef.current)  { clearTimeout(resumeRef.current); resumeRef.current = null; }
       if (mapRef.current && containerRef.current?.contains(mapRef.current)) {
         containerRef.current.removeChild(mapRef.current);
         mapRef.current = null;
@@ -561,7 +601,7 @@ export default function Map3DGlobe({ className }: { className?: string }) {
       style={{ position: 'relative', userSelect: 'none', WebkitUserSelect: 'none' } as React.CSSProperties}
     >
       {/* gmp-map-3d is appended here imperatively */}
-      <div ref={containerRef} style={{ width: '100%', height: '100%', touchAction: 'pan-y' }} />
+      <div ref={containerRef} style={{ width: '100%', height: '100%', touchAction: 'none' }} />
 
       {/* ── Tracking panel — top-left ────────────────────────────────────── */}
       <div className="absolute top-4 left-4 z-30 pointer-events-auto">
