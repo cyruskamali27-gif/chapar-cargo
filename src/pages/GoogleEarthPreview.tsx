@@ -133,7 +133,7 @@ export default function GoogleEarthPreview() {
   const arcsByCode      = useRef<Map<string,any[]>>(new Map());
 
   // Particle animation state per route
-  type PState = { prim:any; arcPts:any[]; progress:number; dir:number; base:number; hex:string; code:string };
+  type PState = { prim:any; arcPts:any[]; progress:number; base:number; hex:string; code:string };
   type RState = { t:number };
   const particles = useRef<PState[]>([]);
   const rings     = useRef<RState[]>([]);
@@ -226,21 +226,24 @@ export default function GoogleEarthPreview() {
         arcsByCode.current.set(code, arcPts);
         const isDelivered = route.status === 'delivered';
 
-        // Dynamic arc brightness: full when selected or no selection, dim otherwise
+        // Dynamic arc opacity: full when selected or no selection, dim otherwise
         const dynArcColor = new C.CallbackProperty(() => {
           const sel = selectedCodeRef.current;
-          const alpha = isDelivered ? 0.22 : (sel === null || sel === code) ? 0.82 : 0.18;
+          const alpha = isDelivered ? 0.18 : (sel === null || sel === code) ? 0.85 : 0.20;
           return color.withAlpha(alpha);
         }, false);
-        const dynGlow = new C.CallbackProperty(() => {
-          const sel = selectedCodeRef.current;
-          return (sel === null || sel === code) ? 0.45 : 0.10;
-        }, false);
 
+        // Thin dashed arc — FlightRadar24 style (no thick glow)
         viewer.entities.add({
           polyline: {
-            positions: arcPts, width: isDelivered ? 1.5 : 2.8,
-            material: new C.PolylineGlowMaterialProperty({ glowPower: dynGlow, color: dynArcColor }),
+            positions: arcPts,
+            width: isDelivered ? 1 : 1.5,
+            material: new C.PolylineDashMaterialProperty({
+              color: dynArcColor,
+              gapColor: C.Color.TRANSPARENT,
+              dashLength: 16.0,
+              dashPattern: 255,
+            }),
             arcType: C.ArcType.NONE,
           },
         });
@@ -292,7 +295,7 @@ export default function GoogleEarthPreview() {
           outlineColor:C.Color.WHITE.withAlpha(0.35), outlineWidth:1.5,
           disableDepthTestDistance: Number.POSITIVE_INFINITY,
         });
-        particles.current.push({ prim:pkg, arcPts, progress:base+(Math.random()-0.5)*0.04, dir:1, base, hex, code });
+        particles.current.push({ prim:pkg, arcPts, progress:Math.random(), base, hex, code });
 
         // City labels (scale by distance)
         const labelScale = new C.NearFarScalar(300_000, 1.6, 7_000_000, 0.0);
@@ -332,7 +335,7 @@ export default function GoogleEarthPreview() {
       evh.setInputAction(()=>{ isInteracting.current=true; if(resumeTimer) clearTimeout(resumeTimer); resumeTimer=setTimeout(()=>{isInteracting.current=false;},3500); }, C.ScreenSpaceEventType.WHEEL);
 
       // ── Animation loop ─────────────────────────────────────────────────
-      const DRIFT = 0.018, SPEED = 0.00016;
+      const TRAVEL_SPEED = 0.00028;
       let prevSel: string|null = null;
       let rafId: number;
 
@@ -340,15 +343,11 @@ export default function GoogleEarthPreview() {
         if (cancelledRef.current) return;
         if (!isInteracting.current) viewer.camera.rotateRight(-0.00014);
 
-        // Package drift animation
+        // Particle travels continuously from origin to destination, looping
         for (const ps of particles.current) {
-          if (ps.base < 0.98) {
-            ps.progress += SPEED * ps.dir;
-            if (ps.progress > ps.base + DRIFT) ps.dir = -1;
-            if (ps.progress < ps.base - DRIFT) ps.dir = 1;
-            const idx = Math.max(0, Math.min(ps.arcPts.length-1, Math.floor(ps.progress*ps.arcPts.length)));
-            ps.prim.position = ps.arcPts[idx];
-          }
+          ps.progress = (ps.progress + TRAVEL_SPEED) % 1.0;
+          const idx = Math.max(0, Math.min(ps.arcPts.length - 1, Math.floor(ps.progress * ps.arcPts.length)));
+          ps.prim.position = ps.arcPts[idx];
         }
 
         // Ring expand animation

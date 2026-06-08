@@ -148,8 +148,7 @@ interface RouteState {
   glow:        any;          // wide very-low-alpha line = soft halo
   dashes:      any[];        // thin dotted visual segments
   particles:   any[];        // 3 small moving particles
-  pkgMarker:   any | null;   // position dot for in_transit
-  pkgImg:      HTMLImageElement | null;
+  pkgDot:      any | null;   // Polyline3DElement circle tracking lead particle (in_transit)
   pts:         LLA[];
   progs:       number[];     // per-particle progress (float index into pts)
   speed:       number;
@@ -255,7 +254,7 @@ export default function Map3DGlobe({ className }: { className?: string }) {
       st.glow?.parentNode?.removeChild(st.glow);
       st.dashes.forEach((d: any) => d.parentNode?.removeChild(d));
       st.particles.forEach((p: any) => p.parentNode?.removeChild(p));
-      st.pkgMarker?.parentNode?.removeChild(st.pkgMarker);
+      st.pkgDot?.parentNode?.removeChild(st.pkgDot);
     });
     routeStates.current.clear();
     cityRings.current.forEach(({ ring1, ring2 }) => {
@@ -272,8 +271,6 @@ export default function Map3DGlobe({ className }: { className?: string }) {
       const {
         Polyline3DInteractiveElement,
         Polyline3DElement,
-        Marker3DInteractiveElement,
-        Marker3DElement,
         AltitudeMode,
       } = await (window as any).google.maps.importLibrary('maps3d');
       if (deadRef.current) return;
@@ -347,29 +344,26 @@ export default function Map3DGlobe({ className }: { className?: string }) {
           return p;
         });
 
-        // Package position dot (in_transit only)
-        let pkgMarker: any = null;
-        let pkgImg: HTMLImageElement | null = null;
-        if (route.status === 'in_transit' && Marker3DElement) {
-          pkgMarker = new Marker3DElement();
-          pkgMarker.altitudeMode = AltitudeMode.CLAMP_TO_GROUND;
-          pkgMarker.position     = { lat: pts[0].lat, lng: pts[0].lng, altitude: 0 };
-          pkgImg = document.createElement('img') as HTMLImageElement;
-          pkgImg.setAttribute('slot', 'anchor');
-          pkgImg.src = createDotSVG('#e0f7fa', 8);
-          pkgImg.style.cssText = 'width:8px;height:8px;display:block;opacity:0.35;';
-          pkgMarker.appendChild(pkgImg);
+        // Package position dot — Polyline3DElement small circle (no Marker3DElement / no red pin)
+        let pkgDot: any = null;
+        if (route.status === 'in_transit') {
+          pkgDot = new Polyline3DElement();
+          pkgDot.strokeColor  = withAlpha('#e0f7fa', 0.35);
+          pkgDot.strokeWidth  = 6;
+          pkgDot.altitudeMode = AltitudeMode.CLAMP_TO_GROUND;
+          pkgDot.geodesic     = false;
+          pkgDot.coordinates  = circleCoords(pts[0].lat, pts[0].lng, 1, 8);
         }
 
         map.appendChild(clickTarget);
         map.appendChild(glow);
         dashes.forEach((d: any) => map.appendChild(d));
         particles.forEach((p: any) => map.appendChild(p));
-        if (pkgMarker) map.appendChild(pkgMarker);
+        if (pkgDot) map.appendChild(pkgDot);
 
         routeStates.current.set(route.trackingCode, {
           clickTarget, glow, dashes, particles,
-          pkgMarker, pkgImg,
+          pkgDot,
           pts, progs, speed: spd,
           status:       route.status,
           trackingCode: route.trackingCode,
@@ -398,25 +392,25 @@ export default function Map3DGlobe({ className }: { className?: string }) {
           routeKeys: c.routeKeys,
         });
 
-        // Custom dot marker — slot="anchor" img replaces Google red pin; no label
-        const marker = new Marker3DInteractiveElement();
-        marker.position     = { lat: c.lat, lng: c.lng, altitude: 0 };
-        marker.altitudeMode = AltitudeMode.CLAMP_TO_GROUND;
-        const dotImg = document.createElement('img') as HTMLImageElement;
-        dotImg.setAttribute('slot', 'anchor');
-        dotImg.src = createDotSVG(c.hex, 8);
-        dotImg.style.cssText = 'width:8px;height:8px;display:block;';
-        marker.appendChild(dotImg);
+        // City dot — Polyline3DInteractiveElement circle (1km radius, 8px stroke)
+        // A 1km radius circle drawn with 8px strokeWidth renders as a solid ~8px dot.
+        // No Marker3DInteractiveElement = no Google red pin.
+        const dot = new Polyline3DInteractiveElement();
+        dot.strokeColor  = withAlpha(c.hex, 0.95);
+        dot.strokeWidth  = 8;
+        dot.altitudeMode = AltitudeMode.CLAMP_TO_GROUND;
+        dot.geodesic     = false;
+        dot.coordinates  = circleCoords(c.lat, c.lng, 1, 8);
         const cc = c;
-        marker.addEventListener('gmp-click', () => {
+        dot.addEventListener('gmp-click', () => {
           const match = routes.find(r =>
             (r.destination.lat === cc.lat && r.destination.lng === cc.lng) ||
             (r.origin.lat      === cc.lat && r.origin.lng      === cc.lng)
           );
           if (match) _flyTo(map, match);
         });
-        map.appendChild(marker);
-        markerEls.current.push(marker);
+        map.appendChild(dot);
+        markerEls.current.push(dot);
       }
 
       // ~20 fps animation loop
@@ -444,7 +438,7 @@ export default function Map3DGlobe({ className }: { className?: string }) {
               p.strokeColor = withAlpha('#e0f7fa', pAlpha);
               p.strokeWidth = pWidth;
             });
-            if (st.pkgImg) st.pkgImg.style.opacity = isSel ? '1' : '0.15';
+            if (st.pkgDot) st.pkgDot.strokeColor = withAlpha('#e0f7fa', isSel ? 0.95 : 0.15);
           });
         }
 
@@ -459,11 +453,11 @@ export default function Map3DGlobe({ className }: { className?: string }) {
               st.pts[(s + j) % L]
             );
           }
-          // Track package position with lead particle
-          if (st.status === 'in_transit' && st.pkgMarker) {
+          // Update pkgDot circle position to track lead particle
+          if (st.status === 'in_transit' && st.pkgDot) {
             const s  = Math.floor(st.progs[0]);
             const pt = st.pts[s % L];
-            st.pkgMarker.position = { lat: pt.lat, lng: pt.lng, altitude: 0 };
+            st.pkgDot.coordinates = circleCoords(pt.lat, pt.lng, 1, 8);
           }
         });
 

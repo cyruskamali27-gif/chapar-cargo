@@ -81,31 +81,30 @@ function svgToUrl(svg: string) {
   return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
 }
 
-const ORIGIN_SVG = svgToUrl(`
-  <svg xmlns="http://www.w3.org/2000/svg" width="36" height="44" viewBox="0 0 36 44">
-    <path d="M18 0C8.06 0 0 8.06 0 18c0 13.5 18 26 18 26s18-12.5 18-26C36 8.06 27.94 0 18 0z"
-      fill="#fbbf24" stroke="rgba(0,0,0,0.4)" stroke-width="1.5"/>
-    <circle cx="18" cy="18" r="7" fill="white" opacity="0.95"/>
-    <circle cx="18" cy="18" r="3" fill="#fbbf24"/>
-  </svg>`);
+// Small glowing circle dots — no teardrop/pin shape
+const ORIGIN_SVG = svgToUrl(
+  `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 12 12">` +
+  `<circle cx="6" cy="6" r="5.5" fill="#3b82f6" opacity="0.28"/>` +
+  `<circle cx="6" cy="6" r="3.5" fill="#3b82f6" stroke="white" stroke-width="1.5"/>` +
+  `</svg>`
+);
 
 function destSvg(color: string) {
-  return svgToUrl(`
-  <svg xmlns="http://www.w3.org/2000/svg" width="36" height="44" viewBox="0 0 36 44">
-    <path d="M18 0C8.06 0 0 8.06 0 18c0 13.5 18 26 18 26s18-12.5 18-26C36 8.06 27.94 0 18 0z"
-      fill="${color}" stroke="rgba(0,0,0,0.4)" stroke-width="1.5"/>
-    <circle cx="18" cy="18" r="7" fill="white" opacity="0.95"/>
-    <circle cx="18" cy="18" r="3" fill="${color}"/>
-  </svg>`);
+  return svgToUrl(
+    `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 12 12">` +
+    `<circle cx="6" cy="6" r="5.5" fill="${color}" opacity="0.28"/>` +
+    `<circle cx="6" cy="6" r="3.5" fill="${color}" stroke="white" stroke-width="1.5"/>` +
+    `</svg>`
+  );
 }
 
 function pkgSvg(color: string) {
-  return svgToUrl(`
-  <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 28 28">
-    <circle cx="14" cy="14" r="13" fill="${color}" stroke="white" stroke-width="2.5"/>
-    <circle cx="14" cy="14" r="6" fill="white" opacity="0.9"/>
-    <circle cx="14" cy="14" r="2.5" fill="${color}"/>
-  </svg>`);
+  return svgToUrl(
+    `<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 10 10">` +
+    `<circle cx="5" cy="5" r="4.5" fill="${color}" opacity="0.30"/>` +
+    `<circle cx="5" cy="5" r="3" fill="${color}" stroke="white" stroke-width="1.5"/>` +
+    `</svg>`
+  );
 }
 
 export interface GoogleTrackingMapProps {
@@ -176,87 +175,89 @@ export default function GoogleTrackingMap({
       const completedPts = pts.slice(0, splitIdx + 1);
       const remainingPts = pts.slice(splitIdx);
 
+      // Completed portion — thin dotted line in status colour
       if (completedPts.length > 1) {
         new G.Polyline({
           path: completedPts,
-          strokeColor: color,
-          strokeOpacity: 0.85,
-          strokeWeight: useArc ? 3 : 4,
+          strokeOpacity: 0,
+          strokeWeight: 2,
+          icons: [{
+            icon: { path: 'M 0,-1 0,1', strokeOpacity: 0.90, strokeColor: color, scale: 3 },
+            offset: '0',
+            repeat: '14px',
+          }],
           map,
           geodesic: useArc,
         });
       }
 
+      // Remaining portion — dim dotted line
       if (remainingPts.length > 1) {
         new G.Polyline({
           path: remainingPts,
-          strokeColor: '#94a3b8',
-          strokeOpacity: 0.5,
-          strokeWeight: useArc ? 2 : 3,
-          icons: [{ icon: { path: 'M 0,-1 0,1', strokeOpacity: 1, scale: 3 }, offset: '0', repeat: '18px' }],
+          strokeOpacity: 0,
+          strokeWeight: 2,
+          icons: [{
+            icon: { path: 'M 0,-1 0,1', strokeOpacity: 0.35, strokeColor: '#64748b', scale: 3 },
+            offset: '0',
+            repeat: '14px',
+          }],
           map,
           geodesic: useArc,
         });
       }
 
-      // Origin marker
+      // Origin marker — small circle dot, centered anchor (no pin shape)
       const originMarker = new G.Marker({
         position: origin,
         map,
-        icon: { url: ORIGIN_SVG, scaledSize: new G.Size(36, 44), anchor: new G.Point(18, 44) },
+        icon: { url: ORIGIN_SVG, scaledSize: new G.Size(12, 12), anchor: new G.Point(6, 6) },
         title: 'Origin',
         zIndex: 10,
       });
 
-      // Destination marker
+      // Destination marker — small circle dot
       const destMarker = new G.Marker({
         position: dest,
         map,
-        icon: { url: destSvg(color), scaledSize: new G.Size(36, 44), anchor: new G.Point(18, 44) },
+        icon: { url: destSvg(color), scaledSize: new G.Size(12, 12), anchor: new G.Point(6, 6) },
         title: 'Destination',
         zIndex: 10,
       });
 
-      // Package (animated)
-      const pkgIcon = { url: pkgSvg(color), scaledSize: new G.Size(28, 28), anchor: new G.Point(14, 14) };
+      // Package position marker — small dot at current status position (static)
       const pkgMarker = new G.Marker({
         position: pts[splitIdx],
         map,
-        icon: pkgIcon,
+        icon: { url: pkgSvg(color), scaledSize: new G.Size(10, 10), anchor: new G.Point(5, 5) },
         title: trackingCode ?? 'Package',
         zIndex: 20,
       });
 
-      // Animate package along route with small drift
-      let rafId: number;
-      let drift = 0;
-      let dir = 1;
-      const DRIFT_MAX = Math.min(0.02, 0.5 / pts.length);
-
-      const tick = () => {
-        if (cancelled) return;
-        if (status !== 'delivered' && status !== 'pending' && status !== 'escrow_locked') {
-          drift += 0.0003 * dir;
-          if (drift > DRIFT_MAX) dir = -1;
-          if (drift < -DRIFT_MAX) dir = 1;
-          const idx = Math.max(0, Math.min(pts.length - 1, Math.floor((progress + drift) * pts.length)));
-          pkgMarker.setPosition(pts[idx]);
-        }
-        rafId = requestAnimationFrame(tick);
+      // Animated travel particle — loops origin→destination continuously
+      const travelIcon = {
+        path: G.SymbolPath.CIRCLE,
+        scale: 3.5,
+        fillColor: '#67e8f9',
+        fillOpacity: 0.95,
+        strokeColor: '#ffffff',
+        strokeWeight: 1,
       };
-      rafId = requestAnimationFrame(tick);
-
-      // Origin label
-      new G.InfoWindow({
-        content: `<div style="font-size:12px;font-weight:600;color:#1e293b">📦 Origin</div>`,
-        disableAutoPan: true,
-      });
+      const travelLine = new G.Polyline({ path: pts, strokeOpacity: 0, geodesic: useArc, map });
+      travelLine.set('icons', [{ icon: travelIcon, offset: '0%' }]);
+      let travelPct = Math.random() * 100;
+      const travelId = setInterval(() => {
+        if (cancelled) { clearInterval(travelId); return; }
+        travelPct = (travelPct + 0.4) % 100;
+        travelLine.set('icons', [{ icon: travelIcon, offset: `${travelPct.toFixed(1)}%` }]);
+      }, 50);
 
       cleanupRef.current = () => {
-        cancelAnimationFrame(rafId);
+        clearInterval(travelId);
         originMarker.setMap(null);
         destMarker.setMap(null);
         pkgMarker.setMap(null);
+        travelLine.setMap(null);
       };
     });
 
