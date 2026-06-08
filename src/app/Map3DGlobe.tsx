@@ -1,18 +1,16 @@
 /**
- * Map3DGlobe v2 — Google Photorealistic 3D Maps (alpha)
+ * Map3DGlobe v3 — aviation-style premium route visualization
  *
- * v2 additions over v1:
- *  1. Comet     – bright 8-point moving window (Polyline3DElement) per active route
- *  2. Pulsing rings – 2 × expanding/fading ring circles per city (radar effect)
- *  3. Tracking panel – top-left search: fly-to + detail card on match
- *  4. gestureHandling COOPERATIVE + scroll-down arrow (bottom-center)
- *
- * Globe  : gmp-map-3d, HYBRID mode, gestureHandling COOPERATIVE
- * Routes : Polyline3DInteractiveElement CLAMP_TO_GROUND + geodesic (clings to globe)
- * Key    : import.meta.env.VITE_GOOGLE_MAPS_API_KEY
- * Data   : /api/routes polled every 30 s
+ * v3 changes:
+ *  - Custom SVG dot markers (slot="anchor") — no Google red pins, no labels
+ *  - Thin dotted base lines (2px segmented) + wide glow shadow
+ *  - 3 moving particles per route (replaces thick single comet)
+ *  - Package position marker (in_transit) tracks lead particle
+ *  - Selected route: others fade to 12%, selected → 85%
+ *  - Pulse rings tuned to 70km max; blue=origin, cyan=destination
  */
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 /* ── Global type stubs ─────────────────────────────────────────────────────── */
 declare global {
@@ -37,56 +35,78 @@ type LLA = { lat: number; lng: number; altitude: number };
 
 /* ── Status colours / labels ──────────────────────────────────────────────── */
 const STATUS_HEX: Record<GlobeRoute['status'], string> = {
-  pending:      '#eab308',
-  escrow_locked:'#a855f7',
-  assigned:     '#22d3ee',
-  in_transit:   '#3b82f6',
-  delivered:    '#22c55e',
-  disputed:     '#ef4444',
+  pending:       '#eab308',
+  escrow_locked: '#a855f7',
+  assigned:      '#22d3ee',
+  in_transit:    '#3b82f6',
+  delivered:     '#22c55e',
+  disputed:      '#ef4444',
 };
 const STATUS_LABEL: Record<GlobeRoute['status'], string> = {
-  pending:'Pending', escrow_locked:'Escrow Locked', assigned:'Assigned',
-  in_transit:'In Transit', delivered:'Delivered', disputed:'Disputed',
+  pending: 'Pending', escrow_locked: 'Escrow Locked', assigned: 'Assigned',
+  in_transit: 'In Transit', delivered: 'Delivered', disputed: 'Disputed',
 };
 
 /* ── Geometry helpers ─────────────────────────────────────────────────────── */
-
-// Great-circle slerp — N segments, altitude 0 (used with CLAMP_TO_GROUND)
 function gcPoints(la1: number, lo1: number, la2: number, lo2: number, N = 64): LLA[] {
   const D = Math.PI / 180;
-  const xyz = (la: number, lo: number): [number,number,number] => {
-    const r=la*D, g=lo*D;
-    return [Math.cos(r)*Math.cos(g), Math.cos(r)*Math.sin(g), Math.sin(r)];
+  const xyz = (la: number, lo: number): [number, number, number] => {
+    const r = la * D, g = lo * D;
+    return [Math.cos(r) * Math.cos(g), Math.cos(r) * Math.sin(g), Math.sin(r)];
   };
-  const p1 = xyz(la1,lo1), p2 = xyz(la2,lo2);
-  const dot = Math.min(1, Math.max(-1, p1[0]*p2[0]+p1[1]*p2[1]+p1[2]*p2[2]));
+  const p1 = xyz(la1, lo1), p2 = xyz(la2, lo2);
+  const dot = Math.min(1, Math.max(-1, p1[0]*p2[0] + p1[1]*p2[1] + p1[2]*p2[2]));
   const omega = Math.acos(dot);
-  return Array.from({length:N+1}, (_,i) => {
-    const t=i/N;
-    if (omega<1e-10) return {lat:la1, lng:lo1, altitude:0};
+  return Array.from({ length: N + 1 }, (_, i) => {
+    const t = i / N;
+    if (omega < 1e-10) return { lat: la1, lng: lo1, altitude: 0 };
     const sinO = Math.sin(omega);
-    const s0=Math.sin((1-t)*omega)/sinO, s1=Math.sin(t*omega)/sinO;
-    const x=s0*p1[0]+s1*p2[0], y=s0*p1[1]+s1*p2[1], z=s0*p1[2]+s1*p2[2];
-    return {lat:Math.atan2(z,Math.sqrt(x*x+y*y))/D, lng:Math.atan2(y,x)/D, altitude:0};
+    const s0 = Math.sin((1 - t) * omega) / sinO, s1 = Math.sin(t * omega) / sinO;
+    const x = s0*p1[0] + s1*p2[0], y = s0*p1[1] + s1*p2[1], z = s0*p1[2] + s1*p2[2];
+    return { lat: Math.atan2(z, Math.sqrt(x*x + y*y)) / D, lng: Math.atan2(y, x) / D, altitude: 0 };
   });
 }
 
-// Approximate circle of radiusKm around (lat0,lng0) — for pulsing rings
 function circleCoords(lat0: number, lng0: number, radiusKm: number, N = 28): LLA[] {
   const D = Math.PI / 180;
   const r = Math.max(0.5, radiusKm);
   const dLat = (r / 6371) / D;
   const dLng = dLat / (Math.cos(lat0 * D) || 0.001);
-  return Array.from({length: N+1}, (_, i) => {
+  return Array.from({ length: N + 1 }, (_, i) => {
     const a = (i / N) * 2 * Math.PI;
-    return { lat: lat0 + dLat*Math.sin(a), lng: lng0 + dLng*Math.cos(a), altitude: 0 };
+    return { lat: lat0 + dLat * Math.sin(a), lng: lng0 + dLng * Math.cos(a), altitude: 0 };
   });
 }
 
-// Append 2-digit hex alpha to a #rrggbb string  →  #rrggbbaa
 function withAlpha(hex6: string, alpha: number): string {
   const a = Math.max(0, Math.min(255, Math.round(alpha * 255)));
   return hex6 + a.toString(16).padStart(2, '0');
+}
+
+/* ── Dotted-line segment splitter ─────────────────────────────────────────── */
+const DASH_LEN = 5;
+const GAP_LEN  = 4;
+function dashSegments(pts: LLA[]): LLA[][] {
+  const segs: LLA[][] = [];
+  const period = DASH_LEN + GAP_LEN;
+  for (let i = 0; i < pts.length; i += period) {
+    const end = Math.min(i + DASH_LEN + 1, pts.length);
+    if (end - i >= 2) segs.push(pts.slice(i, end));
+  }
+  return segs;
+}
+
+/* ── SVG glowing dot → data URL (replaces Google red pin) ────────────────── */
+function createDotSVG(color: string, size = 8): string {
+  const r = size / 2;
+  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}">` +
+    `<defs><filter id="g"><feGaussianBlur stdDeviation="1.5" result="b"/>` +
+    `<feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>` +
+    `</filter></defs>` +
+    `<circle cx="${r}" cy="${r}" r="${r - 0.5}" fill="${color}" filter="url(#g)"/>` +
+    `</svg>`
+  )}`;
 }
 
 /* ── Google Maps JS API bootstrap (v=alpha, module singleton) ─────────────── */
@@ -124,43 +144,53 @@ function bootstrapGoogleMaps(apiKey: string): void {
 
 /* ── Animation state types ────────────────────────────────────────────────── */
 interface RouteState {
-  base:   any;        // Polyline3DInteractiveElement — dim static full route
-  comet:  any;        // Polyline3DElement — bright 8-pt moving window
-  pts:    LLA[];      // 65 great-circle points
-  prog:   number;     // float index (advances each frame)
-  speed:  number;     // pts / frame at ~15 fps
-  status: GlobeRoute['status'];
+  clickTarget: any;          // transparent interactive polyline — hit detection only
+  glow:        any;          // wide very-low-alpha line = soft halo
+  dashes:      any[];        // thin dotted visual segments
+  particles:   any[];        // 3 small moving particles
+  pkgMarker:   any | null;   // position dot for in_transit
+  pkgImg:      HTMLImageElement | null;
+  pts:         LLA[];
+  progs:       number[];     // per-particle progress (float index into pts)
+  speed:       number;
+  status:      GlobeRoute['status'];
+  trackingCode: string;
 }
 interface CityRingState {
-  ring1: any;         // Polyline3DElement — pulse ring A
-  ring2: any;         // Polyline3DElement — pulse ring B (staggered)
-  lat:   number;
-  lng:   number;
-  hex:   string;
-  t1:    number;      // phase 0–1
-  t2:    number;
+  ring1:     any;
+  ring2:     any;
+  lat:       number;
+  lng:       number;
+  hex:       string;
+  t1:        number;
+  t2:        number;
+  routeKeys: string[];
 }
 
-const COMET_W    = 8;           // comet head length in route-points
-const RING_MAXKM = 280;         // max pulse-ring radius (km)
-const FRAME_MS   = 1000 / 15;  // ~15 fps cap
+const PARTICLE_W = 2;
+const PARTICLE_N = 3;
+const RING_MAXKM = 70;
+const FRAME_MS   = 1000 / 20;   // ~20 fps
 
 /* ── Component ────────────────────────────────────────────────────────────── */
 export default function Map3DGlobe({ className }: { className?: string }) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const mapRef       = useRef<any>(null);
-  const routeStates  = useRef<Map<string, RouteState>>(new Map());
-  const cityRings    = useRef<CityRingState[]>([]);
-  const markerEls    = useRef<any[]>([]);
-  const rafRef       = useRef(0);
-  const lastFrameRef = useRef(0);
-  const deadRef      = useRef(false);
+  const containerRef    = useRef<HTMLDivElement>(null);
+  const mapRef          = useRef<any>(null);
+  const routeStates     = useRef<Map<string, RouteState>>(new Map());
+  const cityRings       = useRef<CityRingState[]>([]);
+  const markerEls       = useRef<any[]>([]);
+  const rafRef          = useRef(0);
+  const lastFrameRef    = useRef(0);
+  const deadRef         = useRef(false);
+  const selectedCodeRef = useRef<string | null>(null);
+  const selDirtyRef     = useRef(false);
 
   const [routes,     setRoutes]     = useState<GlobeRoute[]>([]);
   const [selected,   setSelected]   = useState<GlobeRoute | null>(null);
   const [mapReady,   setMapReady]   = useState(false);
   const [trackInput, setTrackInput] = useState('');
   const [trackError, setTrackError] = useState<string | null>(null);
+  const [showArrow,  setShowArrow]  = useState(true);
 
   /* ── Poll /api/routes every 30 s ─────────────────────────────────────────── */
   useEffect(() => {
@@ -193,7 +223,7 @@ export default function Map3DGlobe({ className }: { className?: string }) {
         map.tilt            = 0;
         map.heading         = 0;
         map.mode            = MapMode.HYBRID;
-        map.gestureHandling = 'COOPERATIVE'; // normal scroll passes through; pinch/ctrl+scroll = zoom globe
+        map.gestureHandling = 'COOPERATIVE';
         map.style.cssText   = 'width:100%;height:100%;display:block;';
 
         containerRef.current.appendChild(map);
@@ -219,9 +249,13 @@ export default function Map3DGlobe({ className }: { className?: string }) {
     if (!mapReady || !map) return;
 
     cancelAnimationFrame(rafRef.current);
-    routeStates.current.forEach(({ base, comet }) => {
-      base.parentNode?.removeChild(base);
-      comet.parentNode?.removeChild(comet);
+
+    routeStates.current.forEach(st => {
+      st.clickTarget?.parentNode?.removeChild(st.clickTarget);
+      st.glow?.parentNode?.removeChild(st.glow);
+      st.dashes.forEach((d: any) => d.parentNode?.removeChild(d));
+      st.particles.forEach((p: any) => p.parentNode?.removeChild(p));
+      st.pkgMarker?.parentNode?.removeChild(st.pkgMarker);
     });
     routeStates.current.clear();
     cityRings.current.forEach(({ ring1, ring2 }) => {
@@ -239,58 +273,114 @@ export default function Map3DGlobe({ className }: { className?: string }) {
         Polyline3DInteractiveElement,
         Polyline3DElement,
         Marker3DInteractiveElement,
+        Marker3DElement,
         AltitudeMode,
       } = await (window as any).google.maps.importLibrary('maps3d');
       if (deadRef.current) return;
 
-      const cities = new Map<string, { city:string; country:string; lat:number; lng:number; hex:string }>();
-
+      // Build city map; destination color (cyan) overrides origin (blue)
+      const cityData = new Map<string, {
+        lat: number; lng: number; hex: string; routeKeys: string[];
+      }>();
       for (const route of routes) {
-        const hex  = STATUS_HEX[route.status] ?? '#3b82f6';
-        const pts  = gcPoints(route.origin.lat, route.origin.lng, route.destination.lat, route.destination.lng, 64);
-        const spd  = route.status === 'in_transit' ? 0.38
-                   : route.status === 'assigned'   ? 0.22
-                   :                                 0.13;
-
-        // Dim static base line — interactive so gmp-click works
-        const base = new Polyline3DInteractiveElement();
-        base.strokeColor  = withAlpha(hex, 0.40);
-        base.strokeWidth  = 5;
-        base.altitudeMode = AltitudeMode.CLAMP_TO_GROUND;
-        base.geodesic     = true;
-        base.coordinates  = pts;
-
-        // Bright comet window that races along the route
-        const comet = new Polyline3DElement();
-        comet.strokeColor  = withAlpha(hex, 0.95);
-        comet.strokeWidth  = 12;
-        comet.altitudeMode = AltitudeMode.CLAMP_TO_GROUND;
-        comet.geodesic     = true;
-        comet.coordinates  = pts.slice(0, COMET_W);
-
-        const captured = route;
-        base.addEventListener('gmp-click', () => _flyTo(map, captured));
-
-        map.appendChild(base);
-        map.appendChild(comet);
-        routeStates.current.set(route.trackingCode, {
-          base, comet, pts,
-          prog:   Math.random() * pts.length,
-          speed:  spd,
-          status: route.status,
-        });
-
         const ok = `${route.origin.lat},${route.origin.lng}`;
         const dk = `${route.destination.lat},${route.destination.lng}`;
-        if (!cities.has(ok)) cities.set(ok, { ...route.origin, hex });
-        if (!cities.has(dk)) cities.set(dk, { ...route.destination, hex });
+        if (!cityData.has(ok)) {
+          cityData.set(ok, { lat: route.origin.lat, lng: route.origin.lng, hex: '#3b82f6', routeKeys: [] });
+        }
+        cityData.get(ok)!.routeKeys.push(route.trackingCode);
+        if (!cityData.has(dk)) {
+          cityData.set(dk, { lat: route.destination.lat, lng: route.destination.lng, hex: '#22d3ee', routeKeys: [] });
+        } else {
+          cityData.get(dk)!.hex = '#22d3ee';
+        }
+        cityData.get(dk)!.routeKeys.push(route.trackingCode);
       }
 
-      // Pulsing rings + markers per city
-      for (const [, c] of cities) {
+      for (const route of routes) {
+        const hex = STATUS_HEX[route.status] ?? '#3b82f6';
+        const pts = gcPoints(route.origin.lat, route.origin.lng, route.destination.lat, route.destination.lng, 64);
+        const spd = route.status === 'in_transit' ? 0.38
+                  : route.status === 'assigned'   ? 0.22
+                  :                                 0.13;
+
+        // Invisible wide line — intercepts clicks
+        const clickTarget = new Polyline3DInteractiveElement();
+        clickTarget.strokeColor  = withAlpha(hex, 0);
+        clickTarget.strokeWidth  = 14;
+        clickTarget.altitudeMode = AltitudeMode.CLAMP_TO_GROUND;
+        clickTarget.geodesic     = true;
+        clickTarget.coordinates  = pts;
+        const captured = route;
+        clickTarget.addEventListener('gmp-click', () => _flyTo(map, captured));
+
+        // Wide, very-low-alpha full line = soft glow halo
+        const glow = new Polyline3DElement();
+        glow.strokeColor  = withAlpha(hex, 0.12);
+        glow.strokeWidth  = 8;
+        glow.altitudeMode = AltitudeMode.CLAMP_TO_GROUND;
+        glow.geodesic     = true;
+        glow.coordinates  = pts;
+
+        // Thin dotted segments (2px)
+        const segs   = dashSegments(pts);
+        const dashes = segs.map(seg => {
+          const d = new Polyline3DElement();
+          d.strokeColor  = withAlpha(hex, 0.35);
+          d.strokeWidth  = 2;
+          d.altitudeMode = AltitudeMode.CLAMP_TO_GROUND;
+          d.geodesic     = true;
+          d.coordinates  = seg;
+          return d;
+        });
+
+        // 3 particles evenly spaced along route
+        const L     = pts.length;
+        const progs = Array.from({ length: PARTICLE_N }, (_, i) => (i / PARTICLE_N) * L);
+        const particles = progs.map(() => {
+          const p = new Polyline3DElement();
+          p.strokeColor  = withAlpha('#e0f7fa', 0.85);
+          p.strokeWidth  = 2;
+          p.altitudeMode = AltitudeMode.CLAMP_TO_GROUND;
+          p.geodesic     = true;
+          p.coordinates  = pts.slice(0, PARTICLE_W);
+          return p;
+        });
+
+        // Package position dot (in_transit only)
+        let pkgMarker: any = null;
+        let pkgImg: HTMLImageElement | null = null;
+        if (route.status === 'in_transit' && Marker3DElement) {
+          pkgMarker = new Marker3DElement();
+          pkgMarker.altitudeMode = AltitudeMode.CLAMP_TO_GROUND;
+          pkgMarker.position     = { lat: pts[0].lat, lng: pts[0].lng, altitude: 0 };
+          pkgImg = document.createElement('img') as HTMLImageElement;
+          pkgImg.setAttribute('slot', 'anchor');
+          pkgImg.src = createDotSVG('#e0f7fa', 8);
+          pkgImg.style.cssText = 'width:8px;height:8px;display:block;opacity:0.35;';
+          pkgMarker.appendChild(pkgImg);
+        }
+
+        map.appendChild(clickTarget);
+        map.appendChild(glow);
+        dashes.forEach((d: any) => map.appendChild(d));
+        particles.forEach((p: any) => map.appendChild(p));
+        if (pkgMarker) map.appendChild(pkgMarker);
+
+        routeStates.current.set(route.trackingCode, {
+          clickTarget, glow, dashes, particles,
+          pkgMarker, pkgImg,
+          pts, progs, speed: spd,
+          status:       route.status,
+          trackingCode: route.trackingCode,
+        });
+      }
+
+      // Pulsing rings + custom dot markers per city
+      for (const [, c] of cityData) {
         const makeRing = (): any => {
           const r = new Polyline3DElement();
-          r.strokeWidth  = 3;
+          r.strokeWidth  = 2;
           r.altitudeMode = AltitudeMode.CLAMP_TO_GROUND;
           r.geodesic     = false;
           r.strokeColor  = withAlpha(c.hex, 0);
@@ -305,12 +395,18 @@ export default function Map3DGlobe({ className }: { className?: string }) {
           lat: c.lat, lng: c.lng, hex: c.hex,
           t1: Math.random(),
           t2: (Math.random() + 0.5) % 1,
+          routeKeys: c.routeKeys,
         });
 
+        // Custom dot marker — slot="anchor" img replaces Google red pin; no label
         const marker = new Marker3DInteractiveElement();
         marker.position     = { lat: c.lat, lng: c.lng, altitude: 0 };
-        marker.label        = c.city;
         marker.altitudeMode = AltitudeMode.CLAMP_TO_GROUND;
+        const dotImg = document.createElement('img') as HTMLImageElement;
+        dotImg.setAttribute('slot', 'anchor');
+        dotImg.src = createDotSVG(c.hex, 8);
+        dotImg.style.cssText = 'width:8px;height:8px;display:block;';
+        marker.appendChild(dotImg);
         const cc = c;
         marker.addEventListener('gmp-click', () => {
           const match = routes.find(r =>
@@ -323,31 +419,66 @@ export default function Map3DGlobe({ className }: { className?: string }) {
         markerEls.current.push(marker);
       }
 
-      // ~15 fps animation loop
+      // ~20 fps animation loop
       const tick = (now: number) => {
         if (deadRef.current) return;
         rafRef.current = requestAnimationFrame(tick);
         if (now - lastFrameRef.current < FRAME_MS) return;
         lastFrameRef.current = now;
 
-        // Advance comet window
+        // Apply selection-based opacity when dirty
+        if (selDirtyRef.current) {
+          selDirtyRef.current = false;
+          const selCode = selectedCodeRef.current;
+          routeStates.current.forEach((st, code) => {
+            const isSel  = !selCode || code === selCode;
+            const dAlpha = isSel ? 0.85 : 0.12;
+            const gAlpha = isSel ? 0.20 : 0.04;
+            const pAlpha = isSel ? 0.95 : 0.30;
+            const pWidth = isSel ? 3    : 1;
+            st.glow.strokeColor = withAlpha(STATUS_HEX[st.status], gAlpha);
+            st.dashes.forEach((d: any) => {
+              d.strokeColor = withAlpha(STATUS_HEX[st.status], dAlpha);
+            });
+            st.particles.forEach((p: any) => {
+              p.strokeColor = withAlpha('#e0f7fa', pAlpha);
+              p.strokeWidth = pWidth;
+            });
+            if (st.pkgImg) st.pkgImg.style.opacity = isSel ? '1' : '0.15';
+          });
+        }
+
+        // Advance particles
         routeStates.current.forEach(st => {
           if (st.status === 'delivered' || st.status === 'disputed') return;
-          st.prog = (st.prog + st.speed) % st.pts.length;
-          const s = Math.floor(st.prog);
-          st.comet.coordinates = Array.from({ length: COMET_W }, (_, i) =>
-            st.pts[(s + i) % st.pts.length]
-          );
+          const L = st.pts.length;
+          for (let i = 0; i < PARTICLE_N; i++) {
+            st.progs[i] = (st.progs[i] + st.speed) % L;
+            const s = Math.floor(st.progs[i]);
+            st.particles[i].coordinates = Array.from({ length: PARTICLE_W }, (_, j) =>
+              st.pts[(s + j) % L]
+            );
+          }
+          // Track package position with lead particle
+          if (st.status === 'in_transit' && st.pkgMarker) {
+            const s  = Math.floor(st.progs[0]);
+            const pt = st.pts[s % L];
+            st.pkgMarker.position = { lat: pt.lat, lng: pt.lng, altitude: 0 };
+          }
         });
 
-        // Expand + fade rings
+        // Expand/fade rings; selected-route rings pulse tighter and brighter
+        const selCode = selectedCodeRef.current;
         cityRings.current.forEach(cr => {
-          cr.t1 = (cr.t1 + 0.007) % 1;
-          cr.t2 = (cr.t2 + 0.007) % 1;
-          cr.ring1.strokeColor = withAlpha(cr.hex, (1 - cr.t1) * 0.65);
-          cr.ring1.coordinates = circleCoords(cr.lat, cr.lng, cr.t1 * RING_MAXKM, 28);
-          cr.ring2.strokeColor = withAlpha(cr.hex, (1 - cr.t2) * 0.65);
-          cr.ring2.coordinates = circleCoords(cr.lat, cr.lng, cr.t2 * RING_MAXKM, 28);
+          cr.t1 = (cr.t1 + 0.008) % 1;
+          cr.t2 = (cr.t2 + 0.008) % 1;
+          const isActive  = !selCode || cr.routeKeys.includes(selCode);
+          const maxAlpha  = isActive ? 0.72 : 0.18;
+          const maxRadius = isActive ? (selCode ? RING_MAXKM * 0.65 : RING_MAXKM) : RING_MAXKM;
+          cr.ring1.strokeColor = withAlpha(cr.hex, (1 - cr.t1) * maxAlpha);
+          cr.ring1.coordinates = circleCoords(cr.lat, cr.lng, cr.t1 * maxRadius, 28);
+          cr.ring2.strokeColor = withAlpha(cr.hex, (1 - cr.t2) * maxAlpha);
+          cr.ring2.coordinates = circleCoords(cr.lat, cr.lng, cr.t2 * maxRadius, 28);
         });
       };
       rafRef.current = requestAnimationFrame(tick);
@@ -357,6 +488,8 @@ export default function Map3DGlobe({ className }: { className?: string }) {
   /* ── Fly-to (shared by click + tracking search) ──────────────────────────── */
   const _flyTo = (map: any, route: GlobeRoute) => {
     setSelected(route);
+    selectedCodeRef.current = route.trackingCode;
+    selDirtyRef.current     = true;
     setTrackError(null);
     map?.flyCameraTo({
       endCamera: {
@@ -369,6 +502,12 @@ export default function Map3DGlobe({ className }: { className?: string }) {
     });
   };
 
+  const clearSelection = () => {
+    setSelected(null);
+    selectedCodeRef.current = null;
+    selDirtyRef.current     = true;
+  };
+
   /* ── Tracking search handler ─────────────────────────────────────────────── */
   const handleTrack = (e: React.FormEvent) => {
     e.preventDefault();
@@ -379,13 +518,44 @@ export default function Map3DGlobe({ className }: { className?: string }) {
     if (found) {
       _flyTo(mapRef.current, found);
     } else {
-      setSelected(null);
+      clearSelection();
       setTrackError('کدی پیدا نشد');
     }
   };
 
+  /* ── Hide arrow once user scrolls past hero ─────────────────────────────── */
+  useEffect(() => {
+    const onScroll = () => setShowArrow(window.scrollY < window.innerHeight * 0.75);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  /* ── Inject chevron keyframe once ────────────────────────────────────────── */
+  useEffect(() => {
+    if (document.getElementById('map3d-chevron-style')) return;
+    const s = document.createElement('style');
+    s.id = 'map3d-chevron-style';
+    s.textContent = `
+      @keyframes chevronDrop {
+        0%,100% { transform:translateY(0);   opacity:.40; }
+        50%     { transform:translateY(8px); opacity:.90; }
+      }
+      .chevron-a { animation: chevronDrop 1.8s ease-in-out infinite; }
+      .chevron-b { animation: chevronDrop 1.8s ease-in-out infinite 0.3s; }
+    `;
+    document.head.appendChild(s);
+  }, []);
+
   /* ── Scroll to next section ──────────────────────────────────────────────── */
-  const scrollDown = () => window.scrollTo({ top: window.innerHeight, behavior: 'smooth' });
+  const scrollDown = () => {
+    const hero = containerRef.current?.closest('section') as HTMLElement | null;
+    const next = hero?.nextElementSibling as HTMLElement | null;
+    if (next) {
+      next.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } else {
+      window.scrollTo({ top: window.innerHeight, behavior: 'smooth' });
+    }
+  };
 
   /* ── Render ──────────────────────────────────────────────────────────────── */
   return (
@@ -414,7 +584,7 @@ export default function Map3DGlobe({ className }: { className?: string }) {
             <input
               value={trackInput}
               onChange={e => { setTrackInput(e.target.value.toUpperCase()); setTrackError(null); }}
-              onKeyDown={e => e.key === 'Escape' && (setSelected(null), setTrackInput(''), setTrackError(null))}
+              onKeyDown={e => e.key === 'Escape' && (clearSelection(), setTrackInput(''), setTrackError(null))}
               placeholder="کد رهگیری..."
               dir="ltr" spellCheck={false} autoComplete="off"
               className="flex-1 min-w-0 px-2.5 py-1.5 bg-white/8 border border-white/12 rounded-xl text-xs text-white placeholder-gray-600 font-mono focus:outline-none focus:border-cyan-500/40 transition-colors"
@@ -430,14 +600,14 @@ export default function Map3DGlobe({ className }: { className?: string }) {
         </form>
       </div>
 
-      {/* ── Detail card — bottom-left, shown after click / tracking ─────── */}
+      {/* ── Detail card — bottom-left ────────────────────────────────────── */}
       {selected && (
         <div
           className="absolute bottom-8 left-4 z-30 rounded-2xl border border-white/15 p-5 shadow-2xl pointer-events-auto"
           style={{ background: 'rgba(1,4,9,.90)', backdropFilter: 'blur(24px)', width: '17rem' }}
         >
           <button
-            onClick={() => setSelected(null)}
+            onClick={clearSelection}
             className="absolute top-3 right-3 w-6 h-6 flex items-center justify-center rounded-lg text-gray-500 hover:text-white hover:bg-white/10 text-xs transition-all"
           >✕</button>
 
@@ -448,9 +618,9 @@ export default function Map3DGlobe({ className }: { className?: string }) {
 
           <div className="flex items-start gap-2.5 mb-3">
             <div className="flex flex-col items-center pt-1 gap-1 flex-shrink-0">
-              <div className="w-2 h-2 rounded-full bg-amber-400" />
+              <div className="w-2 h-2 rounded-full bg-blue-400" />
               <div className="w-px h-4 bg-white/15" />
-              <div className="w-2.5 h-2.5 rounded-full border-2" style={{ borderColor: STATUS_HEX[selected.status] }} />
+              <div className="w-2.5 h-2.5 rounded-full border-2 border-cyan-400" />
             </div>
             <div className="flex-1 space-y-2">
               <div>
@@ -483,22 +653,28 @@ export default function Map3DGlobe({ className }: { className?: string }) {
         </div>
       )}
 
-      {/* ── Scroll-down arrow — bottom-centre ───────────────────────────── */}
-      <button
-        onClick={scrollDown}
-        className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center gap-0.5 pointer-events-auto group"
-        aria-label="Scroll to next section"
-      >
-        <span className="text-[9px] uppercase tracking-widest text-white/25 group-hover:text-white/55 transition-colors font-semibold">
-          scroll
-        </span>
-        <svg
-          className="w-5 h-5 text-white/35 group-hover:text-white/75 animate-bounce transition-colors"
-          fill="none" stroke="currentColor" viewBox="0 0 24 24"
+      {/* ── Scroll-down arrow — portal so z-index escapes globe stacking ─── */}
+      {showArrow && createPortal(
+        <button
+          onClick={scrollDown}
+          onTouchEnd={(e) => { e.preventDefault(); scrollDown(); }}
+          className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[25] flex flex-col items-center gap-0.5 pointer-events-auto group cursor-pointer"
+          aria-label="Scroll to next section"
+          style={{ touchAction: 'none' }}
         >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-        </svg>
-      </button>
+          <span className="text-[9px] uppercase tracking-widest text-white/25 group-hover:text-white/55 transition-colors font-semibold select-none">
+            scroll
+          </span>
+          <svg
+            className="w-5 h-8 text-white/40 group-hover:text-white/80 transition-colors drop-shadow-[0_0_6px_rgba(255,255,255,0.3)]"
+            fill="none" stroke="currentColor" viewBox="0 0 24 20"
+          >
+            <path className="chevron-a" strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 3l8 7 8-7" />
+            <path className="chevron-b" strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 11l8 7 8-7" />
+          </svg>
+        </button>,
+        document.body
+      )}
     </div>
   );
 }
