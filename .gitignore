@@ -1,0 +1,15 @@
+# env — never commit secrets
+.env
+.env.local
+.env.*.local
+
+# build output
+dist/
+build/
+
+# deps
+node_modules/
+
+# editor
+.DS_Store
+*.local
