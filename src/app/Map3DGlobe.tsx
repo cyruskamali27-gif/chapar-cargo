@@ -530,12 +530,15 @@ export default function Map3DGlobe({ className }: { className?: string }) {
     const s = document.createElement('style');
     s.id = 'map3d-chevron-style';
     s.textContent = `
-      @keyframes chevronDrop {
-        0%,100% { transform:translateY(0);   opacity:.40; }
-        50%     { transform:translateY(8px); opacity:.90; }
+      @keyframes chevronBounce {
+        0%   { transform:translateY(0);    opacity:.35; }
+        35%  { transform:translateY(11px); opacity:.95; }
+        55%  { transform:translateY(6px);  opacity:.70; }
+        75%  { transform:translateY(11px); opacity:.95; }
+        100% { transform:translateY(0);    opacity:.35; }
       }
-      .chevron-a { animation: chevronDrop 1.8s ease-in-out infinite; }
-      .chevron-b { animation: chevronDrop 1.8s ease-in-out infinite 0.3s; }
+      .chevron-a { animation: chevronBounce 1.7s ease-in-out infinite; }
+      .chevron-b { animation: chevronBounce 1.7s ease-in-out infinite 0.18s; }
     `;
     document.head.appendChild(s);
   }, []);
@@ -652,7 +655,7 @@ export default function Map3DGlobe({ className }: { className?: string }) {
         <button
           onClick={scrollDown}
           onTouchEnd={(e) => { e.preventDefault(); scrollDown(); }}
-          className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[25] flex flex-col items-center gap-0.5 pointer-events-auto group cursor-pointer"
+          className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[9999] flex flex-col items-center gap-0.5 pointer-events-auto group cursor-pointer"
           aria-label="Scroll to next section"
           style={{ touchAction: 'none' }}
         >

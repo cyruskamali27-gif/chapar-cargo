@@ -5,14 +5,14 @@ import "./styles/index.css";
 import TrackingPreview from "./pages/TrackingPreview.tsx";
 import TrackPage from "./pages/TrackPage.tsx";
 import EarthPreview from "./pages/EarthPreview.tsx";
-import GoogleEarthPreview from "./pages/GoogleEarthPreview.tsx";
 
 const path = window.location.pathname;
 
 let element: React.ReactElement;
 
 if (path.startsWith('/google-earth-preview')) {
-  element = <GoogleEarthPreview />;
+  window.location.replace('/');
+  element = <></>;
 } else if (path.startsWith('/earth-preview')) {
   element = <EarthPreview />;
 } else if (path.startsWith('/tracking-preview')) {
