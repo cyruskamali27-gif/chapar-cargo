@@ -36,7 +36,7 @@ function WhatsAppIcon({ className }: { className?: string }) {
 }
 import { useState, useEffect, useRef } from 'react';
 import { motion, useInView, AnimatePresence } from 'motion/react';
-import CesiumGlobe from './CesiumGlobe';
+import Map3DGlobe from './Map3DGlobe';
 import { LangCode, RTL_LANGS, langMeta, translations } from './i18n';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -781,7 +781,7 @@ function HeroSection({ t, setPage, isRTL }: { t: typeof translations['en']; setP
     <section style={{ height: '100vh' }} className="relative overflow-hidden">
       {/* Globe spans full hero */}
       <div className="absolute inset-0 z-0">
-        <CesiumGlobe className="w-full h-full" />
+        <Map3DGlobe className="w-full h-full" />
       </div>
 
       {/* Directional gradient — subtle overlay, globe visible behind text */}
