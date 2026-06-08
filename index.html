@@ -1,8 +1,8 @@
 
   <!DOCTYPE html>
-  <html lang="en">
+  <html lang="fa" dir="rtl">
     <head>
-      
+
       <meta charset="UTF-8" />
       <meta name="viewport" content="width=device-width, initial-scale=1.0" />
       <title>Chapar — Global Trust Infrastructure for Borderless Commerce</title>
@@ -21,6 +21,12 @@
     <body>
       
       <div id="root"></div>
+      <noscript>
+        <div role="alert" style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;color:#fff;font-family:Vazirmatn,sans-serif;text-align:center;padding:2rem;background:#04070f;">
+          <p>برای استفاده از چاپار، JavaScript را در مرورگر خود فعال کنید.</p>
+          <button onclick="location.reload()" style="margin-top:1rem;padding:.75rem 1.5rem;background:#3b82f6;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:1rem;" aria-label="بارگذاری مجدد صفحه">بارگذاری مجدد</button>
+        </div>
+      </noscript>
       <script type="module" src="/src/main.tsx"></script>
       
     </body>
