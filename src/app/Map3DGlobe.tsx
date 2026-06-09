@@ -211,16 +211,31 @@ export default function Map3DGlobe({ className }: { className?: string }) {
     const key = (import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string) || '';
     if (!key || !containerRef.current) {
       if (!key) console.warn('[Map3DGlobe] VITE_GOOGLE_MAPS_API_KEY not set');
-      return;
-    }
-    try { bootstrapGoogleMaps(key); } catch (e) {
-      console.error('[Map3DGlobe] bootstrap:', e);
       setMapFailed(true);
       return;
     }
+    try { bootstrapGoogleMaps(key); } catch (e) {
+      console.warn('[Map3DGlobe] bootstrap:', e);
+      setMapFailed(true);
+      return;
+    }
+
+    const failTimeout = setTimeout(() => {
+      if (!mapRef.current && !deadRef.current) {
+        console.warn('[Map3DGlobe] 5s timeout — falling back to canvas globe');
+        setMapFailed(true);
+      }
+    }, 5000);
+
     (async () => {
       try {
-        const lib = await (window as any).google.maps.importLibrary('maps3d');
+        const timeout = new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('maps3d import timeout')), 4800)
+        );
+        const lib = await Promise.race([
+          (window as any).google.maps.importLibrary('maps3d'),
+          timeout,
+        ]);
         const Map3DElement = lib?.Map3DElement;
         const MapMode      = lib?.MapMode;
         if (!Map3DElement) throw new Error('maps3d.Map3DElement not available');
@@ -235,6 +250,7 @@ export default function Map3DGlobe({ className }: { className?: string }) {
         map.gestureHandling = 'GREEDY';
         map.style.cssText   = 'width:100%;height:100%;display:block;';
 
+        clearTimeout(failTimeout);
         containerRef.current.appendChild(map);
         mapRef.current = map;
         setMapReady(true);
@@ -275,13 +291,15 @@ export default function Map3DGlobe({ className }: { className?: string }) {
         resumeRef.current = setTimeout(startRotate, 1500);
 
       } catch (e) {
-        console.error('[Map3DGlobe] init:', e);
+        clearTimeout(failTimeout);
+        console.warn('[Map3DGlobe] init:', e);
         if (!deadRef.current) setMapFailed(true);
       }
     })();
 
     return () => {
       deadRef.current = true;
+      clearTimeout(failTimeout);
       cancelAnimationFrame(rafRef.current);
       if (autoSigRef.current) { autoSigRef.current.cancelled = true; autoSigRef.current = null; }
       if (resumeRef.current)  { clearTimeout(resumeRef.current); resumeRef.current = null; }
@@ -607,7 +625,7 @@ export default function Map3DGlobe({ className }: { className?: string }) {
 
   /* ── Render ──────────────────────────────────────────────────────────────── */
   if (mapFailed) {
-    return <div className={className} style={{ background: '#04070f' }} />;
+    return null; // canvas globe base layer already visible underneath
   }
 
   return (
@@ -615,11 +633,18 @@ export default function Map3DGlobe({ className }: { className?: string }) {
       className={className}
       style={{ position: 'relative', userSelect: 'none', WebkitUserSelect: 'none' } as React.CSSProperties}
     >
-      {/* gmp-map-3d is appended here imperatively */}
-      <div ref={containerRef} style={{ width: '100%', height: '100%', touchAction: 'none' }} />
+      {/* gmp-map-3d is appended here imperatively; hidden until ready so canvas shows through */}
+      <div
+        ref={containerRef}
+        style={{
+          width: '100%', height: '100%', touchAction: 'none',
+          opacity: mapReady ? 1 : 0,
+          transition: 'opacity 0.8s ease',
+        }}
+      />
 
-      {/* ── Tracking panel — top-left ────────────────────────────────────── */}
-      <div className="absolute top-4 left-4 z-30 pointer-events-auto">
+      {/* ── Tracking panel — top-left (only shown once map is ready) ───────── */}
+      {mapReady && <div className="absolute top-4 left-4 z-30 pointer-events-auto">
         <form
           onSubmit={handleTrack}
           className="flex flex-col gap-1.5 bg-black/65 backdrop-blur-2xl rounded-2xl border border-white/12 px-3 py-2.5 shadow-2xl"
@@ -650,7 +675,7 @@ export default function Map3DGlobe({ className }: { className?: string }) {
             <p className="text-[11px] text-red-400/90 leading-none">{trackError}</p>
           )}
         </form>
-      </div>
+      </div>}
 
       {/* ── Detail card — bottom-left ────────────────────────────────────── */}
       {selected && (

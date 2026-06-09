@@ -48,7 +48,7 @@ class GlobeErrorBoundary extends Component<{ className?: string; children: React
   componentDidCatch(err: Error) { console.warn('[GlobeErrorBoundary] caught:', err?.message); }
   render() {
     if (this.state.crashed) {
-      return <GlobeCanvas className={this.props.className} />;
+      return null; // canvas globe base layer is already visible underneath
     }
     return this.props.children;
   }
@@ -785,6 +785,13 @@ function HeroSection({ t, setPage, isRTL }: { t: typeof translations['en']; setP
   const half = Math.ceil(words.length / 2);
   const line1 = words.slice(0, half).join(' ');
   const line2 = words.slice(half).join(' ');
+  const [loadMap3D, setLoadMap3D] = useState(false);
+
+  useEffect(() => {
+    // Defer Map3D until after the page is interactive — prevents blocking hero render
+    const t = setTimeout(() => setLoadMap3D(true), 800);
+    return () => clearTimeout(t);
+  }, []);
 
   const heroButtons = [
     { label: t.heroCta1, page: 'buy-for-me' as Page, primary: true },
@@ -794,12 +801,20 @@ function HeroSection({ t, setPage, isRTL }: { t: typeof translations['en']; setP
 
   return (
     <section style={{ height: '100vh' }} className="relative overflow-hidden">
-      {/* Globe spans full hero */}
+      {/* Canvas globe — renders immediately, always visible as safe fallback */}
       <div className="absolute inset-0 z-0">
-        <GlobeErrorBoundary className="w-full h-full">
-          <Map3DGlobe className="w-full h-full" />
-        </GlobeErrorBoundary>
+        <GlobeCanvas className="w-full h-full" />
       </div>
+
+      {/* Map3D — loaded after 800ms so hero text/buttons are interactive first.
+          Returns null on failure/timeout so canvas globe shows through. */}
+      {loadMap3D && (
+        <div className="absolute inset-0 z-0">
+          <GlobeErrorBoundary className="w-full h-full">
+            <Map3DGlobe className="w-full h-full" />
+          </GlobeErrorBoundary>
+        </div>
+      )}
 
       {/* Directional gradient — subtle overlay, globe visible behind text */}
       <div
