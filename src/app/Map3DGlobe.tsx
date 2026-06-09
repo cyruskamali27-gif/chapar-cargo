@@ -172,19 +172,20 @@ const RING_MAXKM = 70;
 const FRAME_MS   = 1000 / 20;   // ~20 fps
 
 /* ── Component ────────────────────────────────────────────────────────────── */
-export default function Map3DGlobe({ className }: { className?: string }) {
+export default function Map3DGlobe({ className, onReady }: { className?: string; onReady?: () => void }) {
   const containerRef    = useRef<HTMLDivElement>(null);
   const mapRef          = useRef<any>(null);
   const routeStates     = useRef<Map<string, RouteState>>(new Map());
   const cityRings       = useRef<CityRingState[]>([]);
   const markerEls       = useRef<any[]>([]);
-  const rafRef          = useRef(0);
-  const lastFrameRef    = useRef(0);
-  const deadRef         = useRef(false);
-  const selectedCodeRef = useRef<string | null>(null);
-  const selDirtyRef     = useRef(false);
-  const autoSigRef      = useRef<{ cancelled: boolean } | null>(null);
-  const resumeRef       = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const rafRef           = useRef(0);
+  const spinRafRef       = useRef(0);
+  const lastFrameRef     = useRef(0);
+  const deadRef          = useRef(false);
+  const selectedCodeRef  = useRef<string | null>(null);
+  const selDirtyRef      = useRef(false);
+  const isInteractingRef = useRef(false);
+  const resumeRef        = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [routes,     setRoutes]     = useState<GlobeRoute[]>([]);
   const [selected,   setSelected]   = useState<GlobeRoute | null>(null);
@@ -242,7 +243,7 @@ export default function Map3DGlobe({ className }: { className?: string }) {
         if (deadRef.current || !containerRef.current) return;
 
         const map = new Map3DElement() as any;
-        map.center          = { lat: 32, lng: 51, altitude: 0 };
+        map.center          = { lat: 25, lng: 50, altitude: 0 };
         map.range           = 12_000_000;
         map.tilt            = 0;
         map.heading         = 0;
@@ -254,41 +255,40 @@ export default function Map3DGlobe({ className }: { className?: string }) {
         containerRef.current.appendChild(map);
         mapRef.current = map;
         setMapReady(true);
+        onReady?.();
 
-        // ── Auto-rotation: slow globe spin when user is idle ──────────────────
-        const startRotate = () => {
-          if (deadRef.current || !mapRef.current) return;
-          const sig: { cancelled: boolean } = { cancelled: false };
-          autoSigRef.current = sig;
-          (async () => {
-            while (!sig.cancelled && !deadRef.current) {
-              try {
-                await (mapRef.current as any).flyCameraAround({
-                  camera: {
-                    center:  mapRef.current.center,
-                    range:   mapRef.current.range,
-                    tilt:    mapRef.current.tilt,
-                    heading: mapRef.current.heading,
-                  },
-                  durationMillis: 240_000,
-                  rounds: 1,
-                });
-              } catch { break; }
-            }
-          })();
+        // ── Auto-rotation: RAF-based lng increment — never calls any camera API
+        //    so user gestures are never blocked or overridden.
+        const spinStep = () => {
+          if (deadRef.current || isInteractingRef.current) return;
+          const m = mapRef.current;
+          if (m?.center) {
+            let lng = (m.center.lng ?? 0) + 0.02;
+            if (lng > 180) lng -= 360;
+            m.center = { lat: m.center.lat ?? 25, lng, altitude: 0 };
+          }
+          spinRafRef.current = requestAnimationFrame(spinStep);
         };
 
-        const pauseRotate = () => {
-          if (autoSigRef.current) { autoSigRef.current.cancelled = true; autoSigRef.current = null; }
+        const onInteract = () => {
+          isInteractingRef.current = true;
+          cancelAnimationFrame(spinRafRef.current);
           if (resumeRef.current) clearTimeout(resumeRef.current);
-          resumeRef.current = setTimeout(startRotate, 4000);
+          resumeRef.current = setTimeout(() => {
+            if (deadRef.current) return;
+            isInteractingRef.current = false;
+            spinRafRef.current = requestAnimationFrame(spinStep);
+          }, 4000);
         };
 
-        map.addEventListener('pointerdown', pauseRotate);
-        map.addEventListener('touchstart', pauseRotate, { passive: true });
-        map.addEventListener('wheel',       pauseRotate, { passive: true });
+        map.addEventListener('pointerdown', onInteract);
+        map.addEventListener('touchstart',  onInteract, { passive: true });
+        map.addEventListener('wheel',       onInteract, { passive: true });
+        map.addEventListener('gmp-click',   onInteract);
 
-        resumeRef.current = setTimeout(startRotate, 1500);
+        resumeRef.current = setTimeout(() => {
+          spinRafRef.current = requestAnimationFrame(spinStep);
+        }, 1500);
 
       } catch (e) {
         clearTimeout(failTimeout);
@@ -301,8 +301,8 @@ export default function Map3DGlobe({ className }: { className?: string }) {
       deadRef.current = true;
       clearTimeout(failTimeout);
       cancelAnimationFrame(rafRef.current);
-      if (autoSigRef.current) { autoSigRef.current.cancelled = true; autoSigRef.current = null; }
-      if (resumeRef.current)  { clearTimeout(resumeRef.current); resumeRef.current = null; }
+      cancelAnimationFrame(spinRafRef.current);
+      if (resumeRef.current) { clearTimeout(resumeRef.current); resumeRef.current = null; }
       if (mapRef.current && containerRef.current?.contains(mapRef.current)) {
         containerRef.current.removeChild(mapRef.current);
         mapRef.current = null;
@@ -639,7 +639,7 @@ export default function Map3DGlobe({ className }: { className?: string }) {
         style={{
           width: '100%', height: '100%', touchAction: 'none',
           opacity: mapReady ? 1 : 0,
-          transition: 'opacity 0.8s ease',
+          transition: 'opacity 0.6s ease',
         }}
       />
 

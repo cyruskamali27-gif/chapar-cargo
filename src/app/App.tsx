@@ -785,7 +785,8 @@ function HeroSection({ t, setPage, isRTL }: { t: typeof translations['en']; setP
   const half = Math.ceil(words.length / 2);
   const line1 = words.slice(0, half).join(' ');
   const line2 = words.slice(half).join(' ');
-  const [loadMap3D, setLoadMap3D] = useState(false);
+  const [loadMap3D,  setLoadMap3D]  = useState(false);
+  const [map3DReady, setMap3DReady] = useState(false);
 
   useEffect(() => {
     // Defer Map3D until after the page is interactive — prevents blocking hero render
@@ -801,17 +802,20 @@ function HeroSection({ t, setPage, isRTL }: { t: typeof translations['en']; setP
 
   return (
     <section style={{ height: '100vh' }} className="relative overflow-hidden">
-      {/* Canvas globe — renders immediately, always visible as safe fallback */}
-      <div className="absolute inset-0 z-0">
+      {/* Canvas globe — immediate background; fades out once Map3D is ready */}
+      <div
+        className="absolute inset-0 z-0"
+        style={{ opacity: map3DReady ? 0 : 1, transition: 'opacity 0.6s ease', pointerEvents: 'none' }}
+      >
         <GlobeCanvas className="w-full h-full" />
       </div>
 
-      {/* Map3D — loaded after 800ms so hero text/buttons are interactive first.
-          Returns null on failure/timeout so canvas globe shows through. */}
+      {/* Map3D — deferred 800ms so hero content is interactive first.
+          Fades in via internal opacity transition; on failure returns null so canvas stays. */}
       {loadMap3D && (
         <div className="absolute inset-0 z-0">
           <GlobeErrorBoundary className="w-full h-full">
-            <Map3DGlobe className="w-full h-full" />
+            <Map3DGlobe className="w-full h-full" onReady={() => setMap3DReady(true)} />
           </GlobeErrorBoundary>
         </div>
       )}
