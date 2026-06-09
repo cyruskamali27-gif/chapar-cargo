@@ -34,25 +34,11 @@ function WhatsAppIcon({ className }: { className?: string }) {
     </svg>
   );
 }
-import { useState, useEffect, useRef, Component, type ReactNode } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, useInView, AnimatePresence } from 'motion/react';
-import Map3DGlobe from './Map3DGlobe';
 import GlobeCanvas from './Globe';
 import { LangCode, RTL_LANGS, langMeta, translations } from './i18n';
 
-// ── GlobeErrorBoundary — prevents map crashes from blanking the page ──────────
-interface GlobeErrorBoundaryState { crashed: boolean }
-class GlobeErrorBoundary extends Component<{ className?: string; children: ReactNode }, GlobeErrorBoundaryState> {
-  state: GlobeErrorBoundaryState = { crashed: false };
-  static getDerivedStateFromError() { return { crashed: true }; }
-  componentDidCatch(err: Error) { console.warn('[GlobeErrorBoundary] caught:', err?.message); }
-  render() {
-    if (this.state.crashed) {
-      return null; // canvas globe base layer is already visible underneath
-    }
-    return this.props.children;
-  }
-}
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type Page = 'home' | 'buy-for-me' | 'send-package' | 'traveler' | 'marketplace' | 'trust-safety' | 'investors' | 'faq';
@@ -785,14 +771,6 @@ function HeroSection({ t, setPage, isRTL }: { t: typeof translations['en']; setP
   const half = Math.ceil(words.length / 2);
   const line1 = words.slice(0, half).join(' ');
   const line2 = words.slice(half).join(' ');
-  const [loadMap3D,  setLoadMap3D]  = useState(false);
-  const [map3DReady, setMap3DReady] = useState(false);
-
-  useEffect(() => {
-    // Defer Map3D until after the page is interactive — prevents blocking hero render
-    const t = setTimeout(() => setLoadMap3D(true), 800);
-    return () => clearTimeout(t);
-  }, []);
 
   const heroButtons = [
     { label: t.heroCta1, page: 'buy-for-me' as Page, primary: true },
@@ -802,23 +780,10 @@ function HeroSection({ t, setPage, isRTL }: { t: typeof translations['en']; setP
 
   return (
     <section style={{ height: '100vh' }} className="relative overflow-hidden">
-      {/* Canvas globe — immediate background; fades out once Map3D is ready */}
-      <div
-        className="absolute inset-0 z-0"
-        style={{ opacity: map3DReady ? 0 : 1, transition: 'opacity 0.6s ease', pointerEvents: 'none' }}
-      >
+      {/* Canvas globe — sole background */}
+      <div className="absolute inset-0 z-0">
         <GlobeCanvas className="w-full h-full" />
       </div>
-
-      {/* Map3D — deferred 800ms so hero content is interactive first.
-          Fades in via internal opacity transition; on failure returns null so canvas stays. */}
-      {loadMap3D && (
-        <div className="absolute inset-0 z-0">
-          <GlobeErrorBoundary className="w-full h-full">
-            <Map3DGlobe className="w-full h-full" onReady={() => setMap3DReady(true)} />
-          </GlobeErrorBoundary>
-        </div>
-      )}
 
       {/* Directional gradient — subtle overlay, globe visible behind text */}
       <div
