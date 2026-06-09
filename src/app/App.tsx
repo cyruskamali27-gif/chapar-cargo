@@ -36,7 +36,7 @@ function WhatsAppIcon({ className }: { className?: string }) {
 }
 import { useState, useEffect, useRef } from 'react';
 import { motion, useInView, AnimatePresence } from 'motion/react';
-import GlobeCanvas from './Globe';
+import Map3DGlobe from './Map3DGlobe';
 import { LangCode, RTL_LANGS, langMeta, translations } from './i18n';
 
 
@@ -771,6 +771,7 @@ function HeroSection({ t, setPage, isRTL }: { t: typeof translations['en']; setP
   const half = Math.ceil(words.length / 2);
   const line1 = words.slice(0, half).join(' ');
   const line2 = words.slice(half).join(' ');
+  const [map3DReady, setMap3DReady] = useState(false);
 
   const heroButtons = [
     { label: t.heroCta1, page: 'buy-for-me' as Page, primary: true },
@@ -779,10 +780,23 @@ function HeroSection({ t, setPage, isRTL }: { t: typeof translations['en']; setP
   ];
 
   return (
-    <section style={{ height: '100vh' }} className="relative overflow-hidden">
-      {/* Canvas globe — sole background */}
+    <section style={{ height: '100vh' }} className="relative overflow-hidden bg-[#04070f]">
+      {/* Map3D globe — sole background */}
       <div className="absolute inset-0 z-0">
-        <GlobeCanvas className="w-full h-full" />
+        <Map3DGlobe className="w-full h-full" onReady={() => setMap3DReady(true)} />
+      </div>
+
+      {/* Dark loading overlay — covers the hero until Map3D tiles are ready */}
+      <div
+        className="absolute inset-0 z-[1] flex items-end justify-center pb-16 pointer-events-none"
+        style={{ background: '#04070f', opacity: map3DReady ? 0 : 1, transition: 'opacity 0.8s ease' }}
+      >
+        <div className="flex gap-1.5">
+          {[0, 1, 2].map(i => (
+            <div key={i} className="w-1.5 h-1.5 rounded-full bg-cyan-500/50 animate-pulse"
+              style={{ animationDelay: `${i * 0.18}s` }} />
+          ))}
+        </div>
       </div>
 
       {/* Directional gradient — subtle overlay, globe visible behind text */}
@@ -1675,6 +1689,12 @@ export default function App() {
 
   const t = translations[lang];
   const isRTL = RTL_LANGS.includes(lang);
+
+  useEffect(() => {
+    if (window.location.pathname === '/google-earth-preview') {
+      window.history.replaceState({}, '', '/');
+    }
+  }, []);
 
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 20);

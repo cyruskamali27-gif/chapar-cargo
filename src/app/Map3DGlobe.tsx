@@ -169,7 +169,7 @@ interface CityRingState {
 const PARTICLE_W = 2;
 const PARTICLE_N = 3;
 const RING_MAXKM = 70;
-const FRAME_MS   = 1000 / 20;   // ~20 fps
+const FRAME_MS   = 1000 / 15;   // ~15 fps
 
 /* ── Component ────────────────────────────────────────────────────────────── */
 export default function Map3DGlobe({ className, onReady }: { className?: string; onReady?: () => void }) {
@@ -194,6 +194,7 @@ export default function Map3DGlobe({ className, onReady }: { className?: string;
   const [trackInput, setTrackInput] = useState('');
   const [trackError, setTrackError] = useState<string | null>(null);
   const [showArrow,  setShowArrow]  = useState(true);
+  const [typeFilter, setTypeFilter] = useState<GlobeRoute['status'] | null>(null);
 
   /* ── Poll /api/routes every 30 s ─────────────────────────────────────────── */
   useEffect(() => {
@@ -334,7 +335,8 @@ export default function Map3DGlobe({ className, onReady }: { className?: string;
     markerEls.current.forEach(m => m.parentNode?.removeChild(m));
     markerEls.current = [];
 
-    if (!routes.length) return;
+    const visibleRoutes = typeFilter ? routes.filter(r => r.status === typeFilter) : routes;
+    if (!visibleRoutes.length) return;
 
     (async () => {
       const {
@@ -348,7 +350,7 @@ export default function Map3DGlobe({ className, onReady }: { className?: string;
       const cityData = new Map<string, {
         lat: number; lng: number; hex: string; routeKeys: string[];
       }>();
-      for (const route of routes) {
+      for (const route of visibleRoutes) {
         const ok = `${route.origin.lat},${route.origin.lng}`;
         const dk = `${route.destination.lat},${route.destination.lng}`;
         if (!cityData.has(ok)) {
@@ -363,7 +365,7 @@ export default function Map3DGlobe({ className, onReady }: { className?: string;
         cityData.get(dk)!.routeKeys.push(route.trackingCode);
       }
 
-      for (const route of routes) {
+      for (const route of visibleRoutes) {
         const hex = STATUS_HEX[route.status] ?? '#3b82f6';
         const pts = gcPoints(route.origin.lat, route.origin.lng, route.destination.lat, route.destination.lng, 64);
         const spd = route.status === 'in_transit' ? 0.38
@@ -511,24 +513,25 @@ export default function Map3DGlobe({ className, onReady }: { className?: string;
           });
         }
 
-        // Advance particles
-        routeStates.current.forEach(st => {
-          if (st.status === 'delivered' || st.status === 'disputed') return;
-          const L = st.pts.length;
-          for (let i = 0; i < PARTICLE_N; i++) {
-            st.progs[i] = (st.progs[i] + st.speed) % L;
-            const s = Math.floor(st.progs[i]);
-            st.particles[i].path     = Array.from({ length: PARTICLE_W }, (_, j) =>
-              st.pts[(s + j) % L]
-            );
-          }
-          // Update pkgDot circle position to track lead particle
-          if (st.status === 'in_transit' && st.pkgDot) {
-            const s  = Math.floor(st.progs[0]);
-            const pt = st.pts[s % L];
-            st.pkgDot.path     = circleCoords(pt.lat, pt.lng, 1, 8);
-          }
-        });
+        // Advance particles — paused during user interaction to avoid jitter
+        if (!isInteractingRef.current) {
+          routeStates.current.forEach(st => {
+            if (st.status === 'delivered' || st.status === 'disputed') return;
+            const L = st.pts.length;
+            for (let i = 0; i < PARTICLE_N; i++) {
+              st.progs[i] = (st.progs[i] + st.speed) % L;
+              const s = Math.floor(st.progs[i]);
+              st.particles[i].path = Array.from({ length: PARTICLE_W }, (_, j) =>
+                st.pts[(s + j) % L]
+              );
+            }
+            if (st.status === 'in_transit' && st.pkgDot) {
+              const s  = Math.floor(st.progs[0]);
+              const pt = st.pts[s % L];
+              st.pkgDot.path = circleCoords(pt.lat, pt.lng, 1, 8);
+            }
+          });
+        }
 
         // Expand/fade rings; selected-route rings pulse tighter and brighter
         const selCode = selectedCodeRef.current;
@@ -546,7 +549,7 @@ export default function Map3DGlobe({ className, onReady }: { className?: string;
       };
       rafRef.current = requestAnimationFrame(tick);
     })().catch(e => console.error('[Map3DGlobe] routes render:', e));
-  }, [routes, mapReady]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [routes, mapReady, typeFilter]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /* ── Fly-to (shared by click + tracking search) ──────────────────────────── */
   const _flyTo = (map: any, route: GlobeRoute) => {
@@ -612,6 +615,18 @@ export default function Map3DGlobe({ className, onReady }: { className?: string;
     document.head.appendChild(s);
   }, []);
 
+  /* ── Suppress Google Maps alpha-channel banner pointer-events ───────────── */
+  useEffect(() => {
+    if (document.getElementById('map3d-banner-fix')) return;
+    const s = document.createElement('style');
+    s.id = 'map3d-banner-fix';
+    s.textContent = `
+      div[aria-label*="alpha channel"] { pointer-events: none !important; opacity: 0 !important; }
+      .vAygCK-api-load-alpha-banner    { pointer-events: none !important; opacity: 0 !important; }
+    `;
+    document.head.appendChild(s);
+  }, []);
+
   /* ── Scroll to next section ──────────────────────────────────────────────── */
   const scrollDown = () => {
     const hero = containerRef.current?.closest('section') as HTMLElement | null;
@@ -625,7 +640,7 @@ export default function Map3DGlobe({ className, onReady }: { className?: string;
 
   /* ── Render ──────────────────────────────────────────────────────────────── */
   if (mapFailed) {
-    return null; // canvas globe base layer already visible underneath
+    return null; // dark hero background remains; onReady never fires so loader stays
   }
 
   return (
@@ -676,6 +691,28 @@ export default function Map3DGlobe({ className, onReady }: { className?: string;
           )}
         </form>
       </div>}
+
+      {/* ── Filter chips + color legend ─────────────────────────────────── */}
+      {mapReady && (
+        <div className="absolute top-[7.5rem] left-4 z-30 pointer-events-auto">
+          <div className="flex flex-wrap gap-1" style={{ maxWidth: '13rem' }}>
+            {([null, 'pending', 'escrow_locked', 'assigned', 'in_transit', 'delivered', 'disputed'] as const).map(s => (
+              <button
+                key={s ?? 'all'}
+                onClick={() => setTypeFilter(s)}
+                className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold transition-all border ${
+                  typeFilter === s
+                    ? 'bg-white/15 border-white/30 text-white'
+                    : 'bg-black/50 border-white/10 text-gray-400 hover:text-gray-200'
+                }`}
+              >
+                {s && <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: STATUS_HEX[s] }} />}
+                {s ? STATUS_LABEL[s] : 'All'}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* ── Detail card — bottom-left ────────────────────────────────────── */}
       {selected && (
