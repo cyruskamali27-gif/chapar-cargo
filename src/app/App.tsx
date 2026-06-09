@@ -34,10 +34,25 @@ function WhatsAppIcon({ className }: { className?: string }) {
     </svg>
   );
 }
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, Component, type ReactNode } from 'react';
 import { motion, useInView, AnimatePresence } from 'motion/react';
 import Map3DGlobe from './Map3DGlobe';
+import GlobeCanvas from './Globe';
 import { LangCode, RTL_LANGS, langMeta, translations } from './i18n';
+
+// ── GlobeErrorBoundary — prevents map crashes from blanking the page ──────────
+interface GlobeErrorBoundaryState { crashed: boolean }
+class GlobeErrorBoundary extends Component<{ className?: string; children: ReactNode }, GlobeErrorBoundaryState> {
+  state: GlobeErrorBoundaryState = { crashed: false };
+  static getDerivedStateFromError() { return { crashed: true }; }
+  componentDidCatch(err: Error) { console.warn('[GlobeErrorBoundary] caught:', err?.message); }
+  render() {
+    if (this.state.crashed) {
+      return <GlobeCanvas className={this.props.className} />;
+    }
+    return this.props.children;
+  }
+}
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type Page = 'home' | 'buy-for-me' | 'send-package' | 'traveler' | 'marketplace' | 'trust-safety' | 'investors' | 'faq';
@@ -781,7 +796,9 @@ function HeroSection({ t, setPage, isRTL }: { t: typeof translations['en']; setP
     <section style={{ height: '100vh' }} className="relative overflow-hidden">
       {/* Globe spans full hero */}
       <div className="absolute inset-0 z-0">
-        <Map3DGlobe className="w-full h-full" />
+        <GlobeErrorBoundary className="w-full h-full">
+          <Map3DGlobe className="w-full h-full" />
+        </GlobeErrorBoundary>
       </div>
 
       {/* Directional gradient — subtle overlay, globe visible behind text */}

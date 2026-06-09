@@ -189,6 +189,7 @@ export default function Map3DGlobe({ className }: { className?: string }) {
   const [routes,     setRoutes]     = useState<GlobeRoute[]>([]);
   const [selected,   setSelected]   = useState<GlobeRoute | null>(null);
   const [mapReady,   setMapReady]   = useState(false);
+  const [mapFailed,  setMapFailed]  = useState(false);
   const [trackInput, setTrackInput] = useState('');
   const [trackError, setTrackError] = useState<string | null>(null);
   const [showArrow,  setShowArrow]  = useState(true);
@@ -212,10 +213,17 @@ export default function Map3DGlobe({ className }: { className?: string }) {
       if (!key) console.warn('[Map3DGlobe] VITE_GOOGLE_MAPS_API_KEY not set');
       return;
     }
-    bootstrapGoogleMaps(key);
+    try { bootstrapGoogleMaps(key); } catch (e) {
+      console.error('[Map3DGlobe] bootstrap:', e);
+      setMapFailed(true);
+      return;
+    }
     (async () => {
       try {
-        const { Map3DElement, MapMode } = await (window as any).google.maps.importLibrary('maps3d');
+        const lib = await (window as any).google.maps.importLibrary('maps3d');
+        const Map3DElement = lib?.Map3DElement;
+        const MapMode      = lib?.MapMode;
+        if (!Map3DElement) throw new Error('maps3d.Map3DElement not available');
         if (deadRef.current || !containerRef.current) return;
 
         const map = new Map3DElement() as any;
@@ -223,7 +231,7 @@ export default function Map3DGlobe({ className }: { className?: string }) {
         map.range           = 12_000_000;
         map.tilt            = 0;
         map.heading         = 0;
-        map.mode            = MapMode.HYBRID;
+        if (MapMode?.HYBRID) map.mode = MapMode.HYBRID;
         map.gestureHandling = 'GREEDY';
         map.style.cssText   = 'width:100%;height:100%;display:block;';
 
@@ -266,7 +274,10 @@ export default function Map3DGlobe({ className }: { className?: string }) {
 
         resumeRef.current = setTimeout(startRotate, 1500);
 
-      } catch (e) { console.error('[Map3DGlobe] init:', e); }
+      } catch (e) {
+        console.error('[Map3DGlobe] init:', e);
+        if (!deadRef.current) setMapFailed(true);
+      }
     })();
 
     return () => {
@@ -347,7 +358,7 @@ export default function Map3DGlobe({ className }: { className?: string }) {
         clickTarget.strokeWidth  = 14;
         clickTarget.altitudeMode = AltitudeMode.CLAMP_TO_GROUND;
         clickTarget.geodesic     = true;
-        clickTarget.coordinates  = pts;
+        clickTarget.path     = pts;
         const captured = route;
         clickTarget.addEventListener('gmp-click', () => _flyTo(map, captured));
 
@@ -357,7 +368,7 @@ export default function Map3DGlobe({ className }: { className?: string }) {
         glow.strokeWidth  = 8;
         glow.altitudeMode = AltitudeMode.CLAMP_TO_GROUND;
         glow.geodesic     = true;
-        glow.coordinates  = pts;
+        glow.path     = pts;
 
         // Thin dotted segments (2px)
         const segs   = dashSegments(pts);
@@ -367,7 +378,7 @@ export default function Map3DGlobe({ className }: { className?: string }) {
           d.strokeWidth  = 2;
           d.altitudeMode = AltitudeMode.CLAMP_TO_GROUND;
           d.geodesic     = true;
-          d.coordinates  = seg;
+          d.path     = seg;
           return d;
         });
 
@@ -380,7 +391,7 @@ export default function Map3DGlobe({ className }: { className?: string }) {
           p.strokeWidth  = 2;
           p.altitudeMode = AltitudeMode.CLAMP_TO_GROUND;
           p.geodesic     = true;
-          p.coordinates  = pts.slice(0, PARTICLE_W);
+          p.path     = pts.slice(0, PARTICLE_W);
           return p;
         });
 
@@ -392,7 +403,7 @@ export default function Map3DGlobe({ className }: { className?: string }) {
           pkgDot.strokeWidth  = 6;
           pkgDot.altitudeMode = AltitudeMode.CLAMP_TO_GROUND;
           pkgDot.geodesic     = false;
-          pkgDot.coordinates  = circleCoords(pts[0].lat, pts[0].lng, 1, 8);
+          pkgDot.path     = circleCoords(pts[0].lat, pts[0].lng, 1, 8);
         }
 
         map.appendChild(clickTarget);
@@ -418,7 +429,7 @@ export default function Map3DGlobe({ className }: { className?: string }) {
           r.altitudeMode = AltitudeMode.CLAMP_TO_GROUND;
           r.geodesic     = false;
           r.strokeColor  = withAlpha(c.hex, 0);
-          r.coordinates  = circleCoords(c.lat, c.lng, 1, 28);
+          r.path     = circleCoords(c.lat, c.lng, 1, 28);
           return r;
         };
         const ring1 = makeRing(), ring2 = makeRing();
@@ -440,7 +451,7 @@ export default function Map3DGlobe({ className }: { className?: string }) {
         dot.strokeWidth  = 8;
         dot.altitudeMode = AltitudeMode.CLAMP_TO_GROUND;
         dot.geodesic     = false;
-        dot.coordinates  = circleCoords(c.lat, c.lng, 1, 8);
+        dot.path     = circleCoords(c.lat, c.lng, 1, 8);
         const cc = c;
         dot.addEventListener('gmp-click', () => {
           const match = routes.find(r =>
@@ -489,7 +500,7 @@ export default function Map3DGlobe({ className }: { className?: string }) {
           for (let i = 0; i < PARTICLE_N; i++) {
             st.progs[i] = (st.progs[i] + st.speed) % L;
             const s = Math.floor(st.progs[i]);
-            st.particles[i].coordinates = Array.from({ length: PARTICLE_W }, (_, j) =>
+            st.particles[i].path     = Array.from({ length: PARTICLE_W }, (_, j) =>
               st.pts[(s + j) % L]
             );
           }
@@ -497,7 +508,7 @@ export default function Map3DGlobe({ className }: { className?: string }) {
           if (st.status === 'in_transit' && st.pkgDot) {
             const s  = Math.floor(st.progs[0]);
             const pt = st.pts[s % L];
-            st.pkgDot.coordinates = circleCoords(pt.lat, pt.lng, 1, 8);
+            st.pkgDot.path     = circleCoords(pt.lat, pt.lng, 1, 8);
           }
         });
 
@@ -510,9 +521,9 @@ export default function Map3DGlobe({ className }: { className?: string }) {
           const maxAlpha  = isActive ? 0.72 : 0.18;
           const maxRadius = isActive ? (selCode ? RING_MAXKM * 0.65 : RING_MAXKM) : RING_MAXKM;
           cr.ring1.strokeColor = withAlpha(cr.hex, (1 - cr.t1) * maxAlpha);
-          cr.ring1.coordinates = circleCoords(cr.lat, cr.lng, cr.t1 * maxRadius, 28);
+          cr.ring1.path     = circleCoords(cr.lat, cr.lng, cr.t1 * maxRadius, 28);
           cr.ring2.strokeColor = withAlpha(cr.hex, (1 - cr.t2) * maxAlpha);
-          cr.ring2.coordinates = circleCoords(cr.lat, cr.lng, cr.t2 * maxRadius, 28);
+          cr.ring2.path     = circleCoords(cr.lat, cr.lng, cr.t2 * maxRadius, 28);
         });
       };
       rafRef.current = requestAnimationFrame(tick);
@@ -595,6 +606,10 @@ export default function Map3DGlobe({ className }: { className?: string }) {
   };
 
   /* ── Render ──────────────────────────────────────────────────────────────── */
+  if (mapFailed) {
+    return <div className={className} style={{ background: '#04070f' }} />;
+  }
+
   return (
     <div
       className={className}
