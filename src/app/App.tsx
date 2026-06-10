@@ -1,5 +1,9 @@
 import { Shield, MapPin, Scan, Globe, Users, TrendingUp, CheckCircle, Package, ArrowRight, ChevronDown, Star, Lock, Zap, Clock, CreditCard, Award, BadgeCheck, Sparkles, Activity, Plane, DollarSign, Eye, FileCheck, Building2, Verified, Trophy, Target, BarChart3, Rocket, ArrowLeft, Home } from 'lucide-react';
 import AirportCityAutocomplete, { type AirportOption } from './AirportCityAutocomplete';
+import ProtectionSelector, { ProtectionBadge } from './ProtectionSelector';
+import { type ProtectionType, defaultProtection } from './shipmentTypes';
+import { IdentityVerification, CargoVerification } from './VerificationModules';
+import SmartTester from './SmartTester';
 
 // ── Social media SVG icons ────────────────────────────────────────────────────
 function InstagramIcon({ className }: { className?: string }) {
@@ -125,12 +129,12 @@ function EscrowTimeline() {
 
 // ─── MarketplaceRouteBoard ────────────────────────────────────────────────────
 function MarketplaceRouteBoard() {
-  const routes = [
-    { from: 'Toronto',   to: 'Tehran',   flag1: '🇨🇦', flag2: '🇮🇷', travelers: 12, avgPrice: 85,  trend: 'up'     },
-    { from: 'Dubai',     to: 'Vancouver', flag1: '🇦🇪', flag2: '🇨🇦', travelers: 8,  avgPrice: 120, trend: 'up'     },
-    { from: 'London',    to: 'New York',  flag1: '🇬🇧', flag2: '🇺🇸', travelers: 24, avgPrice: 95,  trend: 'stable' },
-    { from: 'Singapore', to: 'Sydney',    flag1: '🇸🇬', flag2: '🇦🇺', travelers: 15, avgPrice: 75,  trend: 'down'   },
-    { from: 'Paris',     to: 'Tokyo',     flag1: '🇫🇷', flag2: '🇯🇵', travelers: 10, avgPrice: 110, trend: 'up'     },
+  const routes: { from: string; to: string; flag1: string; flag2: string; travelers: number; avgPrice: number; trend: string; protection: import('./shipmentTypes').ProtectionType }[] = [
+    { from: 'Toronto',   to: 'Tehran',    flag1: '🇨🇦', flag2: '🇮🇷', travelers: 12, avgPrice: 85,  trend: 'up',     protection: 'FULL_ESCROW'         },
+    { from: 'Dubai',     to: 'Vancouver', flag1: '🇦🇪', flag2: '🇨🇦', travelers: 8,  avgPrice: 120, trend: 'up',     protection: 'FULL_ESCROW'         },
+    { from: 'London',    to: 'New York',  flag1: '🇬🇧', flag2: '🇺🇸', travelers: 24, avgPrice: 95,  trend: 'stable', protection: 'TRAVELER_GUARANTEE'  },
+    { from: 'Singapore', to: 'Sydney',    flag1: '🇸🇬', flag2: '🇦🇺', travelers: 15, avgPrice: 75,  trend: 'down',   protection: 'NONE'                },
+    { from: 'Paris',     to: 'Tokyo',     flag1: '🇫🇷', flag2: '🇯🇵', travelers: 10, avgPrice: 110, trend: 'up',     protection: 'SENDER_GUARANTEE'   },
   ];
   return (
     <div className="space-y-3">
@@ -162,22 +166,21 @@ function MarketplaceRouteBoard() {
               </div>
             </div>
 
-            {/* Stats */}
-            <div className="flex items-center gap-5 flex-shrink-0">
+            {/* Stats + badge */}
+            <div className="flex items-center gap-3 flex-shrink-0 flex-wrap justify-end">
+              <ProtectionBadge type={route.protection} />
               <div className="text-center">
                 <div className="text-xl font-bold text-gray-900">{route.travelers}</div>
                 <div className="text-[11px] text-gray-400">Travelers</div>
               </div>
               <div className="text-center">
                 <div className="text-xl font-bold text-green-600">${route.avgPrice}</div>
-                <div className="text-[11px] text-gray-400">Avg Price</div>
+                <div className="text-[11px] text-gray-400">Avg/kg</div>
               </div>
               <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
-                route.trend === 'up'
-                  ? 'bg-green-100 text-green-700'
-                  : route.trend === 'down'
-                  ? 'bg-red-100 text-red-600'
-                  : 'bg-gray-100 text-gray-500'
+                route.trend === 'up'   ? 'bg-green-100 text-green-700' :
+                route.trend === 'down' ? 'bg-red-100 text-red-600'     :
+                                         'bg-gray-100 text-gray-500'
               }`}>
                 {route.trend === 'up' ? '↗' : route.trend === 'down' ? '↘' : '→'} {route.trend}
               </span>
@@ -287,8 +290,13 @@ function PageHeader({ title, desc, onBack, onHome, backLabel }: { title: string;
 }
 
 function BuyForMePage({ onBack, onHome, t }: { onBack: () => void; onHome: () => void; t: typeof translations['en'] }) {
-  const [buyFrom, setBuyFrom]     = useState<AirportOption | null>(null);
-  const [deliverTo, setDeliverTo] = useState<AirportOption | null>(null);
+  const [buyFrom, setBuyFrom]           = useState<AirportOption | null>(null);
+  const [deliverTo, setDeliverTo]       = useState<AirportOption | null>(null);
+  const [budget, setBudget]             = useState(200);
+  const [category, setCategory]         = useState('');
+  const [protection, setProtection]     = useState<ProtectionType>('FULL_ESCROW');
+  const [idVerify, setIdVerify]         = useState(false);
+  const [cargoVerify, setCargoVerify]   = useState(false);
   return (
     <div className="min-h-screen bg-white">
       <PageHeader title={t.buyForMeTitle} desc={t.buyForMeDesc} onBack={onBack} onHome={onHome} backLabel={t.backHome} />
@@ -307,7 +315,8 @@ function BuyForMePage({ onBack, onHome, t }: { onBack: () => void; onHome: () =>
               {/* Product name */}
               <div>
                 <label className="ds-label">{t.bfmProductLabel}</label>
-                <input type="text" placeholder={t.bfmProductPlaceholder} className="ds-input" />
+                <input type="text" placeholder={t.bfmProductPlaceholder} className="ds-input"
+                  onChange={e => { setCategory(e.target.value); setProtection(defaultProtection(e.target.value)); }} />
               </div>
 
               {/* Origin / Destination */}
@@ -329,13 +338,31 @@ function BuyForMePage({ onBack, onHome, t }: { onBack: () => void; onHome: () =>
               {/* Budget */}
               <div>
                 <label className="ds-label">{t.bfmBudgetLabel}</label>
-                <input type="number" placeholder="500" className="ds-input" />
+                <input type="number" placeholder="500" className="ds-input" value={budget || ''}
+                  onChange={e => setBudget(Number(e.target.value))} />
               </div>
 
               {/* Notes */}
               <div>
                 <label className="ds-label">{t.bfmNotesLabel}</label>
                 <textarea rows={3} placeholder={t.bfmNotesPlaceholder} className="ds-input" />
+              </div>
+
+              {/* Protection selector */}
+              <div className="border-t border-gray-100 pt-5">
+                <ProtectionSelector
+                  value={protection}
+                  onChange={setProtection}
+                  declaredValue={budget}
+                  weightKg={1}
+                  pricePerKg={20}
+                />
+              </div>
+
+              {/* Verification modules */}
+              <div className="space-y-3">
+                <IdentityVerification enabled={idVerify} onToggle={setIdVerify} status="PENDING" />
+                <CargoVerification    enabled={cargoVerify} onToggle={setCargoVerify} status="PENDING" />
               </div>
 
               <motion.button
@@ -372,27 +399,6 @@ function BuyForMePage({ onBack, onHome, t }: { onBack: () => void; onHome: () =>
               </div>
             ))}
 
-            {/* Cost estimator */}
-            <div className="bg-gradient-to-br from-cyan-50 to-blue-50 border border-cyan-200 rounded-xl p-6 mt-2">
-              <h3 className="font-semibold text-gray-900 mb-4">{t.bfmCostTitle}</h3>
-              <div className="space-y-2 text-sm">
-                {[
-                  [t.bfmCostProduct,    '$200–$500'],
-                  [t.bfmCostTravelerFee,'$16–$40'],
-                  [t.bfmCostPlatform,   '$5'],
-                  [t.bfmCostInsurance,  t.bfmCostIncluded],
-                ].map(([k, v]) => (
-                  <div key={k} className="flex justify-between items-center py-1">
-                    <span className="text-gray-500">{k}</span>
-                    <span className="text-gray-800 font-medium">{v}</span>
-                  </div>
-                ))}
-                <div className="border-t border-cyan-200 pt-3 flex justify-between font-semibold">
-                  <span className="text-gray-700">{t.bfmCostTotal}</span>
-                  <span className="text-cyan-600 text-base">$221–$545</span>
-                </div>
-              </div>
-            </div>
           </motion.div>
 
         </div>
@@ -402,9 +408,16 @@ function BuyForMePage({ onBack, onHome, t }: { onBack: () => void; onHome: () =>
 }
 
 function SendPackagePage({ onBack, onHome, t }: { onBack: () => void; onHome: () => void; t: typeof translations['en'] }) {
-  const [tier, setTier]         = useState(1);
-  const [pkgFrom, setPkgFrom]   = useState<AirportOption | null>(null);
-  const [pkgTo, setPkgTo]       = useState<AirportOption | null>(null);
+  const [tier, setTier]                   = useState(1);
+  const [pkgFrom, setPkgFrom]             = useState<AirportOption | null>(null);
+  const [pkgTo, setPkgTo]                 = useState<AirportOption | null>(null);
+  const [declaredValue, setDeclaredValue] = useState(200);
+  const [weightKg, setWeightKg]           = useState(2);
+  const [category, setCategory]           = useState('');
+  const [protection, setProtection]       = useState<ProtectionType>('FULL_ESCROW');
+  const [idVerify, setIdVerify]           = useState(false);
+  const [cargoVerify, setCargoVerify]     = useState(false);
+  const tierPrices = [20, 40, 70];
   return (
     <div className="min-h-screen bg-white">
       <PageHeader title={t.sendPackageTitle} desc={t.sendPackageDesc} onBack={onBack} onHome={onHome} backLabel={t.backHome} />
@@ -430,11 +443,13 @@ function SendPackagePage({ onBack, onHome, t }: { onBack: () => void; onHome: ()
               <div className="grid grid-cols-3 gap-4">
                 <div>
                   <label className="ds-label">{t.spWeightLabel}</label>
-                  <input type="number" placeholder="2.5" className="ds-input" />
+                  <input type="number" placeholder="2.5" className="ds-input" value={weightKg || ''}
+                    onChange={e => setWeightKg(Number(e.target.value))} />
                 </div>
                 <div>
                   <label className="ds-label">{t.spValueLabel}</label>
-                  <input type="number" placeholder="200" className="ds-input" />
+                  <input type="number" placeholder="200" className="ds-input" value={declaredValue || ''}
+                    onChange={e => setDeclaredValue(Number(e.target.value))} />
                 </div>
                 <div>
                   <label className="ds-label">{t.spDeadlineLabel}</label>
@@ -445,7 +460,19 @@ function SendPackagePage({ onBack, onHome, t }: { onBack: () => void; onHome: ()
               {/* Description */}
               <div>
                 <label className="ds-label">{t.spDescLabel}</label>
-                <textarea rows={3} placeholder={t.spDescPlaceholder} className="ds-input" />
+                <textarea rows={3} placeholder={t.spDescPlaceholder} className="ds-input"
+                  onChange={e => { setCategory(e.target.value); setProtection(defaultProtection(e.target.value)); }} />
+              </div>
+
+              {/* Protection selector */}
+              <div className="border-t border-gray-100 pt-5">
+                <ProtectionSelector
+                  value={protection}
+                  onChange={setProtection}
+                  declaredValue={declaredValue}
+                  weightKg={weightKg}
+                  pricePerKg={tierPrices[tier]}
+                />
               </div>
 
               {/* Service tier */}
@@ -468,6 +495,12 @@ function SendPackagePage({ onBack, onHome, t }: { onBack: () => void; onHome: ()
                     </button>
                   ))}
                 </div>
+              </div>
+
+              {/* Verification modules */}
+              <div className="space-y-3">
+                <IdentityVerification enabled={idVerify} onToggle={setIdVerify} status="PENDING" />
+                <CargoVerification    enabled={cargoVerify} onToggle={setCargoVerify} status="PENDING" />
               </div>
 
               <motion.button
@@ -521,13 +554,113 @@ function SendPackagePage({ onBack, onHome, t }: { onBack: () => void; onHome: ()
   );
 }
 
+// ─── Traveler Acceptance Preview ─────────────────────────────────────────────
+// Shows traveler what an incoming sender request looks like (protection terms)
+// before they click Accept, so they understand their commitments.
+function TravelerAcceptancePreview({ protection }: { protection: ProtectionType }) {
+  const [accepted, setAccepted] = useState<boolean | null>(null);
+
+  const mockRequest = {
+    sender: 'Ali R.',
+    origin: 'Toronto 🇨🇦',
+    dest: 'Tehran 🇮🇷',
+    weight: '2.5 kg',
+    category: 'الکترونیک',
+    value: '$320',
+    date: '2026-06-18',
+  };
+
+  const depositRequired =
+    protection === 'TRAVELER_GUARANTEE' || protection === 'FULL_ESCROW';
+
+  return (
+    <div className="ds-card p-5 space-y-4">
+      <div className="flex items-center gap-2 mb-1">
+        <div className="w-1.5 h-5 bg-amber-400 rounded-full" />
+        <h3 className="text-sm font-bold text-gray-900">نمونه درخواست دریافتی</h3>
+      </div>
+      <p className="text-xs text-gray-400 leading-relaxed -mt-1">
+        این پیش‌نمایش نشان می‌دهد هنگام قبول درخواست فرستنده چه شرایطی خواهید داشت.
+      </p>
+
+      {/* Mock request card */}
+      <div className="border border-gray-200 rounded-xl p-4 space-y-3 bg-slate-50">
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-semibold text-gray-700">{mockRequest.sender}</span>
+          <ProtectionBadge type={protection} />
+        </div>
+        <div className="flex items-center gap-2 text-sm">
+          <span className="text-gray-700 font-medium">{mockRequest.origin}</span>
+          <span className="text-gray-300">→</span>
+          <span className="text-gray-700 font-medium">{mockRequest.dest}</span>
+        </div>
+        <div className="grid grid-cols-2 gap-2 text-xs">
+          {[
+            ['وزن', mockRequest.weight],
+            ['دسته‌بندی', mockRequest.category],
+            ['ارزش اعلام', mockRequest.value],
+            ['تاریخ', mockRequest.date],
+          ].map(([k, v]) => (
+            <div key={k}>
+              <div className="text-gray-400">{k}</div>
+              <div className="font-semibold text-gray-800">{v}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Commitment box */}
+        {depositRequired && (
+          <div className="bg-amber-50 border border-amber-200 rounded-lg px-3 py-2.5">
+            <div className="text-xs font-semibold text-amber-700 mb-1">تعهد مسافر</div>
+            <p className="text-xs text-amber-600 leading-relaxed">
+              با قبول این درخواست، مبلغ ودیعه <span className="font-bold">~$32</span> از حساب شما قفل می‌شود.
+              در صورت تحویل موفق، مبلغ آزاد خواهد شد.
+            </p>
+          </div>
+        )}
+
+        {/* Accept / Decline buttons */}
+        {accepted === null ? (
+          <div className="grid grid-cols-2 gap-2 pt-1">
+            <motion.button
+              whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
+              onClick={() => setAccepted(false)}
+              className="py-2 rounded-lg border border-gray-200 text-xs font-semibold text-gray-600 hover:bg-gray-50 transition-colors"
+            >
+              رد درخواست
+            </motion.button>
+            <motion.button
+              whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
+              onClick={() => setAccepted(true)}
+              className="py-2 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 text-white text-xs font-semibold hover:opacity-90 transition-opacity"
+            >
+              قبول درخواست
+            </motion.button>
+          </div>
+        ) : (
+          <div className={`text-center py-2.5 rounded-lg text-xs font-semibold border ${
+            accepted
+              ? 'bg-green-50 text-green-700 border-green-200'
+              : 'bg-gray-50 text-gray-500 border-gray-200'
+          }`}>
+            {accepted ? '✓ درخواست قبول شد — امانی قفل می‌شود' : '✗ درخواست رد شد'}
+            <button onClick={() => setAccepted(null)} className="block mx-auto mt-1 text-[10px] text-gray-400 hover:text-gray-600 underline">
+              بازنشانی
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function TravelerPage({ onBack, onHome, t }: { onBack: () => void; onHome: () => void; t: typeof translations['en'] }) {
-  const [weight, setWeight]           = useState(5);
   const [routeWeight, setRouteWeight] = useState(5);
   const [stepsOpen, setStepsOpen]     = useState(false);
   const [travFrom, setTravFrom]       = useState<AirportOption | null>(null);
   const [travTo, setTravTo]           = useState<AirportOption | null>(null);
-  const earning = Math.round(weight * 18);
+  const [protection, setProtection]   = useState<ProtectionType>('FULL_ESCROW');
+  const [idVerify, setIdVerify]       = useState(false);
   return (
     <div className="min-h-screen bg-white">
       <PageHeader title={t.travelerTitle} desc={t.travelerDesc} onBack={onBack} onHome={onHome} backLabel={t.backHome} />
@@ -603,6 +736,22 @@ function TravelerPage({ onBack, onHome, t }: { onBack: () => void; onHome: () =>
                     className="ds-input" />
                 </div>
 
+                {/* Protection selector */}
+                <div className="border-t border-gray-100 pt-5">
+                  <ProtectionSelector
+                    value={protection}
+                    onChange={setProtection}
+                    declaredValue={500}
+                    weightKg={routeWeight}
+                    pricePerKg={18}
+                  />
+                </div>
+
+                {/* Identity verification */}
+                <div className="border-t border-gray-100 pt-5">
+                  <IdentityVerification enabled={idVerify} onToggle={setIdVerify} status="PENDING" />
+                </div>
+
                 {/* Submit */}
                 <motion.button
                   whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
@@ -653,44 +802,11 @@ function TravelerPage({ onBack, onHome, t }: { onBack: () => void; onHome: () =>
             </motion.div>
           </div>
 
-          {/* ── Sidebar: Earnings calculator + Requirements ── */}
+          {/* ── Sidebar: Requirements + Acceptance Preview ── */}
           <motion.div
             initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.15 }}
             className="space-y-6"
           >
-            {/* Earnings calculator */}
-            <div className="ds-card p-6">
-              <h3 className="font-semibold text-gray-900 mb-5">{t.travCalcTitle}</h3>
-
-              <div className="mb-5">
-                <label className="ds-label">
-                  {t.travLuggageLabel}&nbsp;
-                  <span className="text-gray-900 font-semibold">{weight} kg</span>
-                </label>
-                <input
-                  type="range" min={1} max={15} value={weight}
-                  onChange={e => setWeight(Number(e.target.value))}
-                  className="ds-range mt-1"
-                />
-              </div>
-
-              {/* Earnings display */}
-              <div className="bg-gradient-to-br from-cyan-50 to-blue-50 border border-cyan-200 rounded-xl p-5 text-center mb-4">
-                <div className="text-4xl font-black text-gray-900 mb-1">${earning}</div>
-                <div className="text-cyan-600 text-sm font-medium">{t.travEstPerTrip}</div>
-                <div className="text-gray-400 text-xs mt-1">{t.travAvgPricing}</div>
-              </div>
-
-              <div className="space-y-2 text-sm">
-                {[[t.travMonthly, `$${earning * 2}`], [t.travAnnually, `$${earning * 24}`]].map(([k, v]) => (
-                  <div key={k} className="flex justify-between items-center py-1.5 border-b border-gray-100 last:border-0">
-                    <span className="text-gray-500">{k}</span>
-                    <span className="text-gray-900 font-semibold">{v}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
             {/* Requirements */}
             <div className="ds-card p-6">
               <h3 className="font-semibold text-gray-900 mb-4">{t.travReqTitle}</h3>
@@ -705,6 +821,9 @@ function TravelerPage({ onBack, onHome, t }: { onBack: () => void; onHome: () =>
                 ))}
               </div>
             </div>
+
+            {/* Acceptance preview — shows traveler what a request looks like before accepting */}
+            <TravelerAcceptancePreview protection={protection} />
           </motion.div>
 
         </div>
@@ -1890,16 +2009,14 @@ function NavTrackingPanel({ onClose }: { onClose: () => void }) {
           </div>
 
           {result && (
-            <div className="flex-1 bg-white/3 border border-white/8 rounded-2xl p-4">
-              <div className="flex items-center justify-between mb-3">
+            <div className="flex-1 bg-white/3 border border-white/8 rounded-2xl p-4 space-y-3">
+              {/* Header */}
+              <div className="flex items-center justify-between">
                 <span className="font-mono text-xs text-cyan-400">{result.trackingCode}</span>
-                <a
-                  href={`/track/${result.trackingCode}`}
-                  className="text-xs text-cyan-400 hover:text-cyan-300 transition-colors"
-                >
-                  مشاهده کامل ←
-                </a>
+                <a href={`/track/${result.trackingCode}`} className="text-xs text-cyan-400 hover:text-cyan-300 transition-colors">مشاهده کامل ←</a>
               </div>
+
+              {/* Route */}
               <div className="flex items-center gap-3 text-sm">
                 <div>
                   <div className="font-semibold text-white">{result.publicOriginCity}</div>
@@ -1911,8 +2028,60 @@ function NavTrackingPanel({ onClose }: { onClose: () => void }) {
                   <div className="text-xs text-gray-500">{result.publicDestinationCountry}</div>
                 </div>
               </div>
+
+              {/* Protection + escrow row */}
+              <div className="flex flex-wrap items-center gap-2">
+                {result.protectionType && <ProtectionBadge type={result.protectionType} />}
+                {/* Escrow status */}
+                {result.escrowStatus !== 'none' && (
+                  <span className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full border ${
+                    result.escrowStatus === 'locked'   ? 'bg-amber-500/10 text-amber-300 border-amber-500/30' :
+                    result.escrowStatus === 'released' ? 'bg-green-500/10 text-green-400 border-green-500/30' :
+                                                         'bg-gray-500/10 text-gray-400 border-gray-500/30'
+                  }`}>
+                    🔒 {result.escrowStatus === 'locked' ? 'امانی قفل' : result.escrowStatus === 'released' ? 'آزاد شده' : 'بازگشت داده'}
+                  </span>
+                )}
+              </div>
+
+              {/* Verification statuses */}
+              {(result.identityVerificationStatus || result.cargoVerificationStatus) && (
+                <div className="flex flex-wrap gap-2 border-t border-white/5 pt-2">
+                  {result.identityVerificationStatus && (
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[10px] text-gray-500">هویت:</span>
+                      <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${
+                        result.identityVerificationStatus === 'VERIFIED'      ? 'bg-green-500/15 text-green-400' :
+                        result.identityVerificationStatus === 'REJECTED'      ? 'bg-red-500/15 text-red-400'   :
+                        result.identityVerificationStatus === 'MANUAL_REVIEW' ? 'bg-blue-500/15 text-blue-400'  :
+                                                                                 'bg-yellow-500/15 text-yellow-400'
+                      }`}>
+                        {result.identityVerificationStatus === 'VERIFIED' ? 'تأیید' :
+                         result.identityVerificationStatus === 'REJECTED' ? 'رد' :
+                         result.identityVerificationStatus === 'MANUAL_REVIEW' ? 'بررسی' : 'در انتظار'}
+                      </span>
+                    </div>
+                  )}
+                  {result.cargoVerificationStatus && (
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[10px] text-gray-500">کالا:</span>
+                      <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${
+                        result.cargoVerificationStatus === 'VERIFIED'      ? 'bg-green-500/15 text-green-400' :
+                        result.cargoVerificationStatus === 'REJECTED'      ? 'bg-red-500/15 text-red-400'   :
+                        result.cargoVerificationStatus === 'MANUAL_REVIEW' ? 'bg-blue-500/15 text-blue-400'  :
+                                                                              'bg-yellow-500/15 text-yellow-400'
+                      }`}>
+                        {result.cargoVerificationStatus === 'VERIFIED' ? 'تأیید' :
+                         result.cargoVerificationStatus === 'REJECTED' ? 'رد' :
+                         result.cargoVerificationStatus === 'MANUAL_REVIEW' ? 'بررسی' : 'در انتظار'}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {result.eta && (
-                <div className="mt-2 text-xs text-gray-500">
+                <div className="text-xs text-gray-500">
                   تحویل: <span className="text-white font-medium">{result.eta}</span>
                   {result.distanceText && <> · {result.distanceText}</>}
                 </div>
@@ -1937,6 +2106,7 @@ export default function App() {
   const [currentPage, setCurrentPage] = useState<Page>('home');
   const [isScrolled, setIsScrolled] = useState(false);
   const [showAICopilot, setShowAICopilot] = useState(false);
+  const [showSmartTester, setShowSmartTester] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showTrackPanel, setShowTrackPanel] = useState(false);
 
@@ -2005,6 +2175,19 @@ export default function App() {
         whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
         <Sparkles className="w-6 h-6 text-white" />
       </motion.button>
+
+      {/* Smart Tester trigger */}
+      <motion.button
+        onClick={() => setShowSmartTester(true)}
+        className="fixed bottom-24 right-6 z-50 w-10 h-10 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-full shadow-lg flex items-center justify-center"
+        title="Smart Tester"
+        whileHover={{ scale: 1.12 }} whileTap={{ scale: 0.92 }}
+      >
+        <Activity className="w-4 h-4 text-white" />
+      </motion.button>
+
+      {/* Smart Tester modal */}
+      {showSmartTester && <SmartTester onClose={() => setShowSmartTester(false)} />}
 
       {/* Header */}
       <motion.header
