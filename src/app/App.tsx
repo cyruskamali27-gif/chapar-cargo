@@ -1,4 +1,5 @@
-import { Shield, MapPin, Scan, Globe, Users, TrendingUp, CheckCircle, Package, ArrowRight, ChevronDown, Star, Lock, Zap, Clock, CreditCard, Award, BadgeCheck, Sparkles, Activity, Plane, DollarSign, Eye, FileCheck, Building2, Verified, Trophy, Target, BarChart3, Rocket, ArrowLeft } from 'lucide-react';
+import { Shield, MapPin, Scan, Globe, Users, TrendingUp, CheckCircle, Package, ArrowRight, ChevronDown, Star, Lock, Zap, Clock, CreditCard, Award, BadgeCheck, Sparkles, Activity, Plane, DollarSign, Eye, FileCheck, Building2, Verified, Trophy, Target, BarChart3, Rocket, ArrowLeft, Home } from 'lucide-react';
+import AirportCityAutocomplete, { type AirportOption } from './AirportCityAutocomplete';
 
 // ── Social media SVG icons ────────────────────────────────────────────────────
 function InstagramIcon({ className }: { className?: string }) {
@@ -68,36 +69,51 @@ function CountUpAnimation({ end, suffix = '', prefix = '', duration = 2 }: { end
 // ─── EscrowTimeline ───────────────────────────────────────────────────────────
 function EscrowTimeline() {
   const steps = [
-    { title: 'Payment Locked', description: 'Funds secured in escrow account', icon: Lock, status: 'completed' },
-    { title: 'Traveler Accepted', description: 'Verified traveler confirmed delivery', icon: CheckCircle, status: 'completed' },
-    { title: 'Package Delivered', description: 'Package handed to recipient', icon: Package, status: 'completed' },
-    { title: 'Receiver Confirmed', description: 'Delivery confirmed by recipient', icon: BadgeCheck, status: 'active' },
-    { title: 'Funds Released', description: 'Payment transferred to traveler', icon: DollarSign, status: 'pending' },
+    { title: 'Payment Locked',     description: 'Funds secured in escrow account',          icon: Lock,        status: 'completed' },
+    { title: 'Traveler Accepted',  description: 'Verified traveler confirmed delivery',      icon: CheckCircle, status: 'completed' },
+    { title: 'Package Delivered',  description: 'Package handed to recipient',               icon: Package,     status: 'completed' },
+    { title: 'Receiver Confirmed', description: 'Delivery confirmed by recipient',           icon: BadgeCheck,  status: 'active'    },
+    { title: 'Funds Released',     description: 'Payment transferred to traveler',           icon: DollarSign,  status: 'pending'   },
   ];
   return (
     <div className="relative">
-      <div className="absolute left-8 top-0 bottom-0 w-0.5 bg-gradient-to-b from-green-500 via-blue-500 to-gray-600" />
-      <div className="space-y-8">
+      {/* Connector line */}
+      <div className="absolute left-6 top-6 bottom-6 w-0.5 bg-gradient-to-b from-green-400 via-blue-400 to-gray-200" />
+      <div className="space-y-6">
         {steps.map((step, index) => (
-          <motion.div key={index} className="relative flex items-start gap-6"
-            initial={{ opacity: 0, x: -30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ delay: index * 0.15 }}>
-            <div className={`relative z-10 w-16 h-16 rounded-2xl flex items-center justify-center ${
-              step.status === 'completed' ? 'bg-gradient-to-br from-green-500 to-green-600' :
-              step.status === 'active' ? 'bg-gradient-to-br from-blue-500 to-blue-600 animate-pulse' :
-              'bg-white/10'} shadow-lg`}>
-              <step.icon className="w-8 h-8 text-white" />
+          <motion.div
+            key={index}
+            className="relative flex items-start gap-5"
+            initial={{ opacity: 0, x: -20 }} whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }} transition={{ delay: index * 0.12 }}
+          >
+            {/* Icon */}
+            <div className={`relative z-10 w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm ${
+              step.status === 'completed' ? 'bg-green-500' :
+              step.status === 'active'    ? 'bg-blue-500 animate-pulse' :
+              'bg-gray-100 border border-gray-200'
+            }`}>
+              <step.icon className={`w-6 h-6 ${step.status === 'pending' ? 'text-gray-400' : 'text-white'}`} />
             </div>
-            <div className="flex-1 pt-3">
-              <h3 className="text-xl font-semibold text-white mb-2">{step.title}</h3>
-              <p className="text-gray-400">{step.description}</p>
+
+            {/* Content */}
+            <div className="flex-1 pt-1.5">
+              <h3 className="font-semibold text-gray-900 mb-0.5">{step.title}</h3>
+              <p className="text-gray-500 text-sm">{step.description}</p>
               {step.status === 'active' && (
-                <div className="mt-3 inline-flex items-center gap-2 px-3 py-1 bg-blue-500/20 rounded-full">
-                  <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse" />
-                  <span className="text-sm text-blue-300 font-medium">In Progress</span>
+                <div className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 border border-blue-200 rounded-full">
+                  <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse" />
+                  <span className="text-xs text-blue-600 font-semibold">In Progress</span>
                 </div>
               )}
             </div>
-            <div className="text-sm text-gray-500 pt-3">
+
+            {/* Status label */}
+            <div className={`text-xs font-medium pt-2 flex-shrink-0 ${
+              step.status === 'completed' ? 'text-green-600' :
+              step.status === 'active'    ? 'text-blue-600'  :
+              'text-gray-400'
+            }`}>
               {step.status === 'completed' ? '✓ Done' : step.status === 'active' ? 'Now' : 'Pending'}
             </div>
           </motion.div>
@@ -110,58 +126,69 @@ function EscrowTimeline() {
 // ─── MarketplaceRouteBoard ────────────────────────────────────────────────────
 function MarketplaceRouteBoard() {
   const routes = [
-    { from: 'Toronto', to: 'Tehran', flag1: '🇨🇦', flag2: '🇮🇷', travelers: 12, avgPrice: 85, trend: 'up' },
-    { from: 'Dubai', to: 'Vancouver', flag1: '🇦🇪', flag2: '🇨🇦', travelers: 8, avgPrice: 120, trend: 'up' },
-    { from: 'London', to: 'New York', flag1: '🇬🇧', flag2: '🇺🇸', travelers: 24, avgPrice: 95, trend: 'stable' },
-    { from: 'Singapore', to: 'Sydney', flag1: '🇸🇬', flag2: '🇦🇺', travelers: 15, avgPrice: 75, trend: 'down' },
-    { from: 'Paris', to: 'Tokyo', flag1: '🇫🇷', flag2: '🇯🇵', travelers: 10, avgPrice: 110, trend: 'up' },
+    { from: 'Toronto',   to: 'Tehran',   flag1: '🇨🇦', flag2: '🇮🇷', travelers: 12, avgPrice: 85,  trend: 'up'     },
+    { from: 'Dubai',     to: 'Vancouver', flag1: '🇦🇪', flag2: '🇨🇦', travelers: 8,  avgPrice: 120, trend: 'up'     },
+    { from: 'London',    to: 'New York',  flag1: '🇬🇧', flag2: '🇺🇸', travelers: 24, avgPrice: 95,  trend: 'stable' },
+    { from: 'Singapore', to: 'Sydney',    flag1: '🇸🇬', flag2: '🇦🇺', travelers: 15, avgPrice: 75,  trend: 'down'   },
+    { from: 'Paris',     to: 'Tokyo',     flag1: '🇫🇷', flag2: '🇯🇵', travelers: 10, avgPrice: 110, trend: 'up'     },
   ];
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {routes.map((route, index) => (
-        <motion.div key={index}
-          className="bg-white/5 backdrop-blur-md p-6 rounded-xl border border-white/10 hover:border-cyan-500/30 hover:bg-white/8 transition-all group cursor-pointer"
-          initial={{ opacity: 0, x: -30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }}
-          transition={{ delay: index * 0.1 }} whileHover={{ scale: 1.02 }}>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4 flex-1">
-              <div className="flex items-center gap-3">
-                <span className="text-3xl">{route.flag1}</span>
+        <motion.div
+          key={index}
+          className="bg-white border border-gray-200 rounded-xl p-5 hover:border-cyan-300 hover:shadow-md transition-all group cursor-pointer"
+          initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
+          transition={{ delay: index * 0.07 }} whileHover={{ y: -2 }}
+        >
+          <div className="flex items-center justify-between gap-4 flex-wrap">
+
+            {/* Route */}
+            <div className="flex items-center gap-3 flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <span className="text-2xl">{route.flag1}</span>
                 <div>
-                  <div className="font-semibold text-white">{route.from}</div>
-                  <div className="text-xs text-gray-500">Origin</div>
+                  <div className="font-semibold text-gray-900 text-sm">{route.from}</div>
+                  <div className="text-[11px] text-gray-400">Origin</div>
                 </div>
               </div>
-              <ArrowRight className="w-5 h-5 text-gray-600 group-hover:text-cyan-400 transition-colors" />
-              <div className="flex items-center gap-3">
-                <span className="text-3xl">{route.flag2}</span>
+              <ArrowRight className="w-4 h-4 text-gray-300 group-hover:text-cyan-500 transition-colors flex-shrink-0" />
+              <div className="flex items-center gap-2">
+                <span className="text-2xl">{route.flag2}</span>
                 <div>
-                  <div className="font-semibold text-white">{route.to}</div>
-                  <div className="text-xs text-gray-500">Destination</div>
+                  <div className="font-semibold text-gray-900 text-sm">{route.to}</div>
+                  <div className="text-[11px] text-gray-400">Destination</div>
                 </div>
               </div>
             </div>
-            <div className="flex items-center gap-6">
+
+            {/* Stats */}
+            <div className="flex items-center gap-5 flex-shrink-0">
               <div className="text-center">
-                <div className="text-2xl font-bold text-white">{route.travelers}</div>
-                <div className="text-xs text-gray-500">Active Travelers</div>
+                <div className="text-xl font-bold text-gray-900">{route.travelers}</div>
+                <div className="text-[11px] text-gray-400">Travelers</div>
               </div>
               <div className="text-center">
-                <div className="text-2xl font-bold text-green-400">${route.avgPrice}</div>
-                <div className="text-xs text-gray-500">Avg Price</div>
+                <div className="text-xl font-bold text-green-600">${route.avgPrice}</div>
+                <div className="text-[11px] text-gray-400">Avg Price</div>
               </div>
-              <div className={`px-3 py-1 rounded-full ${
-                route.trend === 'up' ? 'bg-green-500/20 text-green-400' :
-                route.trend === 'down' ? 'bg-red-500/20 text-red-400' : 'bg-white/10 text-gray-400'}`}>
-                <div className="text-xs font-medium flex items-center gap-1">
-                  {route.trend === 'up' ? '↗' : route.trend === 'down' ? '↘' : '→'} {route.trend}
-                </div>
-              </div>
-              <motion.button className="px-6 py-2 bg-gradient-to-r from-cyan-600 to-blue-600 text-white rounded-lg text-sm font-medium hover:from-cyan-500 hover:to-blue-500 transition-all"
-                whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
+                route.trend === 'up'
+                  ? 'bg-green-100 text-green-700'
+                  : route.trend === 'down'
+                  ? 'bg-red-100 text-red-600'
+                  : 'bg-gray-100 text-gray-500'
+              }`}>
+                {route.trend === 'up' ? '↗' : route.trend === 'down' ? '↘' : '→'} {route.trend}
+              </span>
+              <motion.button
+                className="px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 text-white rounded-lg text-xs font-semibold hover:opacity-90 transition-opacity"
+                whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}
+              >
                 View Route
               </motion.button>
             </div>
+
           </div>
         </motion.div>
       ))}
@@ -224,36 +251,33 @@ function LanguageSelector({ lang, setLang }: { lang: LangCode; setLang: (l: Lang
 
 // ─── Sub-pages ────────────────────────────────────────────────────────────────
 
-function PageHeader({ title, desc, onBack, backLabel }: { title: string; desc: string; onBack: () => void; backLabel: string }) {
+function PageHeader({ title, desc, onBack, onHome, backLabel }: { title: string; desc: string; onBack: () => void; onHome: () => void; backLabel: string }) {
   return (
-    <div className="relative pt-28 pb-24 px-4 sm:px-6 lg:px-8 overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-to-br from-[#030710] via-[#060c1a] to-[#040a16]" />
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_20%_50%,rgba(0,120,255,0.10),transparent_55%)]" />
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_80%_30%,rgba(0,80,200,0.06),transparent_50%)]" />
-      <div className="absolute inset-0 opacity-[0.025]" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px,rgba(255,255,255,0.6) 1px,transparent 0)', backgroundSize: '36px 36px' }} />
-      <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/12 to-transparent" />
+    <div className="ds-page-header px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto relative z-10">
-        <motion.button
-          onClick={onBack}
-          initial={{ opacity: 0, x: -10 }}
-          animate={{ opacity: 1, x: 0 }}
-          className="flex items-center gap-2 text-gray-400 hover:text-cyan-400 transition-colors mb-12 group"
+        <motion.div
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex items-center gap-3 mb-10 flex-wrap"
         >
-          <div className="w-9 h-9 bg-white/5 border border-white/10 rounded-xl flex items-center justify-center group-hover:border-cyan-500/35 group-hover:bg-cyan-500/10 transition-all shadow-sm">
+          <button onClick={onBack} className="ds-nav-btn group">
             <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
-          </div>
-          <span className="text-sm font-medium tracking-wide">{backLabel}</span>
-        </motion.button>
+            <span>{backLabel}</span>
+          </button>
+          <button onClick={onHome} className="ds-nav-btn ds-nav-btn-home">
+            <Home className="w-4 h-4" />
+            <span>بازگشت به صفحه اصلی</span>
+          </button>
+        </motion.div>
         <motion.h1
           initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }}
-          className="text-4xl lg:text-6xl font-extrabold text-white mb-5 leading-tight"
-          style={{ textShadow: '0 2px 30px rgba(0,100,255,0.12)' }}
+          className="text-4xl lg:text-6xl font-extrabold text-gray-900 mb-4 leading-tight"
         >
           {title}
         </motion.h1>
         <motion.p
           initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
-          className="text-lg text-gray-400 max-w-2xl leading-relaxed"
+          className="text-lg text-gray-500 max-w-2xl leading-relaxed"
         >
           {desc}
         </motion.p>
@@ -262,420 +286,632 @@ function PageHeader({ title, desc, onBack, backLabel }: { title: string; desc: s
   );
 }
 
-function BuyForMePage({ onBack, t }: { onBack: () => void; t: typeof translations['en'] }) {
+function BuyForMePage({ onBack, onHome, t }: { onBack: () => void; onHome: () => void; t: typeof translations['en'] }) {
+  const [buyFrom, setBuyFrom]     = useState<AirportOption | null>(null);
+  const [deliverTo, setDeliverTo] = useState<AirportOption | null>(null);
   return (
-    <div className="min-h-screen" style={{ background: 'linear-gradient(to bottom, #030710, #050810 120px, #050810)' }}>
-      <PageHeader title={t.buyForMeTitle} desc={t.buyForMeDesc} onBack={onBack} backLabel={t.backHome} />
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-24">
-        <div className="grid lg:grid-cols-2 gap-12">
-          {/* Form */}
-          <motion.div initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.2 }}
-            className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-8">
-            <h2 className="text-2xl font-bold text-white mb-6">{t.bfmFormTitle}</h2>
+    <div className="min-h-screen bg-white">
+      <PageHeader title={t.buyForMeTitle} desc={t.buyForMeDesc} onBack={onBack} onHome={onHome} backLabel={t.backHome} />
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 pb-24">
+        <div className="grid lg:grid-cols-2 gap-10">
+
+          {/* ── Form card ── */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
+            className="ds-card p-8"
+          >
+            <h2 className="text-xl font-bold text-gray-900 mb-6">{t.bfmFormTitle}</h2>
             <div className="space-y-5">
+
+              {/* Product name */}
               <div>
-                <label className="block text-sm text-gray-400 mb-2">{t.bfmProductLabel}</label>
-                <input type="text" placeholder={t.bfmProductPlaceholder}
-                  className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-600 focus:outline-none focus:border-cyan-500/50 transition-colors" />
+                <label className="ds-label">{t.bfmProductLabel}</label>
+                <input type="text" placeholder={t.bfmProductPlaceholder} className="ds-input" />
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm text-gray-400 mb-2">{t.bfmBuyFromLabel}</label>
-                  <input type="text" placeholder={t.bfmBuyFromPlaceholder}
-                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-600 focus:outline-none focus:border-cyan-500/50 transition-colors" />
-                </div>
-                <div>
-                  <label className="block text-sm text-gray-400 mb-2">{t.bfmDeliverToLabel}</label>
-                  <input type="text" placeholder={t.bfmDeliverToPlaceholder}
-                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-600 focus:outline-none focus:border-cyan-500/50 transition-colors" />
-                </div>
+
+              {/* Origin / Destination */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <AirportCityAutocomplete
+                  label={t.bfmBuyFromLabel}
+                  value={buyFrom}
+                  onChange={setBuyFrom}
+                  placeholder={t.bfmBuyFromPlaceholder}
+                />
+                <AirportCityAutocomplete
+                  label={t.bfmDeliverToLabel}
+                  value={deliverTo}
+                  onChange={setDeliverTo}
+                  placeholder={t.bfmDeliverToPlaceholder}
+                />
               </div>
+
+              {/* Budget */}
               <div>
-                <label className="block text-sm text-gray-400 mb-2">{t.bfmBudgetLabel}</label>
-                <input type="number" placeholder="500"
-                  className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-600 focus:outline-none focus:border-cyan-500/50 transition-colors" />
+                <label className="ds-label">{t.bfmBudgetLabel}</label>
+                <input type="number" placeholder="500" className="ds-input" />
               </div>
+
+              {/* Notes */}
               <div>
-                <label className="block text-sm text-gray-400 mb-2">{t.bfmNotesLabel}</label>
-                <textarea rows={3} placeholder={t.bfmNotesPlaceholder}
-                  className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-600 focus:outline-none focus:border-cyan-500/50 transition-colors resize-none" />
+                <label className="ds-label">{t.bfmNotesLabel}</label>
+                <textarea rows={3} placeholder={t.bfmNotesPlaceholder} className="ds-input" />
               </div>
-              <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
-                className="w-full py-4 bg-gradient-to-r from-cyan-500 to-blue-600 text-white rounded-xl font-semibold shadow-lg shadow-cyan-500/25 hover:shadow-cyan-500/40 transition-shadow">
+
+              <motion.button
+                whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+                className="ds-btn-primary w-full py-4 text-base rounded-xl"
+              >
                 {t.bfmFindTraveler}
               </motion.button>
             </div>
           </motion.div>
 
-          {/* How it works */}
-          <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3 }}
-            className="space-y-6">
-            <h2 className="text-2xl font-bold text-white">{t.bfmHowTitle}</h2>
+          {/* ── Right column: steps + cost estimator ── */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}
+            className="space-y-5"
+          >
+            <h2 className="text-xl font-bold text-gray-900">{t.bfmHowTitle}</h2>
+
+            {/* Steps */}
             {[
-              { icon: Package, title: t.bfmHowStep1Title, desc: t.bfmHowStep1Desc },
-              { icon: Users, title: t.bfmHowStep2Title, desc: t.bfmHowStep2Desc },
-              { icon: Lock, title: t.bfmHowStep3Title, desc: t.bfmHowStep3Desc },
-              { icon: CheckCircle, title: t.bfmHowStep4Title, desc: t.bfmHowStep4Desc },
+              { icon: Package,     title: t.bfmHowStep1Title, desc: t.bfmHowStep1Desc, color: 'bg-cyan-50 border-cyan-200',   icon_cls: 'text-cyan-600'   },
+              { icon: Users,       title: t.bfmHowStep2Title, desc: t.bfmHowStep2Desc, color: 'bg-blue-50 border-blue-200',   icon_cls: 'text-blue-600'   },
+              { icon: Lock,        title: t.bfmHowStep3Title, desc: t.bfmHowStep3Desc, color: 'bg-green-50 border-green-200', icon_cls: 'text-green-600'  },
+              { icon: CheckCircle, title: t.bfmHowStep4Title, desc: t.bfmHowStep4Desc, color: 'bg-purple-50 border-purple-200', icon_cls: 'text-purple-600' },
             ].map((step, i) => (
-              <div key={i} className="flex gap-4 bg-white/5 border border-white/10 rounded-xl p-5">
-                <div className="w-12 h-12 bg-gradient-to-br from-cyan-500/20 to-blue-600/20 border border-cyan-500/30 rounded-xl flex items-center justify-center flex-shrink-0">
-                  <step.icon className="w-6 h-6 text-cyan-400" />
+              <div key={i} className="flex gap-4 bg-white border border-gray-100 rounded-xl p-5 shadow-sm">
+                <div className={`w-11 h-11 ${step.color} border rounded-xl flex items-center justify-center flex-shrink-0`}>
+                  <step.icon className={`w-5 h-5 ${step.icon_cls}`} />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-white mb-1">{step.title}</h3>
-                  <p className="text-gray-400 text-sm">{step.desc}</p>
+                  <h3 className="font-semibold text-gray-900 mb-1 text-sm">{step.title}</h3>
+                  <p className="text-gray-500 text-sm leading-relaxed">{step.desc}</p>
                 </div>
               </div>
             ))}
 
-            {/* Price estimator */}
-            <div className="bg-gradient-to-br from-cyan-500/10 to-blue-600/10 border border-cyan-500/20 rounded-xl p-6">
-              <h3 className="font-semibold text-white mb-3">{t.bfmCostTitle}</h3>
+            {/* Cost estimator */}
+            <div className="bg-gradient-to-br from-cyan-50 to-blue-50 border border-cyan-200 rounded-xl p-6 mt-2">
+              <h3 className="font-semibold text-gray-900 mb-4">{t.bfmCostTitle}</h3>
               <div className="space-y-2 text-sm">
-                {[[t.bfmCostProduct, '$200–$500'], [t.bfmCostTravelerFee, '$16–$40'], [t.bfmCostPlatform, '$5'], [t.bfmCostInsurance, t.bfmCostIncluded]].map(([k, v]) => (
-                  <div key={k} className="flex justify-between">
-                    <span className="text-gray-400">{k}</span>
-                    <span className="text-white font-medium">{v}</span>
+                {[
+                  [t.bfmCostProduct,    '$200–$500'],
+                  [t.bfmCostTravelerFee,'$16–$40'],
+                  [t.bfmCostPlatform,   '$5'],
+                  [t.bfmCostInsurance,  t.bfmCostIncluded],
+                ].map(([k, v]) => (
+                  <div key={k} className="flex justify-between items-center py-1">
+                    <span className="text-gray-500">{k}</span>
+                    <span className="text-gray-800 font-medium">{v}</span>
                   </div>
                 ))}
-                <div className="border-t border-white/10 pt-2 flex justify-between font-semibold">
-                  <span className="text-gray-300">{t.bfmCostTotal}</span>
-                  <span className="text-cyan-400">$221–$545</span>
+                <div className="border-t border-cyan-200 pt-3 flex justify-between font-semibold">
+                  <span className="text-gray-700">{t.bfmCostTotal}</span>
+                  <span className="text-cyan-600 text-base">$221–$545</span>
                 </div>
               </div>
             </div>
           </motion.div>
+
         </div>
       </div>
     </div>
   );
 }
 
-function SendPackagePage({ onBack, t }: { onBack: () => void; t: typeof translations['en'] }) {
-  const [tier, setTier] = useState(1);
+function SendPackagePage({ onBack, onHome, t }: { onBack: () => void; onHome: () => void; t: typeof translations['en'] }) {
+  const [tier, setTier]         = useState(1);
+  const [pkgFrom, setPkgFrom]   = useState<AirportOption | null>(null);
+  const [pkgTo, setPkgTo]       = useState<AirportOption | null>(null);
   return (
-    <div className="min-h-screen" style={{ background: 'linear-gradient(to bottom, #030710, #050810 120px, #050810)' }}>
-      <PageHeader title={t.sendPackageTitle} desc={t.sendPackageDesc} onBack={onBack} backLabel={t.backHome} />
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-24">
+    <div className="min-h-screen bg-white">
+      <PageHeader title={t.sendPackageTitle} desc={t.sendPackageDesc} onBack={onBack} onHome={onHome} backLabel={t.backHome} />
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 pb-24">
         <div className="grid lg:grid-cols-3 gap-8">
-          {/* Form */}
-          <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
-            className="lg:col-span-2 bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-8">
-            <h2 className="text-2xl font-bold text-white mb-6">{t.spFormTitle}</h2>
+
+          {/* ── Main form ── */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
+            className="lg:col-span-2 ds-card p-8"
+          >
+            <h2 className="text-xl font-bold text-gray-900 mb-6">{t.spFormTitle}</h2>
             <div className="space-y-5">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm text-gray-400 mb-2">{t.spFromLabel}</label>
-                  <input type="text" placeholder={t.spFromPlaceholder}
-                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-600 focus:outline-none focus:border-cyan-500/50 transition-colors" />
-                </div>
-                <div>
-                  <label className="block text-sm text-gray-400 mb-2">{t.spToLabel}</label>
-                  <input type="text" placeholder={t.spToPlaceholder}
-                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-600 focus:outline-none focus:border-cyan-500/50 transition-colors" />
-                </div>
+
+              {/* Route */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <AirportCityAutocomplete label={t.spFromLabel} value={pkgFrom} onChange={setPkgFrom} placeholder={t.spFromPlaceholder} />
+                <AirportCityAutocomplete label={t.spToLabel}   value={pkgTo}   onChange={setPkgTo}   placeholder={t.spToPlaceholder} />
               </div>
+
+              {/* Weight / Value / Deadline */}
               <div className="grid grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-sm text-gray-400 mb-2">{t.spWeightLabel}</label>
-                  <input type="number" placeholder="2.5"
-                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-600 focus:outline-none focus:border-cyan-500/50 transition-colors" />
+                  <label className="ds-label">{t.spWeightLabel}</label>
+                  <input type="number" placeholder="2.5" className="ds-input" />
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-400 mb-2">{t.spValueLabel}</label>
-                  <input type="number" placeholder="200"
-                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-600 focus:outline-none focus:border-cyan-500/50 transition-colors" />
+                  <label className="ds-label">{t.spValueLabel}</label>
+                  <input type="number" placeholder="200" className="ds-input" />
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-400 mb-2">{t.spDeadlineLabel}</label>
-                  <input type="date"
-                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:border-cyan-500/50 transition-colors" />
+                  <label className="ds-label">{t.spDeadlineLabel}</label>
+                  <input type="date" className="ds-input" />
                 </div>
               </div>
+
+              {/* Description */}
               <div>
-                <label className="block text-sm text-gray-400 mb-2">{t.spDescLabel}</label>
-                <textarea rows={3} placeholder={t.spDescPlaceholder}
-                  className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-600 focus:outline-none focus:border-cyan-500/50 transition-colors resize-none" />
+                <label className="ds-label">{t.spDescLabel}</label>
+                <textarea rows={3} placeholder={t.spDescPlaceholder} className="ds-input" />
               </div>
 
               {/* Service tier */}
               <div>
-                <label className="block text-sm text-gray-400 mb-3">{t.spServiceTierLabel}</label>
+                <label className="ds-label mb-3">{t.spServiceTierLabel}</label>
                 <div className="grid grid-cols-3 gap-3">
-                  {[{ label: t.spTierStandard, time: t.spDays57, price: '$45', id: 0 },
-                    { label: t.spTierExpress, time: t.spDays23, price: '$85', id: 1 },
-                    { label: t.spTierSameDay, time: t.sp24Hours, price: '$150', id: 2 }].map(s => (
-                    <button key={s.id} onClick={() => setTier(s.id)}
-                      className={`p-4 rounded-xl border text-center transition-all ${tier === s.id ? 'border-cyan-500/60 bg-cyan-500/10' : 'border-white/10 bg-white/5 hover:bg-white/8'}`}>
-                      <div className="font-semibold text-white text-sm">{s.label}</div>
-                      <div className="text-xs text-gray-400">{s.time}</div>
-                      <div className="text-cyan-400 font-bold mt-1">{s.price}</div>
+                  {[
+                    { label: t.spTierStandard, time: t.spDays57,  price: '$45',  id: 0 },
+                    { label: t.spTierExpress,  time: t.spDays23,  price: '$85',  id: 1 },
+                    { label: t.spTierSameDay,  time: t.sp24Hours, price: '$150', id: 2 },
+                  ].map(s => (
+                    <button
+                      key={s.id}
+                      onClick={() => setTier(s.id)}
+                      className={`ds-tier${tier === s.id ? ' active' : ''}`}
+                    >
+                      <div className={`font-semibold text-sm mb-0.5 ${tier === s.id ? 'text-cyan-700' : 'text-gray-800'}`}>{s.label}</div>
+                      <div className={`text-xs ${tier === s.id ? 'text-cyan-600' : 'text-gray-400'}`}>{s.time}</div>
+                      <div className={`font-bold mt-1.5 ${tier === s.id ? 'text-cyan-600' : 'text-gray-700'}`}>{s.price}</div>
                     </button>
                   ))}
                 </div>
               </div>
 
-              <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
-                className="w-full py-4 bg-gradient-to-r from-cyan-500 to-blue-600 text-white rounded-xl font-semibold shadow-lg shadow-cyan-500/25">
+              <motion.button
+                whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+                className="ds-btn-primary w-full py-4 text-base rounded-xl"
+              >
                 {t.spPostPackage}
               </motion.button>
             </div>
           </motion.div>
 
-          {/* Sidebar */}
-          <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3 }}
-            className="space-y-6">
-            <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
-              <h3 className="font-semibold text-white mb-4">{t.spWhyTitle}</h3>
-              <div className="space-y-3">
-                {[[t.spBenefit1Val, t.spBenefit1Lbl],
+          {/* ── Sidebar ── */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}
+            className="space-y-5"
+          >
+            {/* Why Chapar */}
+            <div className="ds-card p-6">
+              <h3 className="font-semibold text-gray-900 mb-4">{t.spWhyTitle}</h3>
+              <div className="space-y-4">
+                {[
+                  [t.spBenefit1Val, t.spBenefit1Lbl],
                   [t.spBenefit2Val, t.spBenefit2Lbl],
                   [t.spBenefit3Val, t.spBenefit3Lbl],
-                  [t.spBenefit4Val, t.spBenefit4Lbl]].map(([v, l]) => (
-                  <div key={v} className="flex items-center gap-3">
-                    <CheckCircle className="w-5 h-5 text-green-400 flex-shrink-0" />
+                  [t.spBenefit4Val, t.spBenefit4Lbl],
+                ].map(([v, l]) => (
+                  <div key={v} className="flex items-start gap-3">
+                    <div className="w-5 h-5 rounded-full bg-green-100 border border-green-200 flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <CheckCircle className="w-3 h-3 text-green-600" />
+                    </div>
                     <div>
-                      <div className="text-white text-sm font-medium">{v}</div>
-                      <div className="text-gray-500 text-xs">{l}</div>
+                      <div className="text-gray-900 text-sm font-semibold">{v}</div>
+                      <div className="text-gray-500 text-xs mt-0.5">{l}</div>
                     </div>
                   </div>
                 ))}
               </div>
             </div>
-            <div className="bg-gradient-to-br from-green-500/10 to-emerald-600/10 border border-green-500/20 rounded-xl p-6">
-              <div className="text-4xl font-bold text-white mb-1">99.8%</div>
-              <div className="text-green-400 text-sm font-medium">{t.spSuccessRate}</div>
-              <div className="text-gray-400 text-xs mt-1">{t.spDeliveries}</div>
+
+            {/* Success rate stat */}
+            <div className="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-xl p-6">
+              <div className="text-4xl font-black text-gray-900 mb-1">99.8%</div>
+              <div className="text-green-600 text-sm font-semibold">{t.spSuccessRate}</div>
+              <div className="text-gray-500 text-xs mt-1">{t.spDeliveries}</div>
             </div>
           </motion.div>
+
         </div>
       </div>
     </div>
   );
 }
 
-function TravelerPage({ onBack, t }: { onBack: () => void; t: typeof translations['en'] }) {
-  const [weight, setWeight] = useState(5);
+function TravelerPage({ onBack, onHome, t }: { onBack: () => void; onHome: () => void; t: typeof translations['en'] }) {
+  const [weight, setWeight]           = useState(5);
+  const [routeWeight, setRouteWeight] = useState(5);
+  const [stepsOpen, setStepsOpen]     = useState(false);
+  const [travFrom, setTravFrom]       = useState<AirportOption | null>(null);
+  const [travTo, setTravTo]           = useState<AirportOption | null>(null);
   const earning = Math.round(weight * 18);
   return (
-    <div className="min-h-screen" style={{ background: 'linear-gradient(to bottom, #030710, #050810 120px, #050810)' }}>
-      <PageHeader title={t.travelerTitle} desc={t.travelerDesc} onBack={onBack} backLabel={t.backHome} />
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-24">
+    <div className="min-h-screen bg-white">
+      <PageHeader title={t.travelerTitle} desc={t.travelerDesc} onBack={onBack} onHome={onHome} backLabel={t.backHome} />
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 pb-24">
         <div className="grid lg:grid-cols-3 gap-8">
-          {/* Steps */}
+
+          {/* ── Left column: Route form + How it works ── */}
           <div className="lg:col-span-2 space-y-6">
-            <h2 className="text-2xl font-bold text-white">{t.travHowTitle}</h2>
-            {[
-              { step: '01', title: t.travStep1Title, desc: t.travStep1Desc, icon: Users },
-              { step: '02', title: t.travStep2Title, desc: t.travStep2Desc, icon: BadgeCheck },
-              { step: '03', title: t.travStep3Title, desc: t.travStep3Desc, icon: Plane },
-              { step: '04', title: t.travStep4Title, desc: t.travStep4Desc, icon: Package },
-              { step: '05', title: t.travStep5Title, desc: t.travStep5Desc, icon: DollarSign },
-            ].map((s, i) => (
-              <motion.div key={i} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 * i }}
-                className="flex gap-5 bg-white/5 border border-white/10 rounded-xl p-5 hover:border-cyan-500/30 transition-colors">
-                <div className="text-4xl font-black text-white/10 font-mono w-12 flex-shrink-0">{s.step}</div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-2">
-                    <div className="w-9 h-9 bg-gradient-to-br from-cyan-500/20 to-blue-600/20 border border-cyan-500/30 rounded-lg flex items-center justify-center">
-                      <s.icon className="w-5 h-5 text-cyan-400" />
-                    </div>
-                    <h3 className="font-semibold text-white">{s.title}</h3>
-                  </div>
-                  <p className="text-gray-400 text-sm">{s.desc}</p>
+
+            {/* Route form card */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
+              className="ds-card p-8"
+            >
+              <h2 className="text-xl font-bold text-gray-900 mb-6">ثبت مسیر سفر</h2>
+              <div className="space-y-5">
+
+                {/* Origin / Destination */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <AirportCityAutocomplete
+                    label="مبدأ سفر"
+                    value={travFrom}
+                    onChange={setTravFrom}
+                    placeholder="Tehran, Istanbul…"
+                  />
+                  <AirportCityAutocomplete
+                    label="مقصد سفر"
+                    value={travTo}
+                    onChange={setTravTo}
+                    placeholder="Toronto, London…"
+                  />
                 </div>
-              </motion.div>
-            ))}
+
+                {/* Dates */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="ds-label">تاریخ پرواز</label>
+                    <input type="date" className="ds-input" />
+                  </div>
+                  <div>
+                    <label className="ds-label">تاریخ بازگشت (اختیاری)</label>
+                    <input type="date" className="ds-input" />
+                  </div>
+                </div>
+
+                {/* Capacity slider */}
+                <div>
+                  <label className="ds-label">
+                    ظرفیت بار موجود (کیلوگرم):&nbsp;
+                    <span className="text-gray-900 font-semibold">{routeWeight} kg</span>
+                  </label>
+                  <input
+                    type="range" min={1} max={30} value={routeWeight}
+                    onChange={e => setRouteWeight(Number(e.target.value))}
+                    className="ds-range mt-1"
+                  />
+                  <div className="flex justify-between text-xs text-gray-400 mt-1">
+                    <span>۱ kg</span><span>۳۰ kg</span>
+                  </div>
+                </div>
+
+                {/* Price per kg */}
+                <div>
+                  <label className="ds-label">قیمت پیشنهادی به ازای هر کیلو ($)</label>
+                  <input type="number" placeholder="15" min={1} className="ds-input" />
+                </div>
+
+                {/* Notes */}
+                <div>
+                  <label className="ds-label">توضیحات (اختیاری)</label>
+                  <textarea rows={3} placeholder="نوع بار قابل حمل، محدودیت‌ها یا اطلاعات بیشتر…"
+                    className="ds-input" />
+                </div>
+
+                {/* Submit */}
+                <motion.button
+                  whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+                  className="ds-btn-primary w-full py-4 text-base rounded-xl"
+                >
+                  ثبت مسیر
+                </motion.button>
+              </div>
+            </motion.div>
+
+            {/* How it works — collapsible */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
+              className="ds-card overflow-hidden"
+            >
+              <button
+                onClick={() => setStepsOpen(o => !o)}
+                className="w-full flex items-center justify-between px-6 py-4 text-gray-900 font-semibold hover:bg-gray-50 transition-colors"
+              >
+                <span>{t.travHowTitle}</span>
+                <ChevronDown className={`w-5 h-5 text-gray-400 transition-transform duration-200 ${stepsOpen ? 'rotate-180' : ''}`} />
+              </button>
+
+              {stepsOpen && (
+                <div className="px-6 pb-6 space-y-3 border-t border-gray-100">
+                  {[
+                    { step: '01', title: t.travStep1Title, desc: t.travStep1Desc, icon: Users },
+                    { step: '02', title: t.travStep2Title, desc: t.travStep2Desc, icon: BadgeCheck },
+                    { step: '03', title: t.travStep3Title, desc: t.travStep3Desc, icon: Plane },
+                    { step: '04', title: t.travStep4Title, desc: t.travStep4Desc, icon: Package },
+                    { step: '05', title: t.travStep5Title, desc: t.travStep5Desc, icon: DollarSign },
+                  ].map((s, i) => (
+                    <div key={i} className="flex gap-4 bg-slate-50 border border-gray-100 rounded-xl p-4 mt-3">
+                      <div className="text-2xl font-black text-gray-200 font-mono w-9 flex-shrink-0 select-none">{s.step}</div>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-1">
+                          <div className="w-8 h-8 bg-cyan-50 border border-cyan-200 rounded-lg flex items-center justify-center flex-shrink-0">
+                            <s.icon className="w-4 h-4 text-cyan-600" />
+                          </div>
+                          <h3 className="font-semibold text-gray-900 text-sm">{s.title}</h3>
+                        </div>
+                        <p className="text-gray-500 text-sm leading-relaxed">{s.desc}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </motion.div>
           </div>
 
-          {/* Earnings calculator */}
-          <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3 }}
-            className="space-y-6">
-            <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
-              <h3 className="font-semibold text-white mb-5">{t.travCalcTitle}</h3>
+          {/* ── Sidebar: Earnings calculator + Requirements ── */}
+          <motion.div
+            initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.15 }}
+            className="space-y-6"
+          >
+            {/* Earnings calculator */}
+            <div className="ds-card p-6">
+              <h3 className="font-semibold text-gray-900 mb-5">{t.travCalcTitle}</h3>
+
               <div className="mb-5">
-                <label className="block text-sm text-gray-400 mb-2">{t.travLuggageLabel} <span className="text-white">{weight}kg</span></label>
-                <input type="range" min={1} max={15} value={weight} onChange={e => setWeight(Number(e.target.value))}
-                  className="w-full accent-cyan-500" />
+                <label className="ds-label">
+                  {t.travLuggageLabel}&nbsp;
+                  <span className="text-gray-900 font-semibold">{weight} kg</span>
+                </label>
+                <input
+                  type="range" min={1} max={15} value={weight}
+                  onChange={e => setWeight(Number(e.target.value))}
+                  className="ds-range mt-1"
+                />
               </div>
-              <div className="bg-gradient-to-br from-cyan-500/10 to-blue-600/10 border border-cyan-500/20 rounded-xl p-5 text-center">
-                <div className="text-4xl font-bold text-white mb-1">${earning}</div>
-                <div className="text-cyan-400 text-sm">{t.travEstPerTrip}</div>
-                <div className="text-gray-500 text-xs mt-1">{t.travAvgPricing}</div>
+
+              {/* Earnings display */}
+              <div className="bg-gradient-to-br from-cyan-50 to-blue-50 border border-cyan-200 rounded-xl p-5 text-center mb-4">
+                <div className="text-4xl font-black text-gray-900 mb-1">${earning}</div>
+                <div className="text-cyan-600 text-sm font-medium">{t.travEstPerTrip}</div>
+                <div className="text-gray-400 text-xs mt-1">{t.travAvgPricing}</div>
               </div>
-              <div className="mt-4 space-y-2 text-sm">
+
+              <div className="space-y-2 text-sm">
                 {[[t.travMonthly, `$${earning * 2}`], [t.travAnnually, `$${earning * 24}`]].map(([k, v]) => (
-                  <div key={k} className="flex justify-between">
-                    <span className="text-gray-400">{k}</span>
-                    <span className="text-white font-medium">{v}</span>
+                  <div key={k} className="flex justify-between items-center py-1.5 border-b border-gray-100 last:border-0">
+                    <span className="text-gray-500">{k}</span>
+                    <span className="text-gray-900 font-semibold">{v}</span>
                   </div>
                 ))}
               </div>
             </div>
 
-            <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
-              <h3 className="font-semibold text-white mb-4">{t.travReqTitle}</h3>
+            {/* Requirements */}
+            <div className="ds-card p-6">
+              <h3 className="font-semibold text-gray-900 mb-4">{t.travReqTitle}</h3>
               <div className="space-y-3">
                 {[t.travReq1, t.travReq2, t.travReq3, t.travReq4, t.travReq5].map(r => (
-                  <div key={r} className="flex items-center gap-3">
-                    <CheckCircle className="w-4 h-4 text-green-400" />
-                    <span className="text-gray-300 text-sm">{r}</span>
+                  <div key={r} className="flex items-start gap-3">
+                    <div className="w-5 h-5 rounded-full bg-green-100 border border-green-200 flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <CheckCircle className="w-3 h-3 text-green-600" />
+                    </div>
+                    <span className="text-gray-600 text-sm leading-relaxed">{r}</span>
                   </div>
                 ))}
               </div>
             </div>
-
-            <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
-              className="w-full py-4 bg-gradient-to-r from-cyan-500 to-blue-600 text-white rounded-xl font-semibold shadow-lg shadow-cyan-500/25">
-              {t.travRegister}
-            </motion.button>
           </motion.div>
+
         </div>
       </div>
     </div>
   );
 }
 
-function MarketplacePage({ onBack, t }: { onBack: () => void; t: typeof translations['en'] }) {
+function MarketplacePage({ onBack, onHome, t }: { onBack: () => void; onHome: () => void; t: typeof translations['en'] }) {
+  const [activeFilter, setActiveFilter] = useState(0);
   return (
-    <div className="min-h-screen" style={{ background: 'linear-gradient(to bottom, #030710, #050810 120px, #050810)' }}>
-      <PageHeader title={t.marketplaceTitle} desc={t.mktBrowseDesc} onBack={onBack} backLabel={t.backHome} />
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-24">
-        <div className="flex gap-4 mb-8 flex-wrap">
+    <div className="min-h-screen bg-white">
+      <PageHeader title={t.marketplaceTitle} desc={t.mktBrowseDesc} onBack={onBack} onHome={onHome} backLabel={t.backHome} />
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 pb-24">
+
+        {/* Filter pills */}
+        <div className="flex gap-2 mb-8 flex-wrap">
           {[t.mktAllRoutes, t.mktToTehran, t.mktToDubai, t.mktToLondon, t.mktToNewYork, t.mktToToronto].map((f, i) => (
-            <button key={f} className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${i === 0 ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30' : 'bg-white/5 text-gray-400 border border-white/10 hover:bg-white/10'}`}>
+            <button
+              key={f}
+              onClick={() => setActiveFilter(i)}
+              className={`px-4 py-2 rounded-full text-sm font-medium border transition-all ${
+                activeFilter === i
+                  ? 'bg-cyan-50 text-cyan-700 border-cyan-300 shadow-sm'
+                  : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50 hover:border-gray-300'
+              }`}
+            >
               {f}
             </button>
           ))}
         </div>
+
         <MarketplaceRouteBoard />
+
         <div className="mt-8 text-center">
-          <button className="px-8 py-3 bg-white/5 border border-white/10 text-gray-300 rounded-xl hover:bg-white/10 transition-colors">
+          <button className="ds-btn-secondary px-8 py-3 rounded-xl">
             {t.mktLoadMore}
           </button>
         </div>
+
       </div>
     </div>
   );
 }
 
-function TrustSafetyPage({ onBack, t }: { onBack: () => void; t: typeof translations['en'] }) {
+function TrustSafetyPage({ onBack, onHome, t }: { onBack: () => void; onHome: () => void; t: typeof translations['en'] }) {
   return (
-    <div className="min-h-screen" style={{ background: 'linear-gradient(to bottom, #030710, #050810 120px, #050810)' }}>
-      <PageHeader title={t.trustSafetyTitle} desc={t.tsDesc} onBack={onBack} backLabel={t.backHome} />
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-24 space-y-12">
-        {/* Security layers */}
+    <div className="min-h-screen bg-white">
+      <PageHeader title={t.trustSafetyTitle} desc={t.tsDesc} onBack={onBack} onHome={onHome} backLabel={t.backHome} />
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 pb-24 space-y-16">
+
+        {/* ── Certification cards ── */}
         <div>
-          <h2 className="text-2xl font-bold text-white mb-6">{t.tsSecurityLayers}</h2>
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <h2 className="text-xl font-bold text-gray-900 mb-6">{t.tsSecurityLayers}</h2>
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-5">
             {[
-              { icon: Shield, title: 'SOC 2 Type II', desc: t.tsSoc2Desc, badge: t.tsCertified, color: 'from-blue-500/20 to-blue-600/10' },
-              { icon: Lock, title: 'ISO 27001', desc: t.tsIsoDesc, badge: t.tsCertified, color: 'from-purple-500/20 to-purple-600/10' },
-              { icon: BadgeCheck, title: 'PCI DSS Level 1', desc: t.tsPciDesc, badge: t.tsCompliant, color: 'from-green-500/20 to-green-600/10' },
-              { icon: FileCheck, title: 'GDPR Compliant', desc: t.tsGdprDesc, badge: t.tsVerifiedBadge, color: 'from-cyan-500/20 to-cyan-600/10' },
+              { icon: Shield,    title: 'SOC 2 Type II',   desc: t.tsSoc2Desc, badge: t.tsCertified,    bg: 'ds-feature-blue',   icon_cls: 'text-blue-600'   },
+              { icon: Lock,      title: 'ISO 27001',       desc: t.tsIsoDesc,  badge: t.tsCertified,    bg: 'ds-feature-purple', icon_cls: 'text-purple-600' },
+              { icon: BadgeCheck,title: 'PCI DSS Level 1', desc: t.tsPciDesc,  badge: t.tsCompliant,    bg: 'ds-feature-green',  icon_cls: 'text-green-600'  },
+              { icon: FileCheck, title: 'GDPR Compliant',  desc: t.tsGdprDesc, badge: t.tsVerifiedBadge,bg: 'ds-feature-cyan',   icon_cls: 'text-cyan-600'   },
             ].map((cert, i) => (
-              <motion.div key={i} initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }}
-                className={`bg-gradient-to-br ${cert.color} border border-white/10 p-6 rounded-2xl text-center`}>
-                <div className="w-14 h-14 bg-white/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                  <cert.icon className="w-7 h-7 text-white" />
+              <motion.div
+                key={i}
+                className={`${cert.bg} rounded-2xl p-6 text-center ds-card-hover`}
+                initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }} transition={{ delay: i * 0.08 }}
+              >
+                <div className="w-13 h-13 bg-white rounded-xl shadow-sm flex items-center justify-center mx-auto mb-4 w-12 h-12">
+                  <cert.icon className={`w-6 h-6 ${cert.icon_cls}`} />
                 </div>
-                <h3 className="font-bold text-white mb-2">{cert.title}</h3>
-                <p className="text-gray-400 text-sm mb-3">{cert.desc}</p>
-                <div className="inline-flex items-center gap-2 px-3 py-1 bg-green-500/20 border border-green-500/30 rounded-full">
-                  <CheckCircle className="w-3 h-3 text-green-400" />
-                  <span className="text-xs text-green-400 font-medium">{cert.badge}</span>
+                <h3 className="font-bold text-gray-900 mb-2 text-sm">{cert.title}</h3>
+                <p className="text-gray-500 text-xs mb-4 leading-relaxed">{cert.desc}</p>
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-green-100 border border-green-200 rounded-full">
+                  <CheckCircle className="w-3 h-3 text-green-600" />
+                  <span className="text-xs text-green-700 font-semibold">{cert.badge}</span>
                 </div>
               </motion.div>
             ))}
           </div>
         </div>
 
-        {/* Escrow */}
+        {/* ── Escrow timeline + AI monitoring ── */}
         <div className="grid lg:grid-cols-2 gap-12 items-start">
-          <div>
-            <h2 className="text-2xl font-bold text-white mb-3">{t.tsEscrowTitle}</h2>
-            <p className="text-gray-400 mb-6">{t.tsEscrowDesc}</p>
+
+          {/* Escrow */}
+          <div className="ds-card p-8">
+            <h2 className="text-xl font-bold text-gray-900 mb-2">{t.tsEscrowTitle}</h2>
+            <p className="text-gray-500 text-sm mb-8">{t.tsEscrowDesc}</p>
             <EscrowTimeline />
           </div>
-          <div className="space-y-4">
-            <h2 className="text-2xl font-bold text-white mb-3">{t.tsAiTitle}</h2>
-            {[
-              { title: t.tsAi1Title, desc: t.tsAi1Desc },
-              { title: t.tsAi2Title, desc: t.tsAi2Desc },
-              { title: t.tsAi3Title, desc: t.tsAi3Desc },
-              { title: t.tsAi4Title, desc: t.tsAi4Desc },
-              { title: t.tsAi5Title, desc: t.tsAi5Desc },
-            ].map((item, i) => (
-              <div key={i} className="bg-white/5 border border-white/10 rounded-xl p-4 flex gap-4">
-                <div className="w-8 h-8 bg-gradient-to-br from-cyan-500/30 to-blue-500/20 border border-cyan-500/30 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <Sparkles className="w-4 h-4 text-cyan-400" />
-                </div>
-                <div>
-                  <h3 className="text-white font-medium text-sm">{item.title}</h3>
-                  <p className="text-gray-500 text-sm">{item.desc}</p>
-                </div>
-              </div>
-            ))}
+
+          {/* AI monitoring */}
+          <div>
+            <h2 className="text-xl font-bold text-gray-900 mb-5">{t.tsAiTitle}</h2>
+            <div className="space-y-3">
+              {[
+                { title: t.tsAi1Title, desc: t.tsAi1Desc },
+                { title: t.tsAi2Title, desc: t.tsAi2Desc },
+                { title: t.tsAi3Title, desc: t.tsAi3Desc },
+                { title: t.tsAi4Title, desc: t.tsAi4Desc },
+                { title: t.tsAi5Title, desc: t.tsAi5Desc },
+              ].map((item, i) => (
+                <motion.div
+                  key={i}
+                  className="bg-white border border-gray-100 rounded-xl p-4 flex gap-4 shadow-sm hover:shadow-md hover:border-cyan-200 transition-all"
+                  initial={{ opacity: 0, x: 20 }} whileInView={{ opacity: 1, x: 0 }}
+                  viewport={{ once: true }} transition={{ delay: i * 0.08 }}
+                >
+                  <div className="w-8 h-8 bg-cyan-50 border border-cyan-200 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <Sparkles className="w-4 h-4 text-cyan-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-gray-900 font-semibold text-sm mb-0.5">{item.title}</h3>
+                    <p className="text-gray-500 text-sm leading-relaxed">{item.desc}</p>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
           </div>
+
         </div>
       </div>
     </div>
   );
 }
 
-function InvestorsPage({ onBack, t }: { onBack: () => void; t: typeof translations['en'] }) {
+function InvestorsPage({ onBack, onHome, t }: { onBack: () => void; onHome: () => void; t: typeof translations['en'] }) {
   return (
-    <div className="min-h-screen" style={{ background: 'linear-gradient(to bottom, #030710, #050810 120px, #050810)' }}>
-      <PageHeader title={t.investorsTitle} desc={t.invDesc} onBack={onBack} backLabel={t.backHome} />
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-24 space-y-12">
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+    <div className="min-h-screen bg-white">
+      <PageHeader title={t.investorsTitle} desc={t.invDesc} onBack={onBack} onHome={onHome} backLabel={t.backHome} />
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 pb-24 space-y-12">
+
+        {/* ── Key metrics ── */}
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-5">
           {[
-            { icon: Users, value: 50, suffix: 'M+', label: t.invNetworkUsers, growth: t.invYoY127 },
-            { icon: Globe, value: 190, suffix: '+', label: t.invCountries, growth: t.invGlobalCoverage },
-            { icon: DollarSign, value: 100, suffix: 'B', prefix: '$', label: t.invTAM, growth: t.invExpandingMarket },
-            { icon: TrendingUp, value: 215, suffix: '%', label: t.invRevenueGrowth, growth: t.invYearOverYear },
+            { icon: Users,      value: 50,  suffix: 'M+', prefix: '',  label: t.invNetworkUsers,  growth: t.invYoY127,         icon_cls: 'text-blue-600',   bg: 'bg-blue-50'   },
+            { icon: Globe,      value: 190, suffix: '+',  prefix: '',  label: t.invCountries,     growth: t.invGlobalCoverage, icon_cls: 'text-cyan-600',   bg: 'bg-cyan-50'   },
+            { icon: DollarSign, value: 100, suffix: 'B',  prefix: '$', label: t.invTAM,           growth: t.invExpandingMarket,icon_cls: 'text-green-600',  bg: 'bg-green-50'  },
+            { icon: TrendingUp, value: 215, suffix: '%',  prefix: '',  label: t.invRevenueGrowth, growth: t.invYearOverYear,   icon_cls: 'text-purple-600', bg: 'bg-purple-50' },
           ].map((stat, i) => (
-            <motion.div key={i} initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }}
-              className="bg-white/5 border border-white/10 p-8 rounded-2xl hover:bg-white/8 transition-colors">
-              <stat.icon className="w-8 h-8 text-blue-400 mb-4" />
-              <div className="text-4xl font-bold text-white mb-2">
+            <motion.div
+              key={i}
+              className="ds-card ds-card-hover p-7"
+              initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }} transition={{ delay: i * 0.08 }}
+            >
+              <div className={`w-10 h-10 ${stat.bg} rounded-xl flex items-center justify-center mb-4`}>
+                <stat.icon className={`w-5 h-5 ${stat.icon_cls}`} />
+              </div>
+              <div className="text-4xl font-black text-gray-900 mb-1">
                 <CountUpAnimation end={stat.value} prefix={stat.prefix} suffix={stat.suffix} duration={2.5} />
               </div>
-              <div className="text-gray-300 mb-2">{stat.label}</div>
-              <div className="text-sm text-green-400 flex items-center gap-1">
+              <div className="text-gray-600 text-sm mb-2">{stat.label}</div>
+              <div className="text-xs text-green-600 font-semibold flex items-center gap-1">
                 <TrendingUp className="w-3 h-3" /> {stat.growth}
               </div>
             </motion.div>
           ))}
         </div>
-        <div className="grid md:grid-cols-3 gap-8">
+
+        {/* ── Problem / Solution / Traction ── */}
+        <div className="grid md:grid-cols-3 gap-6">
           {[
-            { icon: Target, title: t.invProblemTitle, color: 'text-blue-400', desc: t.invProblemDesc },
-            { icon: Zap, title: t.invSolutionTitle, color: 'text-purple-400', desc: t.invSolutionDesc },
-            { icon: BarChart3, title: t.invTractionTitle, color: 'text-green-400', desc: t.invTractionDesc },
+            { icon: Target,   title: t.invProblemTitle,  desc: t.invProblemDesc,  bg: 'ds-feature-blue',   icon_cls: 'text-blue-600'   },
+            { icon: Zap,      title: t.invSolutionTitle, desc: t.invSolutionDesc, bg: 'ds-feature-purple', icon_cls: 'text-purple-600' },
+            { icon: BarChart3,title: t.invTractionTitle, desc: t.invTractionDesc, bg: 'ds-feature-green',  icon_cls: 'text-green-600'  },
           ].map((card, i) => (
-            <motion.div key={i} initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.15 }}
-              className="bg-white/5 border border-white/10 p-8 rounded-2xl">
-              <card.icon className={`w-8 h-8 ${card.color} mb-4`} />
-              <h3 className="text-2xl font-bold text-white mb-3">{card.title}</h3>
-              <p className="text-gray-400 leading-relaxed">{card.desc}</p>
+            <motion.div
+              key={i}
+              className={`${card.bg} rounded-2xl p-8 ds-card-hover`}
+              initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }} transition={{ delay: i * 0.12 }}
+            >
+              <div className="w-12 h-12 bg-white rounded-xl shadow-sm flex items-center justify-center mb-5">
+                <card.icon className={`w-6 h-6 ${card.icon_cls}`} />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-3">{card.title}</h3>
+              <p className="text-gray-600 leading-relaxed text-sm">{card.desc}</p>
             </motion.div>
           ))}
         </div>
-        <div className="bg-gradient-to-br from-cyan-500/10 to-blue-600/10 border border-cyan-500/20 rounded-2xl p-8 text-center">
-          <h2 className="text-3xl font-bold text-white mb-3">{t.invCtaTitle}</h2>
-          <p className="text-gray-400 mb-6">{t.invCtaDesc}</p>
-          <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
-            className="px-8 py-4 bg-gradient-to-r from-cyan-500 to-blue-600 text-white rounded-xl font-semibold shadow-lg shadow-cyan-500/25">
+
+        {/* ── Investor CTA ── */}
+        <div className="bg-gradient-to-br from-cyan-50 via-blue-50 to-indigo-50 border border-blue-100 rounded-2xl p-10 text-center">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-white border border-blue-200 rounded-full mb-5 shadow-sm">
+            <Rocket className="w-3.5 h-3.5 text-blue-600" />
+            <span className="text-xs font-semibold text-blue-600">Seed Round Open</span>
+          </div>
+          <h2 className="text-3xl font-bold text-gray-900 mb-3">{t.invCtaTitle}</h2>
+          <p className="text-gray-500 mb-8 max-w-xl mx-auto leading-relaxed">{t.invCtaDesc}</p>
+          <motion.button
+            whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}
+            className="ds-btn-primary px-8 py-4 text-base rounded-xl"
+          >
             {t.invCtaButton}
           </motion.button>
         </div>
+
       </div>
     </div>
   );
 }
 
-function FAQPage({ onBack, t }: { onBack: () => void; t: typeof translations['en'] }) {
+function FAQPage({ onBack, onHome, t }: { onBack: () => void; onHome: () => void; t: typeof translations['en'] }) {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const faqs: { question: string; answer: string }[] = [
     { question: t.faqQ1, answer: t.faqA1 },
@@ -688,28 +924,62 @@ function FAQPage({ onBack, t }: { onBack: () => void; t: typeof translations['en
     { question: t.faqQ8, answer: t.faqA8 },
   ];
   return (
-    <div className="min-h-screen" style={{ background: 'linear-gradient(to bottom, #030710, #050810 120px, #050810)' }}>
-      <PageHeader title={t.faqTitle} desc={t.faqDesc} onBack={onBack} backLabel={t.backHome} />
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 pb-24">
-        <div className="space-y-3">
+    <div className="min-h-screen bg-slate-50">
+      <PageHeader title={t.faqTitle} desc={t.faqDesc} onBack={onBack} onHome={onHome} backLabel={t.backHome} />
+
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-12 pb-24">
+        <div className="space-y-2">
           {faqs.map((faq, index) => (
-            <motion.div key={index} initial={{ opacity: 0, y: 15 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: index * 0.04 }}
-              className="bg-white/5 backdrop-blur-md rounded-xl border border-white/10 overflow-hidden">
-              <motion.button onClick={() => setOpenFaq(openFaq === index ? null : index)}
-                className="w-full px-6 py-5 flex items-center justify-between text-left hover:bg-white/5 transition-colors">
-                <span className="text-base font-semibold text-white pr-4">{faq.question}</span>
-                <motion.div animate={{ rotate: openFaq === index ? 180 : 0 }} transition={{ duration: 0.3 }}>
-                  <ChevronDown className="w-5 h-5 text-gray-500 flex-shrink-0" />
+            <motion.div
+              key={index}
+              className={`bg-white rounded-xl border overflow-hidden transition-all duration-200 ${
+                openFaq === index ? 'border-cyan-200 shadow-md' : 'border-gray-200 shadow-sm hover:border-gray-300'
+              }`}
+              initial={{ opacity: 0, y: 12 }} whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }} transition={{ delay: index * 0.04 }}
+            >
+              {/* Question row */}
+              <button
+                onClick={() => setOpenFaq(openFaq === index ? null : index)}
+                className="w-full px-6 py-5 flex items-center justify-between text-start hover:bg-gray-50 transition-colors"
+              >
+                <span className={`text-sm font-semibold pe-4 leading-snug transition-colors ${
+                  openFaq === index ? 'text-cyan-700' : 'text-gray-900'
+                }`}>
+                  {faq.question}
+                </span>
+                <motion.div
+                  animate={{ rotate: openFaq === index ? 180 : 0 }}
+                  transition={{ duration: 0.25 }}
+                  className="flex-shrink-0"
+                >
+                  <ChevronDown className={`w-5 h-5 transition-colors ${
+                    openFaq === index ? 'text-cyan-500' : 'text-gray-400'
+                  }`} />
                 </motion.div>
-              </motion.button>
-              <motion.div initial={false} animate={{ height: openFaq === index ? 'auto' : 0, opacity: openFaq === index ? 1 : 0 }}
-                transition={{ duration: 0.3, ease: 'easeInOut' }} style={{ overflow: 'hidden' }}>
-                <div className="px-6 pb-5">
-                  <p className="text-gray-400 leading-relaxed">{faq.answer}</p>
+              </button>
+
+              {/* Answer panel */}
+              <motion.div
+                initial={false}
+                animate={{ height: openFaq === index ? 'auto' : 0, opacity: openFaq === index ? 1 : 0 }}
+                transition={{ duration: 0.28, ease: 'easeInOut' }}
+                style={{ overflow: 'hidden' }}
+              >
+                <div className="px-6 pb-6 border-t border-gray-100 pt-4">
+                  <p className="text-gray-500 leading-relaxed text-sm">{faq.answer}</p>
                 </div>
               </motion.div>
             </motion.div>
           ))}
+        </div>
+
+        {/* Still have questions CTA */}
+        <div className="mt-10 text-center p-8 bg-white border border-gray-200 rounded-2xl shadow-sm">
+          <p className="text-gray-500 text-sm mb-4">سؤال دیگری دارید؟ تیم پشتیبانی ما آماده کمک است.</p>
+          <button className="ds-btn-primary px-6 py-3 rounded-xl text-sm">
+            تماس با پشتیبانی
+          </button>
         </div>
       </div>
     </div>
@@ -931,35 +1201,29 @@ function VideoSection() {
     { title: 'ارسال کالا',     desc: 'ویدیو آینده برای توضیح اینکه کاربران چگونه می‌توانند کالای خود را با پرداخت امانی، تأیید تحویل و امنیت کامل از طریق چاپار ارسال کنند.' },
   ];
   return (
-    <section className="py-24 px-4 sm:px-6 lg:px-8 relative overflow-hidden" style={{ background: 'linear-gradient(to bottom, #04070f, #070d1c)' }}>
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[300px] blur-[130px] rounded-full" style={{ background: 'rgba(0,120,255,0.06)' }} />
-      </div>
+    <section className="py-24 px-4 sm:px-6 lg:px-8 bg-white relative overflow-hidden">
       <div className="max-w-7xl mx-auto relative z-10">
         <motion.div className="text-center mb-16" initial={{ opacity: 0, y: 40 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-cyan-500/10 rounded-full mb-6 border border-cyan-500/20">
-            <div className="w-1.5 h-1.5 bg-cyan-400 rounded-full animate-pulse" />
-            <span className="text-sm text-cyan-300 font-medium">چاپار</span>
+          <div className="inline-flex items-center gap-2 px-4 py-2 bg-cyan-50 rounded-full mb-6 border border-cyan-200">
+            <div className="w-1.5 h-1.5 bg-cyan-600 rounded-full animate-pulse" />
+            <span className="text-sm text-cyan-700 font-medium">چاپار</span>
           </div>
-          <h2 className="text-4xl lg:text-5xl font-bold text-white">ما چه کاری انجام می‌دهیم</h2>
+          <h2 className="text-4xl lg:text-5xl font-bold text-gray-900">ما چه کاری انجام می‌دهیم</h2>
         </motion.div>
 
         {/* Main featured video placeholder */}
         <motion.div
-          className="mb-12 rounded-2xl overflow-hidden border border-white/8 relative"
-          style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01))', backdropFilter: 'blur(20px)' }}
+          className="mb-12 rounded-2xl overflow-hidden border border-gray-200 relative bg-slate-50"
           initial={{ opacity: 0, y: 40 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
         >
           <div className="aspect-video flex flex-col items-center justify-center gap-5 relative">
-            <div className="absolute inset-0 opacity-[0.04]" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px,rgba(255,255,255,0.8) 1px,transparent 0)', backgroundSize: '32px 32px' }} />
             <motion.div
-              className="relative z-10 w-20 h-20 rounded-full flex items-center justify-center border border-white/20"
-              style={{ background: 'rgba(255,255,255,0.07)', backdropFilter: 'blur(12px)' }}
+              className="relative z-10 w-20 h-20 rounded-full flex items-center justify-center border border-gray-200 bg-white shadow-md"
               whileHover={{ scale: 1.08 }}
             >
-              <div className="w-0 h-0 border-t-[10px] border-t-transparent border-l-[18px] border-l-white/70 border-b-[10px] border-b-transparent ml-1" />
+              <div className="w-0 h-0 border-t-[10px] border-t-transparent border-l-[18px] border-l-gray-600 border-b-[10px] border-b-transparent ml-1" />
             </motion.div>
-            <p className="text-gray-400 text-sm relative z-10">ویدیو معرفی چاپار به‌زودی اضافه می‌شود</p>
+            <p className="text-gray-500 text-sm relative z-10">ویدیو معرفی چاپار به‌زودی اضافه می‌شود</p>
           </div>
         </motion.div>
 
@@ -968,25 +1232,22 @@ function VideoSection() {
           {cards.map((card, i) => (
             <motion.div
               key={i}
-              className="rounded-2xl overflow-hidden border border-white/8 hover:border-white/16 transition-all group cursor-pointer"
-              style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01))', backdropFilter: 'blur(16px)' }}
+              className="rounded-2xl overflow-hidden border border-gray-200 hover:border-gray-300 hover:shadow-md transition-all group cursor-pointer bg-white"
               initial={{ opacity: 0, y: 40 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }}
               whileHover={{ y: -5 }}
             >
-              <div className="aspect-video flex items-center justify-center relative border-b border-white/8" style={{ background: 'rgba(255,255,255,0.02)' }}>
-                <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px,rgba(255,255,255,0.6) 1px,transparent 0)', backgroundSize: '24px 24px' }} />
+              <div className="aspect-video flex items-center justify-center relative border-b border-gray-100 bg-slate-50">
                 <div
-                  className="w-14 h-14 rounded-full flex items-center justify-center border border-white/15 relative z-10 group-hover:border-cyan-400/40 transition-colors"
-                  style={{ background: 'rgba(255,255,255,0.05)' }}
+                  className="w-14 h-14 rounded-full flex items-center justify-center border border-gray-200 bg-white relative z-10 group-hover:border-cyan-400 transition-colors shadow-sm"
                 >
-                  <div className="w-0 h-0 border-t-[8px] border-t-transparent border-l-[14px] border-l-white/60 border-b-[8px] border-b-transparent ml-1 group-hover:border-l-cyan-300/80 transition-colors" />
+                  <div className="w-0 h-0 border-t-[8px] border-t-transparent border-l-[14px] border-l-gray-500 border-b-[8px] border-b-transparent ml-1 group-hover:border-l-cyan-600 transition-colors" />
                 </div>
               </div>
               <div className="p-6">
-                <h3 className="text-lg font-semibold text-white mb-2 group-hover:text-cyan-200 transition-colors">{card.title}</h3>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2 group-hover:text-cyan-700 transition-colors">{card.title}</h3>
                 <p className="text-gray-500 text-sm leading-relaxed">{card.desc}</p>
-                <div className="mt-4 inline-flex items-center gap-1.5 text-xs text-cyan-500/60 font-medium">
-                  <div className="w-1.5 h-1.5 bg-cyan-500/60 rounded-full" />
+                <div className="mt-4 inline-flex items-center gap-1.5 text-xs text-cyan-600 font-medium">
+                  <div className="w-1.5 h-1.5 bg-cyan-600 rounded-full" />
                   به‌زودی
                 </div>
               </div>
@@ -1024,7 +1285,7 @@ function ServiceCardsSection({ t, setPage }: { t: typeof translations['en']; set
     },
   ];
   return (
-    <section className="py-20 px-4 sm:px-6 lg:px-8" style={{ background: 'linear-gradient(to bottom, #04070f, #060c18)' }}>
+    <section className="py-20 px-4 sm:px-6 lg:px-8 bg-white">
       <div className="max-w-7xl mx-auto">
         <div className="grid md:grid-cols-3 gap-5 mb-5">
           {cards.map((card, i) => (
@@ -1075,13 +1336,13 @@ function ServiceCardsSection({ t, setPage }: { t: typeof translations['en']; set
 // ─── StatsSection ─────────────────────────────────────────────────────────────
 function StatsSection() {
   const stats = [
-    { end: 190,   suffix: '+',  prefix: '',  label: 'کشور تحت پوشش',        icon: Globe,        accent: 'text-cyan-400'   },
-    { end: 50000, suffix: '+',  prefix: '',  label: 'مسافر تأییدشده',        icon: Users,        accent: 'text-purple-400' },
-    { end: 99.9,  suffix: '%',  prefix: '',  label: 'نرخ موفقیت تحویل',      icon: CheckCircle,  accent: 'text-green-400'  },
-    { end: 10,    suffix: 'K$', prefix: '',  label: 'پوشش بیمه هر مرسوله',   icon: Shield,       accent: 'text-blue-400'   },
+    { end: 190,   suffix: '+',  prefix: '',  label: 'کشور تحت پوشش',        icon: Globe,        accent: 'text-cyan-600'   },
+    { end: 50000, suffix: '+',  prefix: '',  label: 'مسافر تأییدشده',        icon: Users,        accent: 'text-purple-600' },
+    { end: 99.9,  suffix: '%',  prefix: '',  label: 'نرخ موفقیت تحویل',      icon: CheckCircle,  accent: 'text-green-600'  },
+    { end: 10,    suffix: 'K$', prefix: '',  label: 'پوشش بیمه هر مرسوله',   icon: Shield,       accent: 'text-blue-600'   },
   ];
   return (
-    <section className="py-16 px-4 sm:px-6 lg:px-8 border-t border-b border-white/5" style={{ background: 'linear-gradient(to right, #050810, #070d1a, #050810)' }}>
+    <section className="py-16 px-4 sm:px-6 lg:px-8 border-t border-b border-gray-100 bg-white">
       <div className="max-w-5xl mx-auto">
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
           {stats.map((stat, i) => (
@@ -1094,7 +1355,7 @@ function StatsSection() {
               <div className={`text-4xl lg:text-5xl font-black ${stat.accent} mb-2`}>
                 <CountUpAnimation end={stat.end} suffix={stat.suffix} prefix={stat.prefix} duration={2.5} />
               </div>
-              <div className="text-gray-400 text-sm">{stat.label}</div>
+              <div className="text-gray-500 text-sm">{stat.label}</div>
             </motion.div>
           ))}
         </div>
@@ -1111,95 +1372,91 @@ function TrustSectionNew({ t, setPage }: { t: typeof translations['en']; setPage
       title: 'پرداخت امانی رمزنگاری‌شده',
       desc: 'وجوه شما تا تأیید تحویل موفق در سیستم امانی رمزنگاری‌شده محافظت می‌شود.',
       tags: ['رمزنگاری AES-256', 'استرداد خودکار', 'ثبت بلاکچین'],
-      gradient: 'from-blue-500/15 to-blue-600/5',
-      border: 'border-blue-500/20',
-      hoverBorder: 'hover:border-blue-400/40',
-      accent: 'text-blue-400',
+      gradient: 'bg-blue-50',
+      border: 'border-blue-200',
+      hoverBorder: 'hover:border-blue-300',
+      accent: 'text-blue-600',
     },
     {
       icon: BadgeCheck,
       title: 'تأیید هویت با هوش مصنوعی',
       desc: 'هر مسافر از فرآیند تأیید جامع هوش مصنوعی شامل بررسی چهره و پاسپورت عبور می‌کند.',
       tags: ['تشخیص چهره', 'تأیید پاسپورت', 'بررسی سابقه'],
-      gradient: 'from-purple-500/15 to-purple-600/5',
-      border: 'border-purple-500/20',
-      hoverBorder: 'hover:border-purple-400/40',
-      accent: 'text-purple-400',
+      gradient: 'bg-purple-50',
+      border: 'border-purple-200',
+      hoverBorder: 'hover:border-purple-300',
+      accent: 'text-purple-600',
     },
     {
       icon: Shield,
       title: 'گواهینامه‌های امنیتی بین‌المللی',
       desc: 'انطباق کامل با بالاترین استانداردهای امنیت اطلاعات جهانی.',
       tags: ['SOC 2 Type II', 'ISO 27001', 'PCI DSS L1'],
-      gradient: 'from-green-500/15 to-green-600/5',
-      border: 'border-green-500/20',
-      hoverBorder: 'hover:border-green-400/40',
-      accent: 'text-green-400',
+      gradient: 'bg-green-50',
+      border: 'border-green-200',
+      hoverBorder: 'hover:border-green-300',
+      accent: 'text-green-600',
     },
     {
       icon: Eye,
       title: 'نظارت بلادرنگ ۲۴/۷',
       desc: 'هوش مصنوعی تمام تراکنش‌ها را برای شناسایی ناهنجاری‌ها بررسی می‌کند.',
       tags: ['تشخیص تقلب آنی', 'هشدار فوری', 'GDPR'],
-      gradient: 'from-cyan-500/15 to-cyan-600/5',
-      border: 'border-cyan-500/20',
-      hoverBorder: 'hover:border-cyan-400/40',
-      accent: 'text-cyan-400',
+      gradient: 'bg-cyan-50',
+      border: 'border-cyan-200',
+      hoverBorder: 'hover:border-cyan-300',
+      accent: 'text-cyan-600',
     },
     {
       icon: CheckCircle,
       title: 'تأیید تحویل هوشمند',
       desc: 'تحویل کالا فقط با تأیید دیجیتال گیرنده نهایی می‌شود. سیستم هوشمند ما اطمینان می‌دهد که بسته به دست صحیح رسیده است.',
       tags: ['تأیید دیجیتال', 'امضای الکترونیک', 'عکس تحویل'],
-      gradient: 'from-orange-500/15 to-orange-600/5',
-      border: 'border-orange-500/20',
-      hoverBorder: 'hover:border-orange-400/40',
-      accent: 'text-orange-400',
+      gradient: 'bg-orange-50',
+      border: 'border-orange-200',
+      hoverBorder: 'hover:border-orange-300',
+      accent: 'text-orange-600',
     },
     {
       icon: FileCheck,
       title: 'حل اختلاف شفاف',
       desc: 'در صورت هرگونه مشکل، تیم داوری ما ظرف ۴۸ ساعت با بررسی مدارک دیجیتال موضوع را حل می‌کند و بازگشت کامل وجه تضمین می‌شود.',
       tags: ['داوری ۴۸ ساعته', 'بازگشت تضمینی', 'مدارک دیجیتال'],
-      gradient: 'from-rose-500/15 to-rose-600/5',
-      border: 'border-rose-500/20',
-      hoverBorder: 'hover:border-rose-400/40',
-      accent: 'text-rose-400',
+      gradient: 'bg-rose-50',
+      border: 'border-rose-200',
+      hoverBorder: 'hover:border-rose-300',
+      accent: 'text-rose-600',
     },
   ];
 
   return (
-    <section id="security" className="py-24 px-4 sm:px-6 lg:px-8 relative overflow-hidden" style={{ background: 'linear-gradient(to bottom, #080f1e, #050810)' }}>
-      <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[900px] h-[450px] blur-[140px] rounded-full" style={{ background: 'rgba(30,80,200,0.07)' }} />
-      </div>
+    <section id="security" className="py-24 px-4 sm:px-6 lg:px-8 bg-slate-50 relative overflow-hidden">
       <div className="max-w-7xl mx-auto relative z-10">
         <motion.div className="text-center mb-20" initial={{ opacity: 0, y: 40 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-green-500/10 rounded-full mb-6 border border-green-500/20">
-            <Shield className="w-4 h-4 text-green-400" />
-            <span className="text-sm text-green-300 font-medium">امنیت سازمانی</span>
+          <div className="inline-flex items-center gap-2 px-4 py-2 bg-green-50 rounded-full mb-6 border border-green-200">
+            <Shield className="w-4 h-4 text-green-600" />
+            <span className="text-sm text-green-700 font-medium">امنیت سازمانی</span>
           </div>
-          <h2 className="text-4xl lg:text-5xl font-bold text-white mb-5">{t.trustSafety}</h2>
-          <p className="text-xl text-gray-400 max-w-2xl mx-auto">زیرساخت سطح بانکی برای حفاظت از هر تراکنش</p>
+          <h2 className="text-4xl lg:text-5xl font-bold text-gray-900 mb-5">{t.trustSafety}</h2>
+          <p className="text-xl text-gray-500 max-w-2xl mx-auto">زیرساخت سطح بانکی برای حفاظت از هر تراکنش</p>
         </motion.div>
 
         {/* Stats row */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-14">
           {[
-            { value: '99.9%', label: 'نرخ موفقیت',      icon: Activity, accent: 'text-green-400' },
-            { value: '$10K',  label: 'پوشش بیمه',        icon: Shield,   accent: 'text-blue-400' },
-            { value: '24/7',  label: 'نظارت امنیتی',    icon: Eye,      accent: 'text-purple-400' },
-            { value: '190+',  label: 'کشور تحت پوشش',   icon: Globe,    accent: 'text-cyan-400' },
+            { value: '99.9%', label: 'نرخ موفقیت',      icon: Activity, accent: 'text-green-600' },
+            { value: '$10K',  label: 'پوشش بیمه',        icon: Shield,   accent: 'text-blue-600' },
+            { value: '24/7',  label: 'نظارت امنیتی',    icon: Eye,      accent: 'text-purple-600' },
+            { value: '190+',  label: 'کشور تحت پوشش',   icon: Globe,    accent: 'text-cyan-600' },
           ].map((stat, i) => (
             <motion.div
               key={i}
-              className="border border-white/8 rounded-2xl p-6 text-center hover:border-white/14 transition-all"
-              style={{ background: 'rgba(255,255,255,0.025)' }}
+              className="border border-gray-200 rounded-2xl p-6 text-center hover:border-gray-300 hover:shadow-sm bg-white transition-all"
               initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.08 }}
               whileHover={{ y: -3 }}
             >
               <stat.icon className={`w-5 h-5 ${stat.accent} mx-auto mb-3`} />
-              <div className="text-3xl font-bold text-white mb-1">{stat.value}</div>
+              <div className="text-3xl font-bold text-gray-900 mb-1">{stat.value}</div>
               <div className="text-sm text-gray-500">{stat.label}</div>
             </motion.div>
           ))}
@@ -1210,20 +1467,20 @@ function TrustSectionNew({ t, setPage }: { t: typeof translations['en']; setPage
           {features.map((feat, i) => (
             <motion.div
               key={i}
-              className={`bg-gradient-to-br ${feat.gradient} border ${feat.border} ${feat.hoverBorder} p-8 rounded-2xl transition-all group`}
+              className={`${feat.gradient} ${feat.border} ${feat.hoverBorder} border p-8 rounded-2xl transition-all group`}
               initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }}
               whileHover={{ y: -4 }}
             >
               <div className="flex items-start gap-5">
-                <div className="w-14 h-14 rounded-2xl bg-white/8 border border-white/10 flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
+                <div className="w-14 h-14 rounded-2xl bg-white border border-gray-200 flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
                   <feat.icon className={`w-7 h-7 ${feat.accent}`} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h3 className="text-xl font-bold text-white mb-2">{feat.title}</h3>
-                  <p className="text-gray-400 text-sm mb-4 leading-relaxed">{feat.desc}</p>
+                  <h3 className="text-xl font-bold text-gray-900 mb-2">{feat.title}</h3>
+                  <p className="text-gray-600 text-sm mb-4 leading-relaxed">{feat.desc}</p>
                   <div className="flex flex-wrap gap-2">
                     {feat.tags.map(tag => (
-                      <span key={tag} className={`inline-flex items-center gap-1 text-xs px-3 py-1.5 rounded-full border border-white/10 bg-white/5 ${feat.accent} font-medium`}>
+                      <span key={tag} className={`inline-flex items-center gap-1 text-xs px-3 py-1.5 rounded-full border border-gray-200 bg-white/70 ${feat.accent} font-medium`}>
                         <CheckCircle className="w-3 h-3 flex-shrink-0" /> {tag}
                       </span>
                     ))}
@@ -1236,22 +1493,20 @@ function TrustSectionNew({ t, setPage }: { t: typeof translations['en']; setPage
 
         {/* Cert bar + CTA */}
         <motion.div
-          className="flex flex-col sm:flex-row items-center justify-between gap-6 py-6 px-8 rounded-2xl border border-white/8"
-          style={{ background: 'rgba(255,255,255,0.02)' }}
+          className="flex flex-col sm:flex-row items-center justify-between gap-6 py-6 px-8 rounded-2xl border border-gray-200 bg-white"
           initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
         >
           <div className="flex flex-wrap gap-6 items-center">
             {['SOC 2 Type II', 'ISO 27001', 'PCI DSS Level 1', 'GDPR'].map(cert => (
               <div key={cert} className="flex items-center gap-2">
-                <CheckCircle className="w-4 h-4 text-green-400 flex-shrink-0" />
-                <span className="text-sm text-gray-300 font-medium">{cert}</span>
+                <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0" />
+                <span className="text-sm text-gray-600 font-medium">{cert}</span>
               </div>
             ))}
           </div>
           <motion.button
             onClick={() => setPage('trust-safety')}
-            className="px-6 py-3 border border-white/15 text-gray-200 rounded-xl text-sm font-medium hover:border-white/30 transition-all whitespace-nowrap"
-            style={{ background: 'rgba(255,255,255,0.06)' }}
+            className="ds-btn-secondary whitespace-nowrap"
             whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
           >
             {t.trustSafety} ←
@@ -1269,46 +1524,46 @@ function SocialSection() {
       name: 'Instagram', handle: '@chaparcargo',
       href: 'https://instagram.com/chaparcargo',
       Icon: InstagramIcon,
-      gradient: 'from-pink-500/15 to-purple-600/8',
-      border: 'border-pink-500/20 hover:border-pink-400/45',
-      accent: 'text-pink-400',
+      gradient: 'bg-pink-50',
+      border: 'border-pink-200 hover:border-pink-300',
+      accent: 'text-pink-600',
       followers: '۱۲K',
     },
     {
       name: 'Telegram', handle: '@chaparcargo',
       href: 'https://t.me/chaparcargo',
       Icon: TelegramIcon,
-      gradient: 'from-sky-500/15 to-blue-600/8',
-      border: 'border-sky-500/20 hover:border-sky-400/45',
-      accent: 'text-sky-400',
+      gradient: 'bg-sky-50',
+      border: 'border-sky-200 hover:border-sky-300',
+      accent: 'text-sky-600',
       followers: '۸.۵K',
     },
     {
       name: 'TikTok', handle: '@chaparcargo',
       href: 'https://tiktok.com/@chaparcargo',
       Icon: TikTokIcon,
-      gradient: 'from-white/8 to-white/4',
-      border: 'border-white/15 hover:border-white/35',
-      accent: 'text-white',
+      gradient: 'bg-gray-100',
+      border: 'border-gray-300 hover:border-gray-400',
+      accent: 'text-gray-800',
       followers: '۲۱K',
     },
     {
       name: 'WhatsApp', handle: 'چاپار',
       href: 'https://wa.me/message/chaparcargo',
       Icon: WhatsAppIcon,
-      gradient: 'from-green-500/15 to-emerald-600/8',
-      border: 'border-green-500/20 hover:border-green-400/45',
-      accent: 'text-green-400',
+      gradient: 'bg-green-50',
+      border: 'border-green-200 hover:border-green-300',
+      accent: 'text-green-600',
       followers: 'پشتیبانی',
     },
   ];
 
   return (
-    <section className="py-24 px-4 sm:px-6 lg:px-8 bg-[#04070f]">
+    <section className="py-24 px-4 sm:px-6 lg:px-8 bg-white">
       <div className="max-w-5xl mx-auto">
         <motion.div className="text-center mb-14" initial={{ opacity: 0, y: 40 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
-          <h2 className="text-3xl lg:text-4xl font-bold text-white mb-4">ما را در شبکه‌های اجتماعی دنبال کنید</h2>
-          <p className="text-gray-400">آخرین اخبار، داستان‌های موفقیت و به‌روزرسانی‌های چاپار</p>
+          <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">ما را در شبکه‌های اجتماعی دنبال کنید</h2>
+          <p className="text-gray-500">آخرین اخبار، داستان‌های موفقیت و به‌روزرسانی‌های چاپار</p>
         </motion.div>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {socials.map((s, i) => (
@@ -1317,18 +1572,18 @@ function SocialSection() {
               href={s.href}
               target="_blank"
               rel="noopener noreferrer"
-              className={`bg-gradient-to-br ${s.gradient} border ${s.border} rounded-2xl p-6 flex flex-col items-center text-center gap-4 transition-all group`}
+              className={`${s.gradient} border ${s.border} rounded-2xl p-6 flex flex-col items-center text-center gap-4 transition-all group`}
               initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.08 }}
               whileHover={{ y: -6, scale: 1.03 }}
             >
-              <div className="w-14 h-14 rounded-2xl bg-white/8 border border-white/10 flex items-center justify-center group-hover:scale-110 transition-transform">
+              <div className="w-14 h-14 rounded-2xl bg-white border border-gray-200 flex items-center justify-center group-hover:scale-110 transition-transform shadow-sm">
                 <s.Icon className={`w-6 h-6 ${s.accent}`} />
               </div>
               <div>
-                <div className="font-bold text-white text-base">{s.name}</div>
-                <div className="text-gray-400 text-xs mt-0.5">{s.handle}</div>
+                <div className="font-bold text-gray-900 text-base">{s.name}</div>
+                <div className="text-gray-500 text-xs mt-0.5">{s.handle}</div>
               </div>
-              <div className={`text-sm font-semibold ${s.accent} bg-white/5 px-3 py-1 rounded-full border border-white/8`}>{s.followers}</div>
+              <div className={`text-sm font-semibold ${s.accent} bg-white px-3 py-1 rounded-full border border-gray-200`}>{s.followers}</div>
             </motion.a>
           ))}
         </div>
@@ -1352,19 +1607,19 @@ function HomePage({ t, setPage, isRTL }: { t: typeof translations['en']; setPage
       <VideoSection />
 
       {/* Marketplace Route Board */}
-      <section id="marketplace" className="py-24 px-4 sm:px-6 lg:px-8 bg-[#050810]">
+      <section id="marketplace" className="py-24 px-4 sm:px-6 lg:px-8 bg-slate-50">
         <div className="max-w-7xl mx-auto">
           <motion.div className="text-center mb-16" initial={{ opacity: 0, y: 40 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-purple-500/10 rounded-full mb-6 border border-purple-500/20">
-              <Activity className="w-4 h-4 text-purple-400" />
-              <span className="text-sm text-purple-300 font-medium">{t.liveActivity}</span>
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-purple-50 rounded-full mb-6 border border-purple-200">
+              <Activity className="w-4 h-4 text-purple-600" />
+              <span className="text-sm text-purple-700 font-medium">{t.liveActivity}</span>
             </div>
-            <h2 className="text-4xl lg:text-5xl font-bold text-white mb-4">{t.marketplaceTitle}</h2>
-            <p className="text-xl text-gray-400 max-w-2xl mx-auto">مسیرهای فعال با مسافران آماده برای تحویل</p>
+            <h2 className="text-4xl lg:text-5xl font-bold text-gray-900 mb-4">{t.marketplaceTitle}</h2>
+            <p className="text-xl text-gray-500 max-w-2xl mx-auto">مسیرهای فعال با مسافران آماده برای تحویل</p>
           </motion.div>
           <MarketplaceRouteBoard />
           <div className="text-center mt-8">
-            <button onClick={() => setPage('marketplace')} className="px-8 py-3 bg-white/5 border border-white/10 text-gray-300 rounded-xl hover:bg-white/10 transition-colors">
+            <button onClick={() => setPage('marketplace')} className="ds-btn-secondary">
               مشاهده همه مسیرها
             </button>
           </div>
@@ -1378,11 +1633,11 @@ function HomePage({ t, setPage, isRTL }: { t: typeof translations['en']; setPage
       <TrustSectionNew t={t} setPage={setPage} />
 
       {/* Testimonials */}
-      <section className="py-24 px-4 sm:px-6 lg:px-8 bg-[#050810]">
+      <section className="py-24 px-4 sm:px-6 lg:px-8 bg-white">
         <div className="max-w-7xl mx-auto">
           <motion.div className="text-center mb-16" initial={{ opacity: 0, y: 40 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
-            <h2 className="text-4xl lg:text-5xl font-bold text-white mb-4">تجربه‌های واقعی کاربران ما</h2>
-            <p className="text-xl text-gray-400">داستان‌های واقعی از جامعه جهانی چاپار</p>
+            <h2 className="text-4xl lg:text-5xl font-bold text-gray-900 mb-4">تجربه‌های واقعی کاربران ما</h2>
+            <p className="text-xl text-gray-500">داستان‌های واقعی از جامعه جهانی چاپار</p>
           </motion.div>
           <div className="grid md:grid-cols-3 gap-8">
             {[
@@ -1390,22 +1645,22 @@ function HomePage({ t, setPage, isRTL }: { t: typeof translations['en']; setPage
               { quote: 'در سفرهای تجاری‌ام بیش از ۱۵,۰۰۰ دلار از طریق تحویل بسته کسب کرده‌ام. پلتفرم بی‌نقص، پرداخت‌ها فوری و جامعه کاربران کاملاً قابل اعتماد است.', name: 'محمد احمدی', role: 'مشاور کسب‌وکار و مسافر', company: 'شرکت راه‌حل‌های جهانی', location: 'دبی، امارات', image: 'https://images.unsplash.com/photo-1733231291455-3c4de1c24e20?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwyfHxoYXBweSUyMGN1c3RvbWVyJTIwdGVzdGltb25pYWwlMjBwcm9mZXNzaW9uYWwlMjBwb3J0cmFpdHxlbnwxfHx8fDE3ODA1OTUxOTV8MA&ixlib=rb-4.1.0&q=80&w=1080' },
               { quote: 'بیش از ۳۰ ارسال بین‌المللی از طریق چاپار داشته‌ام. هوش مصنوعی تطبیق فوق‌العاده عمل می‌کند و پشتیبانی کاملاً حرفه‌ای است. دیگر نمی‌توانم از حمل‌ونقل سنتی استفاده کنم.', name: 'آناهیتا علیزاده', role: 'مدیر زنجیره تأمین', company: 'شرکت تجارت جهانی', location: 'سنگاپور', image: 'https://images.unsplash.com/photo-1651684215020-f7a5b6610f23?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHw0fHxoYXBweSUyMGN1c3RvbWVyJTIwdGVzdGltb25pYWwlMjBwcm9mZXNzaW9uYWwlMjBwb3J0cmFpdHxlbnwxfHx8fDE3ODA1OTUxOTV8MA&ixlib=rb-4.1.0&q=80&w=1080' },
             ].map((testimonial, i) => (
-              <motion.div key={i} className="bg-white/5 backdrop-blur-md border border-white/10 p-8 rounded-2xl hover:border-cyan-500/20 transition-all"
+              <motion.div key={i} className="ds-card ds-card-hover p-8"
                 initial={{ opacity: 0, y: 40 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.15 }} whileHover={{ y: -5 }}>
                 <div className="flex gap-1 mb-6">
                   {[...Array(5)].map((_, i2) => <Star key={i2} className="w-5 h-5 fill-yellow-400 text-yellow-400" />)}
                 </div>
-                <p className="text-gray-300 leading-relaxed mb-8 italic text-lg">"{testimonial.quote}"</p>
+                <p className="text-gray-600 leading-relaxed mb-8 italic text-lg">"{testimonial.quote}"</p>
                 <div className="flex items-center gap-4">
                   <div className="relative">
-                    <img src={testimonial.image} alt={testimonial.name} className="w-16 h-16 rounded-full object-cover ring-2 ring-white/10" />
+                    <img src={testimonial.image} alt={testimonial.name} className="w-16 h-16 rounded-full object-cover ring-2 ring-gray-200" />
                     <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center">
                       <Verified className="w-4 h-4 text-white" />
                     </div>
                   </div>
                   <div>
-                    <div className="font-semibold text-white text-lg">{testimonial.name}</div>
-                    <div className="text-sm text-gray-400">{testimonial.role}</div>
+                    <div className="font-semibold text-gray-900 text-lg">{testimonial.name}</div>
+                    <div className="text-sm text-gray-500">{testimonial.role}</div>
                     <div className="text-xs text-gray-500">{testimonial.company} · {testimonial.location}</div>
                   </div>
                 </div>
@@ -1416,25 +1671,23 @@ function HomePage({ t, setPage, isRTL }: { t: typeof translations['en']; setPage
       </section>
 
       {/* Mobile App */}
-      <section className="py-24 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-blue-600/20 via-purple-600/20 to-indigo-600/20 relative overflow-hidden">
-        <div className="absolute inset-0 bg-[#080f1e]" />
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-600/10 via-purple-600/10 to-indigo-600/10" />
+      <section className="py-24 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-cyan-50 via-blue-50 to-indigo-50 border-t border-b border-blue-100 relative overflow-hidden">
         <div className="max-w-7xl mx-auto relative z-10">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <motion.div initial={{ opacity: 0, x: -40 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }}>
-              <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-sm rounded-full mb-6 border border-white/20">
-                <Sparkles className="w-4 h-4 text-white" />
-                <span className="text-sm font-medium text-white">به‌زودی</span>
+              <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/80 backdrop-blur-sm rounded-full mb-6 border border-blue-200">
+                <Sparkles className="w-4 h-4 text-blue-600" />
+                <span className="text-sm font-medium text-blue-700">به‌زودی</span>
               </div>
-              <h2 className="text-4xl lg:text-5xl font-bold text-white mb-6">مدیریت مرسولات در هر مکان</h2>
-              <p className="text-xl text-white/80 mb-8 leading-relaxed">اپلیکیشن موبایل چاپار را برای iOS و Android دانلود کنید. بسته‌ها را ردیابی کنید، با مسافران پیام بفرستید و تحویل‌ها را از هر جای دنیا مدیریت کنید.</p>
+              <h2 className="text-4xl lg:text-5xl font-bold text-gray-900 mb-6">مدیریت مرسولات در هر مکان</h2>
+              <p className="text-xl text-gray-600 mb-8 leading-relaxed">اپلیکیشن موبایل چاپار را برای iOS و Android دانلود کنید. بسته‌ها را ردیابی کنید، با مسافران پیام بفرستید و تحویل‌ها را از هر جای دنیا مدیریت کنید.</p>
               <div className="space-y-4 mb-8">
                 {['اعلان‌های فوری بلادرنگ', 'پیام‌رسانی داخلی با مسافران', 'ردیابی GPS زنده', 'پرداخت تک‌لمسی', 'پشتیبانی از حالت آفلاین'].map((feature, i) => (
                   <motion.div key={i} className="flex items-center gap-3" initial={{ opacity: 0, x: -20 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }}>
-                    <div className="w-6 h-6 bg-white/20 rounded-full flex items-center justify-center">
-                      <CheckCircle className="w-4 h-4 text-white" />
+                    <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center">
+                      <CheckCircle className="w-4 h-4 text-blue-600" />
                     </div>
-                    <span className="text-white/90">{feature}</span>
+                    <span className="text-gray-700">{feature}</span>
                   </motion.div>
                 ))}
               </div>
@@ -1470,18 +1723,18 @@ function HomePage({ t, setPage, isRTL }: { t: typeof translations['en']; setPage
                   </div>
                 </div>
               </div>
-              <motion.div className="absolute -top-8 -right-8 bg-[#0d1628] border border-white/10 p-4 rounded-xl shadow-lg"
+              <motion.div className="absolute -top-8 -right-8 bg-white border border-gray-200 p-4 rounded-xl shadow-lg"
                 animate={{ y: [0, -10, 0] }} transition={{ duration: 3, repeat: Infinity }}>
                 <div className="flex items-center gap-2">
-                  <Package className="w-5 h-5 text-blue-400" />
-                  <span className="text-sm font-semibold text-white">Delivered!</span>
+                  <Package className="w-5 h-5 text-blue-600" />
+                  <span className="text-sm font-semibold text-gray-900">Delivered!</span>
                 </div>
               </motion.div>
-              <motion.div className="absolute -bottom-8 -left-8 bg-[#0d1628] border border-white/10 p-4 rounded-xl shadow-lg"
+              <motion.div className="absolute -bottom-8 -left-8 bg-white border border-gray-200 p-4 rounded-xl shadow-lg"
                 animate={{ y: [0, 10, 0] }} transition={{ duration: 3, repeat: Infinity, delay: 1.5 }}>
                 <div className="flex items-center gap-2">
                   <Star className="w-5 h-5 text-yellow-500 fill-yellow-500" />
-                  <span className="text-sm font-semibold text-white">5.0 Rating</span>
+                  <span className="text-sm font-semibold text-gray-900">5.0 Rating</span>
                 </div>
               </motion.div>
             </motion.div>
@@ -1490,11 +1743,11 @@ function HomePage({ t, setPage, isRTL }: { t: typeof translations['en']; setPage
       </section>
 
       {/* FAQ */}
-      <section id="faq" className="py-24 px-4 sm:px-6 lg:px-8 bg-[#050810]">
+      <section id="faq" className="py-24 px-4 sm:px-6 lg:px-8 bg-slate-50">
         <div className="max-w-3xl mx-auto">
           <motion.div className="text-center mb-16" initial={{ opacity: 0, y: 40 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
-            <h2 className="text-4xl lg:text-5xl font-bold text-white mb-4">{t.faqTitle}</h2>
-            <p className="text-xl text-gray-400">همه چیزی که باید درباره چاپار بدانید</p>
+            <h2 className="text-4xl lg:text-5xl font-bold text-gray-900 mb-4">{t.faqTitle}</h2>
+            <p className="text-xl text-gray-500">همه چیزی که باید درباره چاپار بدانید</p>
           </motion.div>
           <div className="space-y-3">
             {[
@@ -1505,24 +1758,24 @@ function HomePage({ t, setPage, isRTL }: { t: typeof translations['en']; setPage
               { q: 'به‌عنوان مسافر چقدر می‌توانم درآمد داشته باشم؟', a: 'اکثر مسافران برای هر تحویل ۵۰ تا ۳۰۰ دلار درآمد دارند و برترین‌ها سالانه بیش از ۱۵,۰۰۰ دلار کسب می‌کنند. شما نرخ خود را تعیین می‌کنید و انتخاب می‌کنید کدام بسته‌ها را بپذیرید.' },
               { q: 'آیا چاپار در کشور من فعال است؟', a: 'بله! چاپار در بیش از ۱۹۰ کشور در تمام قاره‌ها فعالیت می‌کند و مسیرهای فعال آن ۹۵٪ از جمعیت جهان را پوشش می‌دهد.' },
             ].map((faq, index) => (
-              <motion.div key={index} className="bg-white/5 backdrop-blur-md rounded-xl border border-white/10 overflow-hidden"
+              <motion.div key={index} className={`bg-white rounded-xl border overflow-hidden shadow-sm ${openFaq === index ? 'border-cyan-200' : 'border-gray-200'}`}
                 initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: index * 0.05 }}>
                 <motion.button onClick={() => setOpenFaq(openFaq === index ? null : index)}
-                  className="w-full px-6 py-5 flex items-center justify-between text-left hover:bg-white/5 transition-colors">
-                  <span className="text-base font-semibold text-white pr-4">{faq.q}</span>
+                  className="w-full px-6 py-5 flex items-center justify-between text-start hover:bg-gray-50 transition-colors">
+                  <span className={`text-base font-semibold pe-4 ${openFaq === index ? 'text-cyan-700' : 'text-gray-900'}`}>{faq.q}</span>
                   <motion.div animate={{ rotate: openFaq === index ? 180 : 0 }} transition={{ duration: 0.3 }}>
-                    <ChevronDown className="w-5 h-5 text-gray-500 flex-shrink-0" />
+                    <ChevronDown className={`w-5 h-5 flex-shrink-0 ${openFaq === index ? 'text-cyan-500' : 'text-gray-400'}`} />
                   </motion.div>
                 </motion.button>
                 <motion.div initial={false} animate={{ height: openFaq === index ? 'auto' : 0, opacity: openFaq === index ? 1 : 0 }}
                   transition={{ duration: 0.3, ease: 'easeInOut' }} style={{ overflow: 'hidden' }}>
-                  <div className="px-6 pb-5"><p className="text-gray-400 leading-relaxed">{faq.a}</p></div>
+                  <div className="px-6 pb-5"><p className="text-gray-600 leading-relaxed">{faq.a}</p></div>
                 </motion.div>
               </motion.div>
             ))}
           </div>
           <div className="text-center mt-8">
-            <button onClick={() => setPage('faq')} className="px-8 py-3 bg-white/5 border border-white/10 text-gray-300 rounded-xl hover:bg-white/10 transition-colors">
+            <button onClick={() => setPage('faq')} className="ds-btn-secondary">
               مشاهده همه سؤالات
             </button>
           </div>
@@ -1903,13 +2156,13 @@ export default function App() {
       <AnimatePresence mode="wait">
         <motion.div key={currentPage} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.25 }}>
           {currentPage === 'home' && <HomePage t={t} setPage={setCurrentPage} isRTL={isRTL} />}
-          {currentPage === 'buy-for-me' && <BuyForMePage onBack={() => setCurrentPage('home')} t={t} />}
-          {currentPage === 'send-package' && <SendPackagePage onBack={() => setCurrentPage('home')} t={t} />}
-          {currentPage === 'traveler' && <TravelerPage onBack={() => setCurrentPage('home')} t={t} />}
-          {currentPage === 'marketplace' && <MarketplacePage onBack={() => setCurrentPage('home')} t={t} />}
-          {currentPage === 'trust-safety' && <TrustSafetyPage onBack={() => setCurrentPage('home')} t={t} />}
-          {currentPage === 'investors' && <InvestorsPage onBack={() => setCurrentPage('home')} t={t} />}
-          {currentPage === 'faq' && <FAQPage onBack={() => setCurrentPage('home')} t={t} />}
+          {currentPage === 'buy-for-me' && <BuyForMePage onBack={() => setCurrentPage('home')} onHome={() => setCurrentPage('home')} t={t} />}
+          {currentPage === 'send-package' && <SendPackagePage onBack={() => setCurrentPage('home')} onHome={() => setCurrentPage('home')} t={t} />}
+          {currentPage === 'traveler' && <TravelerPage onBack={() => setCurrentPage('home')} onHome={() => setCurrentPage('home')} t={t} />}
+          {currentPage === 'marketplace' && <MarketplacePage onBack={() => setCurrentPage('home')} onHome={() => setCurrentPage('home')} t={t} />}
+          {currentPage === 'trust-safety' && <TrustSafetyPage onBack={() => setCurrentPage('home')} onHome={() => setCurrentPage('home')} t={t} />}
+          {currentPage === 'investors' && <InvestorsPage onBack={() => setCurrentPage('home')} onHome={() => setCurrentPage('home')} t={t} />}
+          {currentPage === 'faq' && <FAQPage onBack={() => setCurrentPage('home')} onHome={() => setCurrentPage('home')} t={t} />}
         </motion.div>
       </AnimatePresence>
     </div>

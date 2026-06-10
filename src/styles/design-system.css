@@ -1,0 +1,268 @@
+/* ─── Chapar Design System ────────────────────────────────────────────────────
+ * Light-mode SaaS design system — applied to all pages below the hero.
+ * The hero stays dark; everything else uses these tokens.
+ * ─────────────────────────────────────────────────────────────────────────── */
+
+:root {
+  /* ── Color tokens ─────────────────────────────────────────────────── */
+  --ds-bg:            #FFFFFF;
+  --ds-bg-muted:      #F8FAFC;
+  --ds-bg-hover:      #F1F5F9;
+
+  --ds-card:          #FFFFFF;
+  --ds-card-shadow:   0 1px 3px 0 rgb(0 0 0 / 0.08), 0 1px 2px -1px rgb(0 0 0 / 0.06);
+  --ds-card-shadow-md:0 4px 16px 0 rgb(0 0 0 / 0.08), 0 2px 6px -2px rgb(0 0 0 / 0.05);
+  --ds-card-shadow-lg:0 8px 32px 0 rgb(0 0 0 / 0.10), 0 4px 12px -4px rgb(0 0 0 / 0.06);
+
+  --ds-border:        #E5E7EB;
+  --ds-border-muted:  #F3F4F6;
+  --ds-border-strong: #D1D5DB;
+
+  --ds-text:          #111827;
+  --ds-text-muted:    #6B7280;
+  --ds-text-subtle:   #9CA3AF;
+
+  /* ── Brand (Chapar blue) ─────────────────────────────────────────── */
+  --ds-brand:         #0EA5E9;   /* cyan-500 */
+  --ds-brand-dark:    #2563EB;   /* blue-600 */
+  --ds-brand-text:    #0284C7;   /* cyan-600 — readable on white */
+  --ds-brand-bg:      #F0F9FF;   /* cyan-50 */
+  --ds-brand-border:  #BAE6FD;   /* cyan-200 */
+
+  /* ── Semantic colors ─────────────────────────────────────────────── */
+  --ds-success:       #16A34A;
+  --ds-success-bg:    #F0FDF4;
+  --ds-success-border:#BBF7D0;
+
+  --ds-warning:       #D97706;
+  --ds-warning-bg:    #FFFBEB;
+  --ds-warning-border:#FDE68A;
+
+  --ds-error:         #DC2626;
+  --ds-error-bg:      #FEF2F2;
+  --ds-error-border:  #FECACA;
+
+  /* ── Radius ──────────────────────────────────────────────────────── */
+  --ds-radius-sm:     8px;
+  --ds-radius:        12px;
+  --ds-radius-md:     16px;
+  --ds-radius-lg:     20px;
+  --ds-radius-xl:     24px;
+
+  /* ── Spacing ─────────────────────────────────────────────────────── */
+  --ds-section-py:    96px;
+}
+
+/* ─── Utility classes ──────────────────────────────────────────────────────── */
+
+/* Section backgrounds — alternate white / muted */
+.ds-section-white  { background: var(--ds-bg); }
+.ds-section-muted  { background: var(--ds-bg-muted); }
+
+/* Cards */
+.ds-card {
+  background:    var(--ds-card);
+  border:        1px solid var(--ds-border);
+  border-radius: var(--ds-radius-lg);
+  box-shadow:    var(--ds-card-shadow);
+}
+.ds-card-hover {
+  transition: box-shadow 0.2s, border-color 0.2s, transform 0.2s;
+}
+.ds-card-hover:hover {
+  box-shadow:    var(--ds-card-shadow-md);
+  border-color:  var(--ds-border-strong);
+  transform:     translateY(-2px);
+}
+
+/* Form inputs */
+.ds-input {
+  width:          100%;
+  padding:        12px 16px;
+  background:     var(--ds-bg);
+  border:         1.5px solid var(--ds-border);
+  border-radius:  var(--ds-radius);
+  color:          var(--ds-text);
+  font-size:      0.9375rem;
+  transition:     border-color 0.15s, box-shadow 0.15s;
+  outline:        none;
+}
+.ds-input::placeholder { color: var(--ds-text-subtle); }
+.ds-input:focus {
+  border-color: var(--ds-brand);
+  box-shadow:   0 0 0 3px rgb(14 165 233 / 0.12);
+}
+.ds-input[type="date"] { color-scheme: light; }
+
+textarea.ds-input { resize: none; }
+
+/* Buttons */
+.ds-btn-primary {
+  display:          inline-flex;
+  align-items:      center;
+  justify-content:  center;
+  gap:              8px;
+  padding:          12px 24px;
+  background:       linear-gradient(135deg, var(--ds-brand), var(--ds-brand-dark));
+  color:            #fff;
+  font-weight:      600;
+  font-size:        0.9375rem;
+  border-radius:    var(--ds-radius);
+  border:           none;
+  box-shadow:       0 2px 8px rgb(14 165 233 / 0.25);
+  cursor:           pointer;
+  transition:       opacity 0.15s, box-shadow 0.15s, transform 0.1s;
+}
+.ds-btn-primary:hover {
+  opacity:    0.92;
+  box-shadow: 0 4px 16px rgb(14 165 233 / 0.35);
+}
+.ds-btn-primary:active { transform: scale(0.98); }
+
+.ds-btn-secondary {
+  display:         inline-flex;
+  align-items:     center;
+  justify-content: center;
+  gap:             8px;
+  padding:         11px 24px;
+  background:      var(--ds-bg);
+  color:           var(--ds-text);
+  font-weight:     500;
+  font-size:       0.9375rem;
+  border-radius:   var(--ds-radius);
+  border:          1.5px solid var(--ds-border);
+  cursor:          pointer;
+  transition:      background 0.15s, border-color 0.15s, box-shadow 0.15s;
+}
+.ds-btn-secondary:hover {
+  background:    var(--ds-bg-hover);
+  border-color:  var(--ds-border-strong);
+  box-shadow:    var(--ds-card-shadow);
+}
+
+/* Labels */
+.ds-label {
+  display:       block;
+  font-size:     0.8125rem;
+  font-weight:   500;
+  color:         var(--ds-text-muted);
+  margin-bottom: 6px;
+}
+
+/* Section heading group */
+.ds-section-badge {
+  display:       inline-flex;
+  align-items:   center;
+  gap:           6px;
+  padding:       5px 14px;
+  background:    var(--ds-brand-bg);
+  border:        1px solid var(--ds-brand-border);
+  border-radius: 999px;
+  color:         var(--ds-brand-text);
+  font-size:     0.8125rem;
+  font-weight:   600;
+}
+
+/* Back / Home nav buttons (sub-pages) */
+.ds-nav-btn {
+  display:       inline-flex;
+  align-items:   center;
+  gap:           8px;
+  padding:       8px 14px;
+  background:    var(--ds-bg);
+  border:        1.5px solid var(--ds-border);
+  border-radius: var(--ds-radius);
+  color:         var(--ds-text-muted);
+  font-size:     0.875rem;
+  font-weight:   500;
+  cursor:        pointer;
+  transition:    color 0.15s, border-color 0.15s, background 0.15s, box-shadow 0.15s;
+}
+.ds-nav-btn:hover {
+  color:         var(--ds-text);
+  border-color:  var(--ds-border-strong);
+  box-shadow:    var(--ds-card-shadow);
+}
+.ds-nav-btn-home:hover {
+  color:         var(--ds-brand-text);
+  border-color:  var(--ds-brand-border);
+  background:    var(--ds-brand-bg);
+}
+
+/* Badge / tag chips */
+.ds-badge {
+  display:       inline-flex;
+  align-items:   center;
+  gap:           4px;
+  padding:       4px 10px;
+  border-radius: 999px;
+  font-size:     0.75rem;
+  font-weight:   600;
+}
+.ds-badge-blue   { background: #EFF6FF; color: #1D4ED8; border: 1px solid #BFDBFE; }
+.ds-badge-green  { background: #F0FDF4; color: #15803D; border: 1px solid #BBF7D0; }
+.ds-badge-cyan   { background: #F0F9FF; color: #0284C7; border: 1px solid #BAE6FD; }
+.ds-badge-purple { background: #FAF5FF; color: #7C3AED; border: 1px solid #DDD6FE; }
+.ds-badge-orange { background: #FFF7ED; color: #C2410C; border: 1px solid #FED7AA; }
+
+/* Divider */
+.ds-divider { border: none; border-top: 1px solid var(--ds-border); }
+
+/* ─── Page header (sub-pages) ──────────────────────────────────────────────── */
+.ds-page-header {
+  position:   relative;
+  padding:    112px 0 64px;
+  background: linear-gradient(to bottom, var(--ds-bg-muted), var(--ds-bg));
+  border-bottom: 1px solid var(--ds-border);
+  overflow:   hidden;
+}
+.ds-page-header::before {
+  content:             '';
+  position:            absolute;
+  inset:               0;
+  background-image:    radial-gradient(circle, #E5E7EB 1px, transparent 1px);
+  background-size:     32px 32px;
+  opacity:             0.5;
+  pointer-events:      none;
+}
+.ds-page-header::after {
+  content:    '';
+  position:   absolute;
+  inset:      0;
+  background: linear-gradient(to bottom right, rgb(255 255 255 / 0.9), rgb(255 255 255 / 0.7));
+  pointer-events: none;
+}
+
+/* ─── Feature color cards ──────────────────────────────────────────────────── */
+.ds-feature-blue   { background: #EFF6FF; border: 1px solid #BFDBFE; }
+.ds-feature-purple { background: #FAF5FF; border: 1px solid #DDD6FE; }
+.ds-feature-green  { background: #F0FDF4; border: 1px solid #BBF7D0; }
+.ds-feature-cyan   { background: #ECFEFF; border: 1px solid #A5F3FC; }
+.ds-feature-orange { background: #FFF7ED; border: 1px solid #FED7AA; }
+.ds-feature-rose   { background: #FFF1F2; border: 1px solid #FECDD3; }
+
+/* ─── Tier selector buttons (package tiers) ───────────────────────────────── */
+.ds-tier {
+  padding:       16px;
+  border-radius: var(--ds-radius);
+  border:        1.5px solid var(--ds-border);
+  background:    var(--ds-bg);
+  text-align:    center;
+  cursor:        pointer;
+  transition:    border-color 0.15s, background 0.15s, box-shadow 0.15s;
+}
+.ds-tier:hover {
+  border-color: var(--ds-border-strong);
+  background:   var(--ds-bg-hover);
+}
+.ds-tier.active {
+  border-color: var(--ds-brand);
+  background:   var(--ds-brand-bg);
+  box-shadow:   0 0 0 3px rgb(14 165 233 / 0.10);
+}
+
+/* ─── Range slider ─────────────────────────────────────────────────────────── */
+input[type="range"].ds-range {
+  accent-color: var(--ds-brand);
+  width: 100%;
+}
