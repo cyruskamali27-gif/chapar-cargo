@@ -254,7 +254,7 @@ function LanguageSelector({ lang, setLang }: { lang: LangCode; setLang: (l: Lang
 
 // ─── Sub-pages ────────────────────────────────────────────────────────────────
 
-function PageHeader({ title, desc, onBack, onHome, backLabel }: { title: string; desc: string; onBack: () => void; onHome: () => void; backLabel: string }) {
+function PageHeader({ title, desc, onHome }: { title: string; desc: string; onBack?: () => void; onHome: () => void; backLabel?: string }) {
   return (
     <div className="ds-page-header px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto relative z-10">
@@ -263,9 +263,9 @@ function PageHeader({ title, desc, onBack, onHome, backLabel }: { title: string;
           animate={{ opacity: 1, y: 0 }}
           className="flex items-center gap-3 mb-10 flex-wrap"
         >
-          <button onClick={onBack} className="ds-nav-btn group">
+          <button onClick={() => window.history.back()} className="ds-nav-btn group">
             <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
-            <span>{backLabel}</span>
+            <span>بازگشت</span>
           </button>
           <button onClick={onHome} className="ds-nav-btn ds-nav-btn-home">
             <Home className="w-4 h-4" />
@@ -2117,6 +2117,8 @@ export default function App() {
     if (window.location.pathname === '/google-earth-preview') {
       window.history.replaceState({}, '', '/');
     }
+    // Seed initial history entry so first back() has a state
+    window.history.replaceState({ page: 'home' }, '');
   }, []);
 
   useEffect(() => {
@@ -2125,10 +2127,22 @@ export default function App() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Scroll to top on page change
+  // Push a history entry every time the user navigates to a new page
   useEffect(() => {
+    if (window.history.state?.page !== currentPage) {
+      window.history.pushState({ page: currentPage }, '');
+    }
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [currentPage]);
+
+  // Sync React state with browser back/forward buttons
+  useEffect(() => {
+    const onPop = (e: PopStateEvent) => {
+      setCurrentPage((e.state?.page ?? 'home') as Page);
+    };
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, []);
 
   const fontStyle = isRTL ? { fontFamily: "'Vazirmatn', Tahoma, Arial, sans-serif" } : {};
 
