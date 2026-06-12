@@ -1,7 +1,18 @@
 import { Shield, MapPin, Scan, Globe, Users, TrendingUp, CheckCircle, Package, ArrowRight, ChevronDown, Star, Lock, Zap, Clock, CreditCard, Award, BadgeCheck, Sparkles, Activity, Plane, DollarSign, Eye, FileCheck, Building2, Verified, Trophy, Target, BarChart3, Rocket, ArrowLeft, Home } from 'lucide-react';
+import AuthPage from './AuthPage';
+import TravelerPageFull from './TravelerPage';
+import SendPackagePage from './SendPackagePage';
+import MyOrdersPage from './MyOrdersPage';
+import WalletPage from './WalletPage';
+import ReceiptPage from './ReceiptPage';
+import ProfilePage from './ProfilePage';
+import NotificationsPage from './NotificationsPage';
+import TravelerDashboardPage from './TravelerDashboardPage';
+import { Store } from '../lib/store';
+import { useSession } from '../lib/SessionContext';
 import AirportCityAutocomplete, { type AirportOption } from './AirportCityAutocomplete';
-import ProtectionSelector, { ProtectionBadge } from './ProtectionSelector';
-import { type ProtectionType, defaultProtection } from './shipmentTypes';
+import { SecurityBadge } from './ProtectionSelector';
+import { type SecurityLevel } from './shipmentTypes';
 import { IdentityVerification, CargoVerification } from './VerificationModules';
 import SmartTester from './SmartTester';
 
@@ -46,7 +57,7 @@ import { LangCode, RTL_LANGS, langMeta, translations } from './i18n';
 
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-type Page = 'home' | 'buy-for-me' | 'send-package' | 'traveler' | 'marketplace' | 'trust-safety' | 'investors' | 'faq';
+type Page = 'home' | 'buy-for-me' | 'send-package' | 'traveler' | 'marketplace' | 'trust-safety' | 'investors' | 'faq' | 'auth' | 'my-orders' | 'wallet' | 'receipt' | 'profile' | 'notifications' | 'traveler-dashboard';
 
 // ─── CountUpAnimation ─────────────────────────────────────────────────────────
 function CountUpAnimation({ end, suffix = '', prefix = '', duration = 2 }: { end: number; suffix?: string; prefix?: string; duration?: number }) {
@@ -129,12 +140,12 @@ function EscrowTimeline() {
 
 // ─── MarketplaceRouteBoard ────────────────────────────────────────────────────
 function MarketplaceRouteBoard() {
-  const routes: { from: string; to: string; flag1: string; flag2: string; travelers: number; avgPrice: number; trend: string; protection: import('./shipmentTypes').ProtectionType }[] = [
-    { from: 'Toronto',   to: 'Tehran',    flag1: '🇨🇦', flag2: '🇮🇷', travelers: 12, avgPrice: 85,  trend: 'up',     protection: 'FULL_ESCROW'         },
-    { from: 'Dubai',     to: 'Vancouver', flag1: '🇦🇪', flag2: '🇨🇦', travelers: 8,  avgPrice: 120, trend: 'up',     protection: 'FULL_ESCROW'         },
-    { from: 'London',    to: 'New York',  flag1: '🇬🇧', flag2: '🇺🇸', travelers: 24, avgPrice: 95,  trend: 'stable', protection: 'TRAVELER_GUARANTEE'  },
-    { from: 'Singapore', to: 'Sydney',    flag1: '🇸🇬', flag2: '🇦🇺', travelers: 15, avgPrice: 75,  trend: 'down',   protection: 'NONE'                },
-    { from: 'Paris',     to: 'Tokyo',     flag1: '🇫🇷', flag2: '🇯🇵', travelers: 10, avgPrice: 110, trend: 'up',     protection: 'SENDER_GUARANTEE'   },
+  const routes: { from: string; to: string; flag1: string; flag2: string; travelers: number; avgPrice: number; trend: string; securityLevel: SecurityLevel }[] = [
+    { from: 'Toronto',   to: 'Tehran',    flag1: '🇨🇦', flag2: '🇮🇷', travelers: 12, avgPrice: 85,  trend: 'up',     securityLevel: 'GUARANTEED' },
+    { from: 'Dubai',     to: 'Vancouver', flag1: '🇦🇪', flag2: '🇨🇦', travelers: 8,  avgPrice: 120, trend: 'up',     securityLevel: 'GUARANTEED' },
+    { from: 'London',    to: 'New York',  flag1: '🇬🇧', flag2: '🇺🇸', travelers: 24, avgPrice: 95,  trend: 'stable', securityLevel: 'GUARANTEED' },
+    { from: 'Singapore', to: 'Sydney',    flag1: '🇸🇬', flag2: '🇦🇺', travelers: 15, avgPrice: 75,  trend: 'down',   securityLevel: 'STANDARD'   },
+    { from: 'Paris',     to: 'Tokyo',     flag1: '🇫🇷', flag2: '🇯🇵', travelers: 10, avgPrice: 110, trend: 'up',     securityLevel: 'GUARANTEED' },
   ];
   return (
     <div className="space-y-3">
@@ -168,7 +179,7 @@ function MarketplaceRouteBoard() {
 
             {/* Stats + badge */}
             <div className="flex items-center gap-3 flex-shrink-0 flex-wrap justify-end">
-              <ProtectionBadge type={route.protection} />
+              <SecurityBadge level={route.securityLevel} />
               <div className="text-center">
                 <div className="text-xl font-bold text-gray-900">{route.travelers}</div>
                 <div className="text-[11px] text-gray-400">Travelers</div>
@@ -290,274 +301,13 @@ function PageHeader({ title, desc, onHome }: { title: string; desc: string; onBa
 }
 
 function BuyForMePage({ onBack, onHome, t }: { onBack: () => void; onHome: () => void; t: typeof translations['en'] }) {
-  const [buyFrom, setBuyFrom]           = useState<AirportOption | null>(null);
-  const [deliverTo, setDeliverTo]       = useState<AirportOption | null>(null);
-  const [budget, setBudget]             = useState(200);
-  const [category, setCategory]         = useState('');
-  const [protection, setProtection]     = useState<ProtectionType>('FULL_ESCROW');
-  const [idVerify, setIdVerify]         = useState(false);
-  const [cargoVerify, setCargoVerify]   = useState(false);
-  return (
-    <div className="min-h-screen bg-white">
-      <PageHeader title={t.buyForMeTitle} desc={t.buyForMeDesc} onBack={onBack} onHome={onHome} backLabel={t.backHome} />
-
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 pb-24">
-        <div className="grid lg:grid-cols-2 gap-10">
-
-          {/* ── Form card ── */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
-            className="ds-card p-8"
-          >
-            <h2 className="text-xl font-bold text-gray-900 mb-6">{t.bfmFormTitle}</h2>
-            <div className="space-y-5">
-
-              {/* Product name */}
-              <div>
-                <label className="ds-label">{t.bfmProductLabel}</label>
-                <input type="text" placeholder={t.bfmProductPlaceholder} className="ds-input"
-                  onChange={e => { setCategory(e.target.value); setProtection(defaultProtection(e.target.value)); }} />
-              </div>
-
-              {/* Origin / Destination */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <AirportCityAutocomplete
-                  label={t.bfmBuyFromLabel}
-                  value={buyFrom}
-                  onChange={setBuyFrom}
-                  placeholder={t.bfmBuyFromPlaceholder}
-                />
-                <AirportCityAutocomplete
-                  label={t.bfmDeliverToLabel}
-                  value={deliverTo}
-                  onChange={setDeliverTo}
-                  placeholder={t.bfmDeliverToPlaceholder}
-                />
-              </div>
-
-              {/* Budget */}
-              <div>
-                <label className="ds-label">{t.bfmBudgetLabel}</label>
-                <input type="number" placeholder="500" className="ds-input" value={budget || ''}
-                  onChange={e => setBudget(Number(e.target.value))} />
-              </div>
-
-              {/* Notes */}
-              <div>
-                <label className="ds-label">{t.bfmNotesLabel}</label>
-                <textarea rows={3} placeholder={t.bfmNotesPlaceholder} className="ds-input" />
-              </div>
-
-              {/* Protection selector */}
-              <div className="border-t border-gray-100 pt-5">
-                <ProtectionSelector
-                  value={protection}
-                  onChange={setProtection}
-                  declaredValue={budget}
-                  weightKg={1}
-                  pricePerKg={20}
-                />
-              </div>
-
-              {/* Verification modules */}
-              <div className="space-y-3">
-                <IdentityVerification enabled={idVerify} onToggle={setIdVerify} status="PENDING" />
-                <CargoVerification    enabled={cargoVerify} onToggle={setCargoVerify} status="PENDING" />
-              </div>
-
-              <motion.button
-                whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
-                className="ds-btn-primary w-full py-4 text-base rounded-xl"
-              >
-                {t.bfmFindTraveler}
-              </motion.button>
-            </div>
-          </motion.div>
-
-          {/* ── Right column: steps + cost estimator ── */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}
-            className="space-y-5"
-          >
-            <h2 className="text-xl font-bold text-gray-900">{t.bfmHowTitle}</h2>
-
-            {/* Steps */}
-            {[
-              { icon: Package,     title: t.bfmHowStep1Title, desc: t.bfmHowStep1Desc, color: 'bg-cyan-50 border-cyan-200',   icon_cls: 'text-cyan-600'   },
-              { icon: Users,       title: t.bfmHowStep2Title, desc: t.bfmHowStep2Desc, color: 'bg-blue-50 border-blue-200',   icon_cls: 'text-blue-600'   },
-              { icon: Lock,        title: t.bfmHowStep3Title, desc: t.bfmHowStep3Desc, color: 'bg-green-50 border-green-200', icon_cls: 'text-green-600'  },
-              { icon: CheckCircle, title: t.bfmHowStep4Title, desc: t.bfmHowStep4Desc, color: 'bg-purple-50 border-purple-200', icon_cls: 'text-purple-600' },
-            ].map((step, i) => (
-              <div key={i} className="flex gap-4 bg-white border border-gray-100 rounded-xl p-5 shadow-sm">
-                <div className={`w-11 h-11 ${step.color} border rounded-xl flex items-center justify-center flex-shrink-0`}>
-                  <step.icon className={`w-5 h-5 ${step.icon_cls}`} />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-gray-900 mb-1 text-sm">{step.title}</h3>
-                  <p className="text-gray-500 text-sm leading-relaxed">{step.desc}</p>
-                </div>
-              </div>
-            ))}
-
-          </motion.div>
-
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function SendPackagePage({ onBack, onHome, t }: { onBack: () => void; onHome: () => void; t: typeof translations['en'] }) {
-  const [tier, setTier]                   = useState(1);
-  const [pkgFrom, setPkgFrom]             = useState<AirportOption | null>(null);
-  const [pkgTo, setPkgTo]                 = useState<AirportOption | null>(null);
-  const [declaredValue, setDeclaredValue] = useState(200);
-  const [weightKg, setWeightKg]           = useState(2);
-  const [category, setCategory]           = useState('');
-  const [protection, setProtection]       = useState<ProtectionType>('FULL_ESCROW');
-  const [idVerify, setIdVerify]           = useState(false);
-  const [cargoVerify, setCargoVerify]     = useState(false);
-  const tierPrices = [20, 40, 70];
-  return (
-    <div className="min-h-screen bg-white">
-      <PageHeader title={t.sendPackageTitle} desc={t.sendPackageDesc} onBack={onBack} onHome={onHome} backLabel={t.backHome} />
-
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 pb-24">
-        <div className="grid lg:grid-cols-3 gap-8">
-
-          {/* ── Main form ── */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
-            className="lg:col-span-2 ds-card p-8"
-          >
-            <h2 className="text-xl font-bold text-gray-900 mb-6">{t.spFormTitle}</h2>
-            <div className="space-y-5">
-
-              {/* Route */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <AirportCityAutocomplete label={t.spFromLabel} value={pkgFrom} onChange={setPkgFrom} placeholder={t.spFromPlaceholder} />
-                <AirportCityAutocomplete label={t.spToLabel}   value={pkgTo}   onChange={setPkgTo}   placeholder={t.spToPlaceholder} />
-              </div>
-
-              {/* Weight / Value / Deadline */}
-              <div className="grid grid-cols-3 gap-4">
-                <div>
-                  <label className="ds-label">{t.spWeightLabel}</label>
-                  <input type="number" placeholder="2.5" className="ds-input" value={weightKg || ''}
-                    onChange={e => setWeightKg(Number(e.target.value))} />
-                </div>
-                <div>
-                  <label className="ds-label">{t.spValueLabel}</label>
-                  <input type="number" placeholder="200" className="ds-input" value={declaredValue || ''}
-                    onChange={e => setDeclaredValue(Number(e.target.value))} />
-                </div>
-                <div>
-                  <label className="ds-label">{t.spDeadlineLabel}</label>
-                  <input type="date" className="ds-input" />
-                </div>
-              </div>
-
-              {/* Description */}
-              <div>
-                <label className="ds-label">{t.spDescLabel}</label>
-                <textarea rows={3} placeholder={t.spDescPlaceholder} className="ds-input"
-                  onChange={e => { setCategory(e.target.value); setProtection(defaultProtection(e.target.value)); }} />
-              </div>
-
-              {/* Protection selector */}
-              <div className="border-t border-gray-100 pt-5">
-                <ProtectionSelector
-                  value={protection}
-                  onChange={setProtection}
-                  declaredValue={declaredValue}
-                  weightKg={weightKg}
-                  pricePerKg={tierPrices[tier]}
-                />
-              </div>
-
-              {/* Service tier */}
-              <div>
-                <label className="ds-label mb-3">{t.spServiceTierLabel}</label>
-                <div className="grid grid-cols-3 gap-3">
-                  {[
-                    { label: t.spTierStandard, time: t.spDays57,  price: '$45',  id: 0 },
-                    { label: t.spTierExpress,  time: t.spDays23,  price: '$85',  id: 1 },
-                    { label: t.spTierSameDay,  time: t.sp24Hours, price: '$150', id: 2 },
-                  ].map(s => (
-                    <button
-                      key={s.id}
-                      onClick={() => setTier(s.id)}
-                      className={`ds-tier${tier === s.id ? ' active' : ''}`}
-                    >
-                      <div className={`font-semibold text-sm mb-0.5 ${tier === s.id ? 'text-cyan-700' : 'text-gray-800'}`}>{s.label}</div>
-                      <div className={`text-xs ${tier === s.id ? 'text-cyan-600' : 'text-gray-400'}`}>{s.time}</div>
-                      <div className={`font-bold mt-1.5 ${tier === s.id ? 'text-cyan-600' : 'text-gray-700'}`}>{s.price}</div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Verification modules */}
-              <div className="space-y-3">
-                <IdentityVerification enabled={idVerify} onToggle={setIdVerify} status="PENDING" />
-                <CargoVerification    enabled={cargoVerify} onToggle={setCargoVerify} status="PENDING" />
-              </div>
-
-              <motion.button
-                whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
-                className="ds-btn-primary w-full py-4 text-base rounded-xl"
-              >
-                {t.spPostPackage}
-              </motion.button>
-            </div>
-          </motion.div>
-
-          {/* ── Sidebar ── */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}
-            className="space-y-5"
-          >
-            {/* Why Chapar */}
-            <div className="ds-card p-6">
-              <h3 className="font-semibold text-gray-900 mb-4">{t.spWhyTitle}</h3>
-              <div className="space-y-4">
-                {[
-                  [t.spBenefit1Val, t.spBenefit1Lbl],
-                  [t.spBenefit2Val, t.spBenefit2Lbl],
-                  [t.spBenefit3Val, t.spBenefit3Lbl],
-                  [t.spBenefit4Val, t.spBenefit4Lbl],
-                ].map(([v, l]) => (
-                  <div key={v} className="flex items-start gap-3">
-                    <div className="w-5 h-5 rounded-full bg-green-100 border border-green-200 flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <CheckCircle className="w-3 h-3 text-green-600" />
-                    </div>
-                    <div>
-                      <div className="text-gray-900 text-sm font-semibold">{v}</div>
-                      <div className="text-gray-500 text-xs mt-0.5">{l}</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Success rate stat */}
-            <div className="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-xl p-6">
-              <div className="text-4xl font-black text-gray-900 mb-1">99.8%</div>
-              <div className="text-green-600 text-sm font-semibold">{t.spSuccessRate}</div>
-              <div className="text-gray-500 text-xs mt-1">{t.spDeliveries}</div>
-            </div>
-          </motion.div>
-
-        </div>
-      </div>
-    </div>
-  );
+  return <SendPackagePage onBack={onBack} onHome={onHome} t={t} cargoType="chapar" />;
 }
 
 // ─── Traveler Acceptance Preview ─────────────────────────────────────────────
-// Shows traveler what an incoming sender request looks like (protection terms)
+// Shows traveler what an incoming sender request looks like (security terms)
 // before they click Accept, so they understand their commitments.
-function TravelerAcceptancePreview({ protection }: { protection: ProtectionType }) {
+function TravelerAcceptancePreview({ securityLevel }: { securityLevel: SecurityLevel }) {
   const [accepted, setAccepted] = useState<boolean | null>(null);
 
   const mockRequest = {
@@ -570,8 +320,7 @@ function TravelerAcceptancePreview({ protection }: { protection: ProtectionType 
     date: '2026-06-18',
   };
 
-  const depositRequired =
-    protection === 'TRAVELER_GUARANTEE' || protection === 'FULL_ESCROW';
+  const depositRequired = securityLevel === 'GUARANTEED';
 
   return (
     <div className="ds-card p-5 space-y-4">
@@ -587,7 +336,7 @@ function TravelerAcceptancePreview({ protection }: { protection: ProtectionType 
       <div className="border border-gray-200 rounded-xl p-4 space-y-3 bg-slate-50">
         <div className="flex items-center justify-between">
           <span className="text-xs font-semibold text-gray-700">{mockRequest.sender}</span>
-          <ProtectionBadge type={protection} />
+          <SecurityBadge level={securityLevel} />
         </div>
         <div className="flex items-center gap-2 text-sm">
           <span className="text-gray-700 font-medium">{mockRequest.origin}</span>
@@ -654,217 +403,216 @@ function TravelerAcceptancePreview({ protection }: { protection: ProtectionType 
   );
 }
 
-function TravelerPage({ onBack, onHome, t }: { onBack: () => void; onHome: () => void; t: typeof translations['en'] }) {
-  const [routeWeight, setRouteWeight] = useState(5);
-  const [stepsOpen, setStepsOpen]     = useState(false);
-  const [travFrom, setTravFrom]       = useState<AirportOption | null>(null);
-  const [travTo, setTravTo]           = useState<AirportOption | null>(null);
-  const [protection, setProtection]   = useState<ProtectionType>('FULL_ESCROW');
-  const [idVerify, setIdVerify]       = useState(false);
-  return (
-    <div className="min-h-screen bg-white">
-      <PageHeader title={t.travelerTitle} desc={t.travelerDesc} onBack={onBack} onHome={onHome} backLabel={t.backHome} />
-
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 pb-24">
-        <div className="grid lg:grid-cols-3 gap-8">
-
-          {/* ── Left column: Route form + How it works ── */}
-          <div className="lg:col-span-2 space-y-6">
-
-            {/* Route form card */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
-              className="ds-card p-8"
-            >
-              <h2 className="text-xl font-bold text-gray-900 mb-6">ثبت مسیر سفر</h2>
-              <div className="space-y-5">
-
-                {/* Origin / Destination */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <AirportCityAutocomplete
-                    label="مبدأ سفر"
-                    value={travFrom}
-                    onChange={setTravFrom}
-                    placeholder="Tehran, Istanbul…"
-                  />
-                  <AirportCityAutocomplete
-                    label="مقصد سفر"
-                    value={travTo}
-                    onChange={setTravTo}
-                    placeholder="Toronto, London…"
-                  />
-                </div>
-
-                {/* Dates */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="ds-label">تاریخ پرواز</label>
-                    <input type="date" className="ds-input" />
-                  </div>
-                  <div>
-                    <label className="ds-label">تاریخ بازگشت (اختیاری)</label>
-                    <input type="date" className="ds-input" />
-                  </div>
-                </div>
-
-                {/* Capacity slider */}
-                <div>
-                  <label className="ds-label">
-                    ظرفیت بار موجود (کیلوگرم):&nbsp;
-                    <span className="text-gray-900 font-semibold">{routeWeight} kg</span>
-                  </label>
-                  <input
-                    type="range" min={1} max={30} value={routeWeight}
-                    onChange={e => setRouteWeight(Number(e.target.value))}
-                    className="ds-range mt-1"
-                  />
-                  <div className="flex justify-between text-xs text-gray-400 mt-1">
-                    <span>۱ kg</span><span>۳۰ kg</span>
-                  </div>
-                </div>
-
-                {/* Price per kg */}
-                <div>
-                  <label className="ds-label">قیمت پیشنهادی به ازای هر کیلو ($)</label>
-                  <input type="number" placeholder="15" min={1} className="ds-input" />
-                </div>
-
-                {/* Notes */}
-                <div>
-                  <label className="ds-label">توضیحات (اختیاری)</label>
-                  <textarea rows={3} placeholder="نوع بار قابل حمل، محدودیت‌ها یا اطلاعات بیشتر…"
-                    className="ds-input" />
-                </div>
-
-                {/* Protection selector */}
-                <div className="border-t border-gray-100 pt-5">
-                  <ProtectionSelector
-                    value={protection}
-                    onChange={setProtection}
-                    declaredValue={500}
-                    weightKg={routeWeight}
-                    pricePerKg={18}
-                  />
-                </div>
-
-                {/* Identity verification */}
-                <div className="border-t border-gray-100 pt-5">
-                  <IdentityVerification enabled={idVerify} onToggle={setIdVerify} status="PENDING" />
-                </div>
-
-                {/* Submit */}
-                <motion.button
-                  whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
-                  className="ds-btn-primary w-full py-4 text-base rounded-xl"
-                >
-                  ثبت مسیر
-                </motion.button>
-              </div>
-            </motion.div>
-
-            {/* How it works — collapsible */}
-            <motion.div
-              initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
-              className="ds-card overflow-hidden"
-            >
-              <button
-                onClick={() => setStepsOpen(o => !o)}
-                className="w-full flex items-center justify-between px-6 py-4 text-gray-900 font-semibold hover:bg-gray-50 transition-colors"
-              >
-                <span>{t.travHowTitle}</span>
-                <ChevronDown className={`w-5 h-5 text-gray-400 transition-transform duration-200 ${stepsOpen ? 'rotate-180' : ''}`} />
-              </button>
-
-              {stepsOpen && (
-                <div className="px-6 pb-6 space-y-3 border-t border-gray-100">
-                  {[
-                    { step: '01', title: t.travStep1Title, desc: t.travStep1Desc, icon: Users },
-                    { step: '02', title: t.travStep2Title, desc: t.travStep2Desc, icon: BadgeCheck },
-                    { step: '03', title: t.travStep3Title, desc: t.travStep3Desc, icon: Plane },
-                    { step: '04', title: t.travStep4Title, desc: t.travStep4Desc, icon: Package },
-                    { step: '05', title: t.travStep5Title, desc: t.travStep5Desc, icon: DollarSign },
-                  ].map((s, i) => (
-                    <div key={i} className="flex gap-4 bg-slate-50 border border-gray-100 rounded-xl p-4 mt-3">
-                      <div className="text-2xl font-black text-gray-200 font-mono w-9 flex-shrink-0 select-none">{s.step}</div>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-1">
-                          <div className="w-8 h-8 bg-cyan-50 border border-cyan-200 rounded-lg flex items-center justify-center flex-shrink-0">
-                            <s.icon className="w-4 h-4 text-cyan-600" />
-                          </div>
-                          <h3 className="font-semibold text-gray-900 text-sm">{s.title}</h3>
-                        </div>
-                        <p className="text-gray-500 text-sm leading-relaxed">{s.desc}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </motion.div>
-          </div>
-
-          {/* ── Sidebar: Requirements + Acceptance Preview ── */}
-          <motion.div
-            initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.15 }}
-            className="space-y-6"
-          >
-            {/* Requirements */}
-            <div className="ds-card p-6">
-              <h3 className="font-semibold text-gray-900 mb-4">{t.travReqTitle}</h3>
-              <div className="space-y-3">
-                {[t.travReq1, t.travReq2, t.travReq3, t.travReq4, t.travReq5].map(r => (
-                  <div key={r} className="flex items-start gap-3">
-                    <div className="w-5 h-5 rounded-full bg-green-100 border border-green-200 flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <CheckCircle className="w-3 h-3 text-green-600" />
-                    </div>
-                    <span className="text-gray-600 text-sm leading-relaxed">{r}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Acceptance preview — shows traveler what a request looks like before accepting */}
-            <TravelerAcceptancePreview protection={protection} />
-          </motion.div>
-
-        </div>
-      </div>
-    </div>
-  );
+function TravelerPage({ onBack, onHome, t, onNavigate }: { onBack: () => void; onHome: () => void; t: typeof translations['en']; onNavigate: (page: string) => void }) {
+  return <TravelerPageFull onBack={onBack} onHome={onHome} t={t as unknown as Record<string, string>} onNavigate={onNavigate} />;
 }
 
-function MarketplacePage({ onBack, onHome, t }: { onBack: () => void; onHome: () => void; t: typeof translations['en'] }) {
-  const [activeFilter, setActiveFilter] = useState(0);
+function MarketplacePage({ onBack, onHome, t, onBook }: { onBack: () => void; onHome: () => void; t: typeof translations['en']; onBook: () => void }) {
+  const [from, setFrom] = useState('');
+  const [to,   setTo]   = useState('');
+  const [date, setDate] = useState('');
+  const [cap,  setCap]  = useState('');
+  const [sort, setSort] = useState<'date'|'capacity'|'newest'>('date');
+  const [apiTrips, setApiTrips]   = useState<MktTrip[]>([]);
+  const [mktLoading, setMktLoading] = useState(true);
+  const [mktError, setMktError]   = useState('');
+
+  const TODAY = new Date().toISOString().split('T')[0];
+
+  type MktTrip = {
+    id: string; origin?: string; originCity?: string;
+    destination?: string; destCity?: string; date: string;
+    capacity?: number; phone?: string; description?: string;
+    status: string; createdAt?: number; _approvalId?: string;
+  };
+  type MktRating = { tripId: string; score: number; };
+
+  useEffect(() => {
+    setMktLoading(true);
+    setMktError('');
+    fetch('/api/listings?type=traveler_listing')
+      .then(r => r.ok ? r.json() : Promise.reject(r.statusText))
+      .then(d => { setApiTrips(d.listings ?? []); setMktLoading(false); })
+      .catch(() => { setMktError('خطا در بارگذاری مسافران — لطفاً صفحه را رفرش کنید'); setMktLoading(false); });
+  }, []);
+
+  const activeTrips = apiTrips.filter(t => t.date >= TODAY);
+  const ratings    = Store.get<MktRating[]>('ratings') ?? [];
+
+  const reqWeight = parseFloat(cap) || 0;
+  let filtered = activeTrips.filter(trip => {
+    const orig = ((trip.origin || '') + ' ' + (trip.originCity || '')).toLowerCase();
+    const dest = ((trip.destination || '') + ' ' + (trip.destCity || '')).toLowerCase();
+    if (from && !orig.includes(from.toLowerCase())) return false;
+    if (to   && !dest.includes(to.toLowerCase()))   return false;
+    if (date && trip.date < date)                   return false;
+    if (reqWeight && (trip.capacity ?? 0) < reqWeight) return false;
+    return true;
+  });
+
+  if (sort === 'date')     filtered = [...filtered].sort((a, b) => a.date.localeCompare(b.date));
+  else if (sort === 'capacity') filtered = [...filtered].sort((a, b) => (b.capacity ?? 0) - (a.capacity ?? 0));
+  else                          filtered = [...filtered].sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0));
+
+  const MAX_CAP = 20;
+  function capPct(n: number) { return Math.min(100, Math.round((n / MAX_CAP) * 100)); }
+  function capColor(capacity: number): string {
+    if (!reqWeight) return '#f59e0b';
+    const ratio = capacity / reqWeight;
+    if (ratio >= 2)   return '#10b981';
+    if (ratio >= 1.3) return '#f59e0b';
+    return '#f97316';
+  }
+  function maskPhone(p: string) {
+    const d = p.replace(/\D/g, '');
+    return d.length < 4 ? p : d.slice(0, 4) + '•••' + d.slice(-2);
+  }
+  function fmtDate(d: string) {
+    if (!d) return '—';
+    try { return new Date(d + 'T00:00:00').toLocaleDateString('fa-IR', { year:'numeric', month:'long', day:'numeric' }); }
+    catch { return d; }
+  }
+
   return (
     <div className="min-h-screen bg-white">
       <PageHeader title={t.marketplaceTitle} desc={t.mktBrowseDesc} onBack={onBack} onHome={onHome} backLabel={t.backHome} />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 pb-24">
+      <div className="max-w-2xl mx-auto px-4 pb-24" dir="rtl">
 
-        {/* Filter pills */}
-        <div className="flex gap-2 mb-8 flex-wrap">
-          {[t.mktAllRoutes, t.mktToTehran, t.mktToDubai, t.mktToLondon, t.mktToNewYork, t.mktToToronto].map((f, i) => (
-            <button
-              key={f}
-              onClick={() => setActiveFilter(i)}
-              className={`px-4 py-2 rounded-full text-sm font-medium border transition-all ${
-                activeFilter === i
-                  ? 'bg-cyan-50 text-cyan-700 border-cyan-300 shadow-sm'
-                  : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50 hover:border-gray-300'
-              }`}
-            >
-              {f}
-            </button>
-          ))}
+        {/* Search filters */}
+        <div className="bg-gray-50 border border-gray-200 rounded-2xl p-5 mb-5">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="ds-label block mb-1">مبدا</label>
+              <input value={from} onChange={e => setFrom(e.target.value)}
+                placeholder="مثال: Tehran یا IKA" className="ds-input w-full text-sm" style={{ direction: 'ltr' }} />
+            </div>
+            <div>
+              <label className="ds-label block mb-1">مقصد</label>
+              <input value={to} onChange={e => setTo(e.target.value)}
+                placeholder="مثال: Dubai یا DXB" className="ds-input w-full text-sm" style={{ direction: 'ltr' }} />
+            </div>
+            <div>
+              <label className="ds-label block mb-1">تاریخ (از)</label>
+              <input type="date" value={date} onChange={e => setDate(e.target.value)}
+                min={TODAY} className="ds-input w-full text-sm" style={{ direction: 'ltr' }} />
+            </div>
+            <div>
+              <label className="ds-label block mb-1">ظرفیت مورد نیاز (kg)</label>
+              <input type="number" value={cap} onChange={e => setCap(e.target.value)}
+                placeholder="مثال: 5" min="0" className="ds-input w-full text-sm" style={{ direction: 'ltr' }} />
+            </div>
+          </div>
         </div>
 
-        <MarketplaceRouteBoard />
+        {/* Loading / error states */}
+        {mktLoading && (
+          <div className="text-center py-10 text-gray-400">
+            <div className="text-3xl mb-2 animate-pulse">✈️</div>
+            <div className="text-sm">در حال بارگذاری مسافران…</div>
+          </div>
+        )}
+        {!mktLoading && mktError && (
+          <div className="bg-red-50 border border-red-200 rounded-xl px-5 py-4 text-sm text-red-700 font-medium mb-5">
+            {mktError}
+          </div>
+        )}
 
-        <div className="mt-8 text-center">
-          <button className="ds-btn-secondary px-8 py-3 rounded-xl">
-            {t.mktLoadMore}
-          </button>
+        {/* Sort + result count + cards */}
+        {!mktLoading && !mktError && (<>
+        <div className="flex items-center justify-between gap-3 mb-5 flex-wrap">
+          <div className="text-xs font-bold text-gray-400">
+            {filtered.length ? `${filtered.length.toLocaleString('fa-IR')} مسافر یافت شد` : 'مسافری یافت نشد'}
+          </div>
+          <div className="flex gap-2">
+            {([
+              { key: 'date',     label: 'تاریخ' },
+              { key: 'capacity', label: 'ظرفیت' },
+              { key: 'newest',   label: 'جدیدترین' },
+            ] as const).map(s => (
+              <button key={s.key} onClick={() => setSort(s.key)}
+                className={`px-3 py-1.5 rounded-full text-[11px] font-bold border transition-colors
+                  ${sort === s.key ? 'bg-cyan-50 border-cyan-400 text-cyan-700' : 'bg-white border-gray-200 text-gray-500 hover:border-gray-300'}`}>
+                {s.label}
+              </button>
+            ))}
+          </div>
         </div>
 
+        {/* Cards */}
+        {filtered.length === 0 ? (
+          <div className="text-center py-16 text-gray-400">
+            <div className="text-5xl mb-3">✈️</div>
+            <div className="text-base font-bold text-gray-700 mb-1">مسافری یافت نشد</div>
+            <p className="text-sm">فیلترها را تغییر دهید یا بعداً دوباره بررسی کنید.</p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {filtered.map(trip => {
+              const pct         = capPct(trip.capacity ?? 0);
+              const tripRatings = ratings.filter(r => r.tripId === trip.id);
+              const avgRating   = tripRatings.length ? tripRatings.reduce((s, r) => s + r.score, 0) / tripRatings.length : 0;
+
+              const clr         = capColor(trip.capacity ?? 0);
+              const meetsCap    = reqWeight > 0 && (trip.capacity ?? 0) >= reqWeight;
+              return (
+                <div key={trip.id} className="bg-white border-2 border-gray-100 rounded-2xl overflow-hidden hover:border-cyan-200 hover:shadow-md transition-all">
+                  <div className="p-4 pb-0">
+                    <div className="text-lg font-extrabold text-gray-900 flex items-center gap-2 mb-1">
+                      <span>{trip.originCity || trip.origin || '—'}</span>
+                      <span className="text-cyan-500 text-base">✈</span>
+                      <span>{trip.destCity || trip.destination || '—'}</span>
+                    </div>
+                    <div className="text-[10px] text-gray-400 font-mono tracking-wider mb-3">{trip.id}</div>
+                  </div>
+                  <div className="px-4">
+                    <div className="flex flex-wrap gap-4 mb-3">
+                      <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                        <span>📅</span><span>{fmtDate(trip.date)}</span>
+                      </div>
+                      {trip.phone && (
+                        <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                          <span>📞</span><span style={{ direction: 'ltr' }}>{maskPhone(trip.phone)}</span>
+                        </div>
+                      )}
+                    </div>
+                    <div className="mb-3">
+                      <div className="flex items-center justify-between mb-1.5">
+                        <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wide">ظرفیت قابل حمل</span>
+                        <span className="text-sm font-extrabold" style={{ color: clr }}>
+                          {trip.capacity} kg{meetsCap ? ' ✓' : ''}
+                        </span>
+                      </div>
+                      <div className="h-1.5 rounded-full bg-gray-100 overflow-hidden">
+                        <div className="h-full rounded-full transition-all duration-700"
+                          style={{ width: `${pct}%`, background: `linear-gradient(90deg, ${clr}, ${clr}cc)` }} />
+                      </div>
+                    </div>
+                    {trip.description && (
+                      <div className="text-xs text-gray-500 bg-gray-50 border border-gray-100 rounded-xl px-3 py-2 mb-3 leading-relaxed">
+                        {trip.description}
+                      </div>
+                    )}
+                    {avgRating > 0 && (
+                      <div className="text-sm text-amber-500 mb-3">
+                        {'⭐'.repeat(Math.round(avgRating))}{'☆'.repeat(5 - Math.round(avgRating))}
+                        <span className="font-bold text-amber-600 mr-1">{avgRating.toFixed(1)}</span>
+                        <span className="text-xs text-gray-400">({tripRatings.length} نظر)</span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="px-4 pb-4">
+                    <button onClick={onBook}
+                      className="flex items-center justify-center gap-2 w-full py-2.5 bg-gradient-to-r from-cyan-500 to-blue-600 text-white text-sm font-bold rounded-xl hover:opacity-90 transition-opacity">
+                      📦 ارسال کالا با این مسافر
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+        </>)}
       </div>
     </div>
   );
@@ -2029,9 +1777,9 @@ function NavTrackingPanel({ onClose }: { onClose: () => void }) {
                 </div>
               </div>
 
-              {/* Protection + escrow row */}
+              {/* Security + escrow row */}
               <div className="flex flex-wrap items-center gap-2">
-                {result.protectionType && <ProtectionBadge type={result.protectionType} />}
+                {result.securityLevel && <SecurityBadge level={result.securityLevel} />}
                 {/* Escrow status */}
                 {result.escrowStatus !== 'none' && (
                   <span className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full border ${
@@ -2103,12 +1851,18 @@ function NavTrackingPanel({ onClose }: { onClose: () => void }) {
 // ─── App ──────────────────────────────────────────────────────────────────────
 export default function App() {
   const [lang, setLang] = useState<LangCode>('fa');
-  const [currentPage, setCurrentPage] = useState<Page>('home');
+  const [currentPage, setCurrentPage] = useState<Page>(() => {
+    const p = new URLSearchParams(window.location.search).get('page');
+    const valid: Page[] = ['home','buy-for-me','send-package','traveler','marketplace','trust-safety','investors','faq','auth','my-orders','wallet','receipt','profile','notifications','traveler-dashboard'];
+    return valid.includes(p as Page) ? (p as Page) : 'home';
+  });
+  const [receiptId, setReceiptId] = useState<string | null>(null);
   const [isScrolled, setIsScrolled] = useState(false);
   const [showAICopilot, setShowAICopilot] = useState(false);
   const [showSmartTester, setShowSmartTester] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showTrackPanel, setShowTrackPanel] = useState(false);
+  const { session, clearSession } = useSession();
 
   const t = translations[lang];
   const isRTL = RTL_LANGS.includes(lang);
@@ -2118,7 +1872,7 @@ export default function App() {
       window.history.replaceState({}, '', '/');
     }
     // Seed initial history entry so first back() has a state
-    window.history.replaceState({ page: 'home' }, '');
+    window.history.replaceState({ page: currentPage }, '');
   }, []);
 
   useEffect(() => {
@@ -2261,16 +2015,32 @@ export default function App() {
             </div>
 
             <div className="hidden lg:flex items-center gap-3">
-              <motion.button
-                className="px-4 py-2 text-sm font-medium text-gray-300 hover:text-white hover:bg-white/5 rounded-lg transition-all"
-                whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}>
-                {t.signIn}
-              </motion.button>
-              <motion.button
-                className="px-5 py-2 text-sm font-bold bg-gradient-to-r from-cyan-500 to-blue-600 text-white rounded-xl shadow-lg shadow-cyan-500/25 hover:shadow-cyan-500/45 hover:from-cyan-400 hover:to-blue-500 transition-all"
-                whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}>
-                {t.getStarted}
-              </motion.button>
+              {session ? (
+                <>
+                  <span className="text-sm text-gray-300 font-medium">{session.firstName}</span>
+                  <motion.button
+                    onClick={() => clearSession()}
+                    className="px-4 py-2 text-sm font-medium text-gray-300 hover:text-white hover:bg-white/5 rounded-lg transition-all"
+                    whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}>
+                    خروج
+                  </motion.button>
+                </>
+              ) : (
+                <>
+                  <motion.button
+                    onClick={() => setCurrentPage('auth')}
+                    className="px-4 py-2 text-sm font-medium text-gray-300 hover:text-white hover:bg-white/5 rounded-lg transition-all"
+                    whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}>
+                    {t.signIn}
+                  </motion.button>
+                  <motion.button
+                    onClick={() => setCurrentPage('auth')}
+                    className="px-5 py-2 text-sm font-bold bg-gradient-to-r from-cyan-500 to-blue-600 text-white rounded-xl shadow-lg shadow-cyan-500/25 hover:shadow-cyan-500/45 hover:from-cyan-400 hover:to-blue-500 transition-all"
+                    whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}>
+                    {t.getStarted}
+                  </motion.button>
+                </>
+              )}
               <LanguageSelector lang={lang} setLang={setLang} />
             </div>
 
@@ -2325,8 +2095,23 @@ export default function App() {
                   </button>
                 </div>
                 <div className="flex gap-2">
-                  <button className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-300 border border-white/10 rounded-xl hover:bg-white/5 transition-colors">{t.signIn}</button>
-                  <button className="flex-1 px-4 py-2.5 text-sm font-bold bg-gradient-to-r from-cyan-500 to-blue-600 text-white rounded-xl">{t.getStarted}</button>
+                  {session ? (
+                    <button onClick={() => { clearSession(); setMobileMenuOpen(false); }}
+                      className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-300 border border-white/10 rounded-xl hover:bg-white/5 transition-colors">
+                      خروج ({session.firstName})
+                    </button>
+                  ) : (
+                    <>
+                      <button onClick={() => { setCurrentPage('auth'); setMobileMenuOpen(false); }}
+                        className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-300 border border-white/10 rounded-xl hover:bg-white/5 transition-colors">
+                        {t.signIn}
+                      </button>
+                      <button onClick={() => { setCurrentPage('auth'); setMobileMenuOpen(false); }}
+                        className="flex-1 px-4 py-2.5 text-sm font-bold bg-gradient-to-r from-cyan-500 to-blue-600 text-white rounded-xl">
+                        {t.getStarted}
+                      </button>
+                    </>
+                  )}
                 </div>
               </motion.div>
             )}
@@ -2354,12 +2139,19 @@ export default function App() {
         <motion.div key={currentPage} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.25 }}>
           {currentPage === 'home' && <HomePage t={t} setPage={setCurrentPage} isRTL={isRTL} />}
           {currentPage === 'buy-for-me' && <BuyForMePage onBack={() => setCurrentPage('home')} onHome={() => setCurrentPage('home')} t={t} />}
-          {currentPage === 'send-package' && <SendPackagePage onBack={() => setCurrentPage('home')} onHome={() => setCurrentPage('home')} t={t} />}
-          {currentPage === 'traveler' && <TravelerPage onBack={() => setCurrentPage('home')} onHome={() => setCurrentPage('home')} t={t} />}
-          {currentPage === 'marketplace' && <MarketplacePage onBack={() => setCurrentPage('home')} onHome={() => setCurrentPage('home')} t={t} />}
+          {currentPage === 'send-package' && <SendPackagePage onBack={() => setCurrentPage('home')} onHome={() => setCurrentPage('home')} t={t} onNavigate={(p) => setCurrentPage(p as Page)} />}
+          {currentPage === 'traveler' && <TravelerPage onBack={() => setCurrentPage('home')} onHome={() => setCurrentPage('home')} t={t} onNavigate={(p) => setCurrentPage(p as Page)} />}
+          {currentPage === 'marketplace' && <MarketplacePage onBack={() => setCurrentPage('home')} onHome={() => setCurrentPage('home')} t={t} onBook={() => setCurrentPage('send-package')} />}
           {currentPage === 'trust-safety' && <TrustSafetyPage onBack={() => setCurrentPage('home')} onHome={() => setCurrentPage('home')} t={t} />}
           {currentPage === 'investors' && <InvestorsPage onBack={() => setCurrentPage('home')} onHome={() => setCurrentPage('home')} t={t} />}
-          {currentPage === 'faq' && <FAQPage onBack={() => setCurrentPage('home')} onHome={() => setCurrentPage('home')} t={t} />}
+          {currentPage === 'faq'  && <FAQPage  onBack={() => setCurrentPage('home')} onHome={() => setCurrentPage('home')} t={t} />}
+          {currentPage === 'auth' && <AuthPage onHome={() => setCurrentPage('home')} />}
+          {currentPage === 'my-orders' && <MyOrdersPage onBack={() => setCurrentPage('home')} onHome={() => setCurrentPage('home')} t={t} onOpenReceipt={(id) => { setReceiptId(id); setCurrentPage('receipt'); }} />}
+          {currentPage === 'wallet' && <WalletPage onBack={() => setCurrentPage('home')} onHome={() => setCurrentPage('home')} t={t} />}
+          {currentPage === 'receipt' && <ReceiptPage onBack={() => setCurrentPage('my-orders')} onHome={() => setCurrentPage('home')} t={t} trackId={receiptId} />}
+          {currentPage === 'profile' && <ProfilePage onBack={() => setCurrentPage('home')} onHome={() => setCurrentPage('home')} t={t} onOpenWallet={() => setCurrentPage('wallet')} onOpenOrders={() => setCurrentPage('my-orders')} />}
+          {currentPage === 'notifications' && <NotificationsPage onBack={() => setCurrentPage('home')} onHome={() => setCurrentPage('home')} t={t} onNavigate={(p) => setCurrentPage(p as Page)} />}
+          {currentPage === 'traveler-dashboard' && <TravelerDashboardPage onBack={() => setCurrentPage('home')} onHome={() => setCurrentPage('home')} t={t} onNewTrip={() => setCurrentPage('traveler')} onNavigate={(p) => setCurrentPage(p as Page)} />}
         </motion.div>
       </AnimatePresence>
     </div>

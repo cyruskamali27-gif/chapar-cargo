@@ -1,6 +1,5 @@
 plugins = []
 headers = []
-redirects = []
 
 [functions]
 
@@ -10,7 +9,7 @@ redirects = []
 publish = "/root/figma-chapar/dist"
 publishOrigin = "ui"
 commandOrigin = "ui"
-command = "pnpm run build"
+command = "pnpm --filter @figma/my-make-file... run build"
 
 [build.environment]
 
@@ -25,3 +24,15 @@ command = "pnpm run build"
 [build.processing.js]
 
 [build.services]
+
+[[redirects]]
+from = "/*"
+to = "/index.html"
+status = 200.0
+force = false
+
+[redirects.query]
+
+[redirects.conditions]
+
+[redirects.headers]

@@ -3,7 +3,7 @@ import { BadgeCheck, Camera, Phone, Cpu, Upload, Package, FileText, AlertCircle,
 import type { VerificationStatus } from './shipmentTypes';
 
 // ─── Status badge ──────────────────────────────────────────────────────────────
-function StatusBadge({ status }: { status: VerificationStatus }) {
+export function StatusBadge({ status }: { status: VerificationStatus }) {
   const cfg = {
     PENDING:       { label: 'در انتظار',        cls: 'bg-yellow-50 text-yellow-700 border-yellow-200', Icon: Clock },
     VERIFIED:      { label: 'تأیید شده',        cls: 'bg-green-50 text-green-700 border-green-200',   Icon: CheckCircle },

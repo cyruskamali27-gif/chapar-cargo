@@ -1,138 +1,152 @@
-import { type ProtectionType, calculatePricing } from './shipmentTypes';
+import type { SecurityLevel } from './shipmentTypes';
 
 interface Props {
-  value: ProtectionType;
-  onChange: (v: ProtectionType) => void;
-  declaredValue?: number;
-  weightKg?: number;
-  pricePerKg?: number;
+  securityLevel: SecurityLevel;
+  onSecurityLevel: (v: SecurityLevel) => void;
+  identityVerificationRequired: boolean;
+  cargoVerificationRequired: boolean;
+  otpDeliveryRequired: boolean;
+  deliveryPhotoRequired: boolean;
+  onIdentityVerification: (v: boolean) => void;
+  onCargoVerification: (v: boolean) => void;
+  onOtpDelivery: (v: boolean) => void;
+  onDeliveryPhoto: (v: boolean) => void;
 }
 
-const OPTIONS: { type: ProtectionType; label: string; desc: string; features: string[]; badge: string; badgeClass: string }[] = [
+const LEVELS: { value: SecurityLevel; label: string; sub: string; badge: string; recommended?: boolean }[] = [
   {
-    type: 'NONE',
-    label: 'بدون تضمین',
-    desc: 'مناسب برای مدارک، نامه‌ها و اقلام کم‌ارزش.',
-    features: ['بدون امانی', 'بدون ودیعه مسافر', 'کمترین کارمزد'],
-    badge: 'بدون تضمین',
-    badgeClass: 'bg-gray-100 text-gray-600 border-gray-200',
+    value: 'STANDARD',
+    label: 'حمل عادی',
+    sub: 'مناسب برای مدارک، نامه‌ها و اقلام کم‌ارزش. بدون ودیعه.',
+    badge: 'حمل عادی',
   },
   {
-    type: 'TRAVELER_GUARANTEE',
-    label: 'تضمین مسافر',
-    desc: 'مسافر مبلغ تضمین قرار می‌دهد تا امنیت فرستنده افزایش یابد.',
-    features: ['ودیعه مسافر الزامی', 'بدون ودیعه فرستنده', 'جبران خسارت در صورت عدم تحویل'],
-    badge: 'تضمین مسافر',
-    badgeClass: 'bg-blue-50 text-blue-700 border-blue-200',
-  },
-  {
-    type: 'SENDER_GUARANTEE',
-    label: 'تضمین فرستنده',
-    desc: 'فرستنده مبلغ تضمین قرار می‌دهد تا از وقت و هزینه مسافر محافظت شود.',
-    features: ['ودیعه فرستنده الزامی', 'بدون ودیعه مسافر', 'حمایت از مسافر'],
-    badge: 'تضمین فرستنده',
-    badgeClass: 'bg-orange-50 text-orange-700 border-orange-200',
-  },
-  {
-    type: 'FULL_ESCROW',
-    label: 'تضمین دوطرفه',
-    desc: 'بالاترین سطح امنیت برای کالاهای ارزشمند.',
-    features: ['ودیعه مسافر', 'ودیعه فرستنده', 'حساب امانی', 'رسیدگی به اختلافات', 'تأیید تحویل'],
-    badge: 'تضمین دوطرفه',
-    badgeClass: 'bg-green-50 text-green-700 border-green-200',
+    value: 'GUARANTEED',
+    label: 'حمل تضمینی',
+    sub: 'برای کالاهای ارزشمند. ودیعه مسافر قفل می‌شود تا تضمین تحویل داشته باشید.',
+    badge: 'حمل تضمینی',
     recommended: true,
-  } as { type: ProtectionType; label: string; desc: string; features: string[]; badge: string; badgeClass: string; recommended?: boolean },
+  },
 ];
 
-export { OPTIONS as PROTECTION_OPTIONS };
+const OPTIONAL_SERVICES: { key: keyof Props; label: string; desc: string }[] = [
+  { key: 'identityVerificationRequired', label: 'احراز هویت مسافر',   desc: 'تأیید هویت مسافر پیش از تحویل کالا' },
+  { key: 'cargoVerificationRequired',    label: 'تأیید کالا',          desc: 'بررسی و تأیید محتوای بسته توسط مسافر' },
+  { key: 'otpDeliveryRequired',          label: 'OTP تحویل',           desc: 'کد تأیید یک‌بار مصرف برای تحویل نهایی' },
+  { key: 'deliveryPhotoRequired',        label: 'عکس تحویل',           desc: 'مسافر موظف به ارسال عکس لحظه تحویل است' },
+];
 
-export default function ProtectionSelector({ value, onChange, declaredValue = 200, weightKg = 2, pricePerKg = 20 }: Props) {
-  const pricing = calculatePricing(value, declaredValue, weightKg, pricePerKg);
+export default function SecuritySelector({
+  securityLevel, onSecurityLevel,
+  identityVerificationRequired, cargoVerificationRequired,
+  otpDeliveryRequired, deliveryPhotoRequired,
+  onIdentityVerification, onCargoVerification,
+  onOtpDelivery, onDeliveryPhoto,
+}: Props) {
+  const boolGetters: Record<string, boolean> = {
+    identityVerificationRequired,
+    cargoVerificationRequired,
+    otpDeliveryRequired,
+    deliveryPhotoRequired,
+  };
+  const boolSetters: Record<string, (v: boolean) => void> = {
+    identityVerificationRequired: onIdentityVerification,
+    cargoVerificationRequired: onCargoVerification,
+    otpDeliveryRequired: onOtpDelivery,
+    deliveryPhotoRequired: onDeliveryPhoto,
+  };
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-2 mb-2">
-        <div className="w-1 h-5 bg-cyan-500 rounded-full" />
-        <h3 className="text-base font-bold text-gray-900">سطح امنیت و تضمین حمل</h3>
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        {OPTIONS.map(opt => {
-          const active = value === opt.type;
-          return (
-            <button
-              key={opt.type}
-              type="button"
-              onClick={() => onChange(opt.type)}
-              className={`text-start p-4 rounded-xl border-2 transition-all ${
-                active
-                  ? 'border-cyan-500 bg-cyan-50 shadow-sm'
-                  : 'border-gray-200 bg-white hover:border-gray-300'
-              }`}
-            >
-              <div className="flex items-center justify-between mb-1.5">
-                <div className="flex items-center gap-2">
-                  <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
-                    active ? 'border-cyan-500 bg-cyan-500' : 'border-gray-300'
-                  }`}>
-                    {active && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+    <div className="space-y-5">
+      {/* Security level */}
+      <div>
+        <div className="flex items-center gap-2 mb-3">
+          <div className="w-1 h-5 bg-cyan-500 rounded-full" />
+          <h3 className="text-base font-bold text-gray-900">سطح امنیت حمل</h3>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {LEVELS.map(opt => {
+            const active = securityLevel === opt.value;
+            return (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => onSecurityLevel(opt.value)}
+                className={`text-start p-4 rounded-xl border-2 transition-all ${
+                  active ? 'border-cyan-500 bg-cyan-50 shadow-sm' : 'border-gray-200 bg-white hover:border-gray-300'
+                }`}
+              >
+                <div className="flex items-center justify-between mb-1.5">
+                  <div className="flex items-center gap-2">
+                    <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
+                      active ? 'border-cyan-500 bg-cyan-500' : 'border-gray-300'
+                    }`}>
+                      {active && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                    </div>
+                    <span className={`text-sm font-semibold ${active ? 'text-cyan-700' : 'text-gray-800'}`}>
+                      {opt.label}
+                    </span>
                   </div>
-                  <span className={`text-sm font-semibold ${active ? 'text-cyan-700' : 'text-gray-800'}`}>
-                    {opt.label}
-                  </span>
+                  {opt.recommended && (
+                    <span className="text-[10px] font-bold bg-cyan-500 text-white px-2 py-0.5 rounded-full">پیشنهادی</span>
+                  )}
                 </div>
-                {(opt as { recommended?: boolean }).recommended && (
-                  <span className="text-[10px] font-bold bg-cyan-500 text-white px-2 py-0.5 rounded-full">پیشنهادی</span>
-                )}
-              </div>
-              <p className={`text-xs leading-relaxed mb-2 ${active ? 'text-cyan-600' : 'text-gray-500'}`}>{opt.desc}</p>
-              <ul className="space-y-1">
-                {opt.features.map(f => (
-                  <li key={f} className="flex items-center gap-1.5 text-xs text-gray-500">
-                    <span className={`w-1 h-1 rounded-full flex-shrink-0 ${active ? 'bg-cyan-500' : 'bg-gray-300'}`} />
-                    {f}
-                  </li>
-                ))}
-              </ul>
-            </button>
-          );
-        })}
+                <p className={`text-xs leading-relaxed ${active ? 'text-cyan-600' : 'text-gray-500'}`}>{opt.sub}</p>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
-      {/* Live pricing summary */}
-      <div className="bg-slate-50 border border-gray-200 rounded-xl p-4">
-        <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">برآورد هزینه</div>
-        <div className="space-y-1.5">
-          {[
-            ['کارمزد حمل', `$${pricing.baseFee}`],
-            ['کارمزد پلتفرم', `$${pricing.platformFee}`],
-            ...(pricing.travelerDeposit > 0 ? [['ودیعه مسافر', `$${pricing.travelerDeposit}`]] : []),
-            ...(pricing.senderDeposit > 0 ? [['ودیعه فرستنده', `$${pricing.senderDeposit}`]] : []),
-            ['نوع بیمه', pricing.insuranceLabel],
-          ].map(([k, v]) => (
-            <div key={k} className="flex justify-between text-sm">
-              <span className="text-gray-500">{k}</span>
-              <span className="text-gray-800 font-medium">{v}</span>
-            </div>
-          ))}
-          <div className="border-t border-gray-200 pt-2 mt-2 flex justify-between font-bold">
-            <span className="text-gray-700">جمع کل</span>
-            <span className="text-cyan-600">${pricing.total}</span>
-          </div>
+      {/* Optional services */}
+      <div>
+        <div className="flex items-center gap-2 mb-3">
+          <div className="w-1 h-5 bg-gray-300 rounded-full" />
+          <h3 className="text-sm font-bold text-gray-700">خدمات تکمیلی</h3>
+          <span className="text-xs text-gray-400">(اختیاری)</span>
+        </div>
+        <div className="space-y-2">
+          {OPTIONAL_SERVICES.map(svc => {
+            const checked = boolGetters[svc.key];
+            const toggle  = boolSetters[svc.key];
+            return (
+              <button
+                key={svc.key}
+                type="button"
+                onClick={() => toggle(!checked)}
+                className={`w-full text-start flex items-start gap-3 p-3 rounded-xl border transition-all ${
+                  checked ? 'border-cyan-300 bg-cyan-50' : 'border-gray-200 bg-white hover:border-gray-300'
+                }`}
+              >
+                <div className={`w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 mt-0.5 transition-colors ${
+                  checked ? 'border-cyan-500 bg-cyan-500' : 'border-gray-300'
+                }`}>
+                  {checked && <span className="text-white text-[10px] font-black leading-none">✓</span>}
+                </div>
+                <div>
+                  <div className={`text-sm font-semibold ${checked ? 'text-cyan-700' : 'text-gray-800'}`}>{svc.label}</div>
+                  <div className="text-xs text-gray-400 mt-0.5">{svc.desc}</div>
+                </div>
+              </button>
+            );
+          })}
         </div>
       </div>
     </div>
   );
 }
 
-// Badge component for route cards / marketplace
-export function ProtectionBadge({ type }: { type: ProtectionType }) {
-  const opt = OPTIONS.find(o => o.type === type);
-  if (!opt) return null;
+// Badge for marketplace cards and route lists
+export function SecurityBadge({ level }: { level: SecurityLevel }) {
+  const isGuaranteed = level === 'GUARANTEED';
   return (
-    <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full border ${opt.badgeClass}`}>
+    <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full border ${
+      isGuaranteed
+        ? 'bg-green-50 text-green-700 border-green-200'
+        : 'bg-gray-100 text-gray-600 border-gray-200'
+    }`}>
       <span className="w-1.5 h-1.5 rounded-full bg-current opacity-60" />
-      {opt.badge}
+      {isGuaranteed ? 'حمل تضمینی' : 'حمل عادی'}
     </span>
   );
 }

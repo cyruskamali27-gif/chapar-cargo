@@ -52,8 +52,13 @@ export interface ShipmentRoute {
   // Status
   status: RouteStatus;
   escrowStatus: EscrowStatus;
-  // Protection & verification
-  protectionType?: 'NONE' | 'TRAVELER_GUARANTEE' | 'SENDER_GUARANTEE' | 'FULL_ESCROW';
+  // Security model
+  securityLevel?: 'STANDARD' | 'GUARANTEED';
+  identityVerificationRequired?: boolean;
+  cargoVerificationRequired?: boolean;
+  otpDeliveryRequired?: boolean;
+  deliveryPhotoRequired?: boolean;
+  // Verification statuses
   identityVerificationStatus?: 'PENDING' | 'VERIFIED' | 'REJECTED' | 'MANUAL_REVIEW';
   cargoVerificationStatus?: 'PENDING' | 'VERIFIED' | 'REJECTED' | 'MANUAL_REVIEW';
   // Timestamps

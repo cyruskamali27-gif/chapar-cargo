@@ -326,6 +326,13 @@ export function searchAirports(query: string, limit = 7): AirportOption[] {
     }));
 }
 
+export function getAirportByIata(iata: string): AirportOption | undefined {
+  const upper = iata.toUpperCase();
+  const r = AIRPORTS.find(a => a.iata === upper);
+  if (!r) return undefined;
+  return { city: r.city, airport: r.airport, iata: r.iata, icao: r.icao, country: r.country, lat: r.lat, lng: r.lng };
+}
+
 // Pre-loaded common airports (shown before user types)
 export const POPULAR_AIRPORTS: AirportOption[] = [
   'IST','IKA','DXB','YYZ','LHR','FRA','CDG',
