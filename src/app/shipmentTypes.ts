@@ -47,9 +47,14 @@ export interface ShipmentRoute {
 // Smart default security level based on item category
 export function defaultSecurityLevel(category: string): SecurityLevel {
   const standardKeywords = [
-    'documents', 'letters', 'invitations', 'paperwork', 'passport', 'visa',
+    // English — singular and plural so both match
+    'document', 'documents', 'letter', 'letters',
+    'invitation', 'invitations', 'paperwork', 'passport', 'visa',
+    // Persian — whole-word tokens; MUST NOT substring-match (e.g. نامه ≠ برنامه)
     'مدارک', 'نامه', 'پاکت', 'اسناد', 'دعوتنامه', 'کتاب', 'مجله', 'اوراق',
   ];
-  const cat = category.toLowerCase();
-  return standardKeywords.some(k => cat.includes(k.toLowerCase())) ? 'STANDARD' : 'GUARANTEED';
+  // Tokenise on whitespace + punctuation so 'نامه' never matches inside 'برنامه'
+  const tokens = category.toLowerCase().split(/[\s‌​,،؛.!?\-/]+/).filter(Boolean);
+  const kw = standardKeywords.map(k => k.toLowerCase());
+  return tokens.some(t => kw.includes(t)) ? 'STANDARD' : 'GUARANTEED';
 }

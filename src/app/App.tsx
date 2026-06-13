@@ -57,7 +57,7 @@ import { LangCode, RTL_LANGS, langMeta, translations } from './i18n';
 
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-type Page = 'home' | 'buy-for-me' | 'send-package' | 'traveler' | 'marketplace' | 'trust-safety' | 'investors' | 'faq' | 'auth' | 'my-orders' | 'wallet' | 'receipt' | 'profile' | 'notifications' | 'traveler-dashboard';
+type Page = 'home' | 'buy-for-me' | 'send-package' | 'traveler' | 'marketplace' | 'trust-safety' | 'investors' | 'faq' | 'auth' | 'my-orders' | 'wallet' | 'receipt' | 'profile' | 'notifications' | 'traveler-dashboard' | 'smart-tester';
 
 // ─── CountUpAnimation ─────────────────────────────────────────────────────────
 function CountUpAnimation({ end, suffix = '', prefix = '', duration = 2 }: { end: number; suffix?: string; prefix?: string; duration?: number }) {
@@ -1853,7 +1853,7 @@ export default function App() {
   const [lang, setLang] = useState<LangCode>('fa');
   const [currentPage, setCurrentPage] = useState<Page>(() => {
     const p = new URLSearchParams(window.location.search).get('page');
-    const valid: Page[] = ['home','buy-for-me','send-package','traveler','marketplace','trust-safety','investors','faq','auth','my-orders','wallet','receipt','profile','notifications','traveler-dashboard'];
+    const valid: Page[] = ['home','buy-for-me','send-package','traveler','marketplace','trust-safety','investors','faq','auth','my-orders','wallet','receipt','profile','notifications','traveler-dashboard','smart-tester'];
     return valid.includes(p as Page) ? (p as Page) : 'home';
   });
   const [receiptId, setReceiptId] = useState<string | null>(null);
@@ -2152,6 +2152,7 @@ export default function App() {
           {currentPage === 'profile' && <ProfilePage onBack={() => setCurrentPage('home')} onHome={() => setCurrentPage('home')} t={t} onOpenWallet={() => setCurrentPage('wallet')} onOpenOrders={() => setCurrentPage('my-orders')} />}
           {currentPage === 'notifications' && <NotificationsPage onBack={() => setCurrentPage('home')} onHome={() => setCurrentPage('home')} t={t} onNavigate={(p) => setCurrentPage(p as Page)} />}
           {currentPage === 'traveler-dashboard' && <TravelerDashboardPage onBack={() => setCurrentPage('home')} onHome={() => setCurrentPage('home')} t={t} onNewTrip={() => setCurrentPage('traveler')} onNavigate={(p) => setCurrentPage(p as Page)} />}
+          {currentPage === 'smart-tester' && <SmartTester onHome={() => setCurrentPage('home')} />}
         </motion.div>
       </AnimatePresence>
     </div>
