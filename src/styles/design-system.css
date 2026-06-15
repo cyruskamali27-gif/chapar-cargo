@@ -266,3 +266,79 @@ input[type="range"].ds-range {
   accent-color: var(--ds-brand);
   width: 100%;
 }
+
+/* ─── International phone field ─────────────────────────────────────────────── */
+.ds-phone-field .PhoneInput {
+  display:       flex;
+  align-items:   center;
+  background:    var(--ds-bg);
+  border:        1.5px solid var(--ds-border);
+  border-radius: var(--ds-radius);
+  transition:    border-color 0.15s, box-shadow 0.15s;
+  overflow:      hidden;
+}
+.ds-phone-field .PhoneInput--focus {
+  border-color: var(--ds-brand);
+  box-shadow:   0 0 0 3px rgb(14 165 233 / 0.12);
+}
+.ds-phone-field--error .PhoneInput {
+  border-color: #f87171;
+  background:   #fef2f2;
+}
+/* Country selector section */
+.ds-phone-field .PhoneInputCountry {
+  position:    relative;
+  display:     flex;
+  align-items: center;
+  gap:         4px;
+  padding:     0 8px 0 12px;
+  border-right: 1px solid var(--ds-border);
+  flex-shrink: 0;
+  cursor:      pointer;
+  min-width:   68px;
+}
+.ds-phone-field .PhoneInputCountrySelect {
+  position: absolute;
+  inset:    0;
+  width:    100%;
+  height:   100%;
+  opacity:  0;
+  cursor:   pointer;
+  z-index:  1;
+}
+.ds-phone-field .PhoneInputCountryIcon {
+  font-size:   1.25rem;
+  line-height: 1;
+}
+.ds-phone-field .PhoneInputCountryIcon--square {
+  width: auto;
+  height: auto;
+  box-shadow: none;
+}
+.ds-phone-field .PhoneInputCountrySelectArrow {
+  width:        0.35em;
+  height:       0.35em;
+  border-color: var(--ds-text-subtle);
+  border-top-width: 0;
+  border-bottom-width: 1px;
+  border-left-width:  0;
+  border-right-width: 1px;
+  border-style: solid;
+  transform:    rotate(45deg);
+  opacity:      0.6;
+  flex-shrink:  0;
+}
+/* Number input */
+.ds-phone-field .PhoneInputInput {
+  flex:       1;
+  min-width:  0;
+  padding:    12px 16px;
+  border:     none;
+  background: transparent;
+  color:      var(--ds-text);
+  font-size:  0.9375rem;
+  outline:    none;
+}
+.ds-phone-field .PhoneInputInput::placeholder {
+  color: var(--ds-text-subtle);
+}

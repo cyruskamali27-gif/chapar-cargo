@@ -308,6 +308,11 @@ export interface Translations {
   tgSwitchToEmail: string;
   tgSwitchToTelegram: string;
 
+  // Phone / identifier mode
+  idModePhone: string;
+  authErrPhoneInvalid: string;
+  phonePlaceholder: string;
+
   // Shared wizard nav
   navBack: string;
   navHome: string;
@@ -1036,6 +1041,10 @@ export const translations: Record<LangCode, Translations> = {
     tgManualCheck: 'متصل شدم',
     tgSwitchToEmail: 'استفاده از ایمیل',
     tgSwitchToTelegram: 'استفاده از تلگرام',
+
+    idModePhone: 'شماره تلفن',
+    authErrPhoneInvalid: 'شماره تلفن معتبر وارد کنید',
+    phonePlaceholder: 'شماره تلفن',
 
     // Shared wizard nav
     navBack: 'بازگشت', navHome: 'صفحه اصلی',
@@ -1789,6 +1798,10 @@ export const translations: Record<LangCode, Translations> = {
     tgSwitchToEmail: 'Use Email instead',
     tgSwitchToTelegram: 'Use Telegram instead',
 
+    idModePhone: 'Phone',
+    authErrPhoneInvalid: 'Enter a valid phone number',
+    phonePlaceholder: 'Phone number',
+
     navBack: 'Back', navHome: 'Home',
     wizardStep: 'Step {n} of {m}', wizardContinue: 'Continue →', wizardPrev: '← Back',
 
@@ -2535,6 +2548,10 @@ export const translations: Record<LangCode, Translations> = {
     tgManualCheck: 'Bağlandım',
     tgSwitchToEmail: 'E-posta kullan',
     tgSwitchToTelegram: 'Telegram kullan',
+
+    idModePhone: 'Telefon',
+    authErrPhoneInvalid: 'Geçerli bir telefon numarası girin',
+    phonePlaceholder: 'Telefon numarası',
 
     navBack: 'Geri', navHome: 'Ana Sayfa',
     wizardStep: 'Adım {n}/{m}', wizardContinue: 'Devam →', wizardPrev: '← Geri',
@@ -3283,6 +3300,10 @@ export const translations: Record<LangCode, Translations> = {
     tgSwitchToEmail: 'استخدام البريد الإلكتروني',
     tgSwitchToTelegram: 'استخدام تيليغرام',
 
+    idModePhone: 'الهاتف',
+    authErrPhoneInvalid: 'أدخل رقم هاتف صحيح',
+    phonePlaceholder: 'رقم الهاتف',
+
     navBack: 'رجوع', navHome: 'الرئيسية',
     wizardStep: 'الخطوة {n} من {m}', wizardContinue: 'متابعة ←', wizardPrev: '← السابق',
 
@@ -4028,6 +4049,10 @@ export const translations: Record<LangCode, Translations> = {
     tgManualCheck: 'Je suis connecté',
     tgSwitchToEmail: "Utiliser l'e-mail",
     tgSwitchToTelegram: 'Utiliser Telegram',
+
+    idModePhone: 'Téléphone',
+    authErrPhoneInvalid: 'Entrez un numéro de téléphone valide',
+    phonePlaceholder: 'Numéro de téléphone',
 
     navBack: 'Retour', navHome: 'Accueil',
     wizardStep: 'Étape {n}/{m}', wizardContinue: 'Continuer →', wizardPrev: '← Précédent',
@@ -4775,6 +4800,10 @@ export const translations: Record<LangCode, Translations> = {
     tgManualCheck: '我已连接',
     tgSwitchToEmail: '改用邮箱',
     tgSwitchToTelegram: '改用 Telegram',
+
+    idModePhone: '手机号',
+    authErrPhoneInvalid: '请输入有效的手机号',
+    phonePlaceholder: '手机号码',
 
     navBack: '返回', navHome: '首页',
     wizardStep: '第 {n}/{m} 步', wizardContinue: '继续 →', wizardPrev: '← 上一步',

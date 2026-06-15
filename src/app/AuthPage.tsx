@@ -348,11 +348,11 @@ export default function AuthPage({ onHome, onSuccess, defaultTab = 'login' }: Pr
         return;
       }
 
-      // Auto-login after signup
+      // Auto-login after signup — use same identifier (E.164 phone or email)
       const loginRes  = await fetch(`${AUTH_BASE}/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ identifier: rId.trim(), password: rPw }),
+        body: JSON.stringify({ identifier, password: rPw }),
       });
       const loginData = await loginRes.json();
       if (!loginData.ok) { setTab('login'); return; }
