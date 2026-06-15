@@ -10,6 +10,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { ArrowLeft, Home } from 'lucide-react';
 import { Store, genId, getOrder, saveOrder, clearOrder, getSession, getLiveRate } from '../lib/store';
+import { useLang } from '../lib/LangContext';
 
 // ── Wallet helpers (mirrors wallet.html WL) ──────────────────────────────────
 interface Wallet { balance: number; held: number; transactions: Array<Record<string, unknown>>; }
@@ -38,22 +39,24 @@ function tomanToUSD(toman: number): string {
 
 type ViewState = 'form' | 'processing' | 'success' | 'fail';
 
-const METHOD_LABELS: Record<string, string> = {
-  card:   'پرداخت با کارت بانکی',
-  toman:  'پرداخت با واریز تومانی',
-  usd:    'پرداخت با دلار (USD)',
-  paypal: 'پرداخت با PayPal',
-  wallet: 'پرداخت از کیف پول',
-};
-
-const METHODS = [
-  { method: 'card',   icon: '💳', label: 'کارت بانکی'    },
-  { method: 'toman',  icon: '🏦', label: 'واریز تومانی'  },
-  { method: 'usd',    icon: '💵', label: 'USD'            },
-  { method: 'paypal', icon: '🅿️',  label: 'PayPal'        },
-];
-
 export default function PaymentPage() {
+  const { t, isRTL } = useLang();
+
+  const METHOD_LABELS: Record<string, string> = {
+    card:   t.payMethodCard,
+    toman:  t.payMethodWallet,
+    usd:    t.payMethodCrypto,
+    paypal: 'PayPal',
+    wallet: t.payMethodWallet,
+  };
+
+  const METHODS = [
+    { method: 'card',   icon: '💳', label: t.payMethodCard   },
+    { method: 'toman',  icon: '🏦', label: t.payMethodWallet },
+    { method: 'usd',    icon: '💵', label: 'USD'             },
+    { method: 'paypal', icon: '🅿️',  label: 'PayPal'         },
+  ];
+
   const [viewState,   setViewState]   = useState<ViewState>('form');
   const [payMethod,   setPayMethod]   = useState('');
   const [orderToman,  setOrderToman]  = useState(0);
@@ -88,7 +91,7 @@ export default function PaymentPage() {
 
   function pickPayment(method: string) {
     if (method === 'wallet' && !walletOk) {
-      showToast('موجودی کیف پول کافی نیست — ابتدا شارژ کنید');
+      showToast(t.payErrWalletLow);
       return;
     }
     setPayMethod(method);
@@ -96,16 +99,16 @@ export default function PaymentPage() {
   }
 
   const processPayment = useCallback(() => {
-    if (!payMethod) { setError('لطفاً روش پرداخت را انتخاب کنید'); return; }
+    if (!payMethod) { setError(t.payMethodLabel); return; }
 
     const sess = getSession();
     if (payMethod === 'wallet') {
-      if (!sess) { setError('ابتدا وارد حساب کاربری شوید'); return; }
+      if (!sess) { setError(t.opayErrNoSession); return; }
       const order = getOrder();
       const toman = parseFloat(String(order.valueToman || 0)) || 0;
       const w     = wlGet(sess.phone);
       if ((w.balance || 0) < toman) {
-        setError('موجودی کیف پول کافی نیست — ابتدا کیف پول را شارژ کنید');
+        setError(t.payErrWalletLow);
         return;
       }
     }
@@ -114,7 +117,7 @@ export default function PaymentPage() {
 
     const timeoutId = setTimeout(() => {
       setViewState('fail');
-      setFailReason('اتصال به درگاه پرداخت قطع شد — لطفاً دوباره امتحان کنید (کد خطا: TIMEOUT)');
+      setFailReason(t.payErrTimeout);
     }, 8000);
 
     setTimeout(() => {
@@ -161,13 +164,13 @@ export default function PaymentPage() {
 
       const name = ((String(order.firstName || '')) + ' ' + (String(order.lastName || ''))).trim();
       setSuccessName(name
-        ? name + ' عزیز، سفارش شما با موفقیت ثبت و پرداخت انجام شد.'
-        : 'سفارش شما با موفقیت ثبت و پرداخت انجام شد.');
+        ? name + t.paySuccessNameSuffix
+        : t.paySuccessTitle);
       setTrackId(newId);
       setConfirmCode(code);
       setViewState('success');
     }, 2200);
-  }, [payMethod]);
+  }, [payMethod, t]);
 
   function retryPayment() {
     setViewState('form');
@@ -176,20 +179,20 @@ export default function PaymentPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50" dir="rtl">
+    <div className="min-h-screen bg-gray-50" dir={isRTL ? 'rtl' : 'ltr'}>
 
       {/* Header */}
       <div className="bg-white border-b border-gray-100 px-4 py-4">
         <div className="max-w-lg mx-auto flex items-center gap-3">
           <button onClick={() => window.history.back()}
             className="flex items-center gap-1.5 text-sm font-bold text-gray-500 hover:text-gray-900 transition-colors">
-            <ArrowLeft className="w-4 h-4" /><span>بازگشت</span>
+            <ArrowLeft className="w-4 h-4" /><span>{t.payBack}</span>
           </button>
           <button onClick={() => { window.location.href = '/'; }}
             className="flex items-center gap-1.5 text-sm font-bold text-gray-500 hover:text-gray-900 transition-colors">
-            <Home className="w-4 h-4" /><span>خانه</span>
+            <Home className="w-4 h-4" /><span>{t.payHome}</span>
           </button>
-          <h1 className="mr-auto text-lg font-extrabold text-gray-900">پرداخت امن</h1>
+          <h1 className="mr-auto text-lg font-extrabold text-gray-900">{t.payTitle}</h1>
         </div>
       </div>
 
@@ -201,7 +204,7 @@ export default function PaymentPage() {
             {/* Amount card */}
             <div className="bg-white border border-gray-100 rounded-2xl p-5 flex items-center justify-between">
               <div>
-                <div className="text-xs font-bold text-gray-400 mb-1">مبلغ قابل پرداخت</div>
+                <div className="text-xs font-bold text-gray-400 mb-1">{t.payAmountLabel}</div>
                 <div className="text-2xl font-extrabold text-gray-900">$ {orderUSD}</div>
               </div>
               <div className="text-base font-bold text-gray-600">{fmtToman(orderToman)}</div>
@@ -209,15 +212,13 @@ export default function PaymentPage() {
 
             {/* Escrow explanation */}
             <div className="bg-blue-50 border border-blue-100 rounded-2xl p-4 text-sm text-gray-600 leading-relaxed">
-              <div className="font-bold text-blue-700 mb-1">🔒 پرداخت اسکرو (امانی)</div>
-              مبلغ پرداختی شما بلافاصله به مسافر منتقل <strong>نمی‌شود</strong>. پول در حساب امانی چاپار نگهداری
-              می‌شود و فقط پس از <strong>تأیید دریافت کالا</strong> توسط گیرنده به مسافر آزاد می‌شود. در صورت
-              بروز مشکل، مبلغ به شما بازگشت داده می‌شود.
+              <div className="font-bold text-blue-700 mb-1">{t.payEscrowTitle}</div>
+              {t.payEscrowDesc}
             </div>
 
             {/* Payment method grid */}
             <div>
-              <div className="text-xs font-bold text-gray-400 mb-3">روش پرداخت را انتخاب کنید</div>
+              <div className="text-xs font-bold text-gray-400 mb-3">{t.payMethodLabel}</div>
               <div className="grid grid-cols-2 gap-2">
                 {METHODS.map(m => (
                   <button key={m.method} onClick={() => pickPayment(m.method)}
@@ -239,7 +240,7 @@ export default function PaymentPage() {
                         : 'border-gray-100 bg-white hover:border-gray-200'}
                       ${!walletOk ? 'opacity-45 cursor-not-allowed' : ''}`}>
                     <span className="text-2xl">👛</span>
-                    <span className="text-xs font-bold text-gray-700">کیف پول</span>
+                    <span className="text-xs font-bold text-gray-700">{t.payMethodWallet}</span>
                     <span className="text-[10px] font-bold text-green-600">{walletFmt}</span>
                   </button>
                 )}
@@ -256,8 +257,8 @@ export default function PaymentPage() {
               disabled={!payMethod || viewState === 'processing'}
               className="w-full h-12 rounded-xl bg-gradient-to-r from-blue-500 to-blue-700 text-white font-bold text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90 transition-all">
               {viewState === 'processing'
-                ? 'در حال پردازش...'
-                : (METHOD_LABELS[payMethod] || 'انتخاب روش پرداخت')}
+                ? t.paySubmitLoading
+                : (METHOD_LABELS[payMethod] || t.payMethodLabel)}
             </button>
           </>
         )}
@@ -267,7 +268,7 @@ export default function PaymentPage() {
           <>
             <div className="bg-white border border-gray-100 rounded-2xl p-8 text-center">
               <div className="text-6xl mb-4">✅</div>
-              <div className="text-xl font-extrabold text-gray-900 mb-2">سفارش ثبت شد!</div>
+              <div className="text-xl font-extrabold text-gray-900 mb-2">{t.paySuccessTitle}</div>
               <div className="text-sm text-gray-500 mb-6">{successName}</div>
 
               {/* Track code — clickable */}
@@ -308,7 +309,7 @@ export default function PaymentPage() {
               </a>
               <a href={'/track?id=' + trackId}
                 className="flex items-center justify-center gap-1.5 h-12 rounded-xl bg-blue-50 border border-blue-200 text-blue-700 font-bold text-sm no-underline hover:bg-blue-100 transition-colors">
-                🔍 پیگیری سفارش
+                {t.paySuccessTrackBtn}
               </a>
             </div>
             <a href="/?page=my-orders"
@@ -317,7 +318,7 @@ export default function PaymentPage() {
             </a>
             <a href="/"
               className="flex items-center justify-center h-11 rounded-xl bg-gray-100 border border-gray-200 text-gray-500 font-bold text-sm no-underline hover:bg-gray-200 transition-colors">
-              خانه
+              {t.payHome}
             </a>
           </>
         )}
@@ -328,7 +329,7 @@ export default function PaymentPage() {
             <div className="text-6xl mb-3">❌</div>
             <div className="text-xl font-extrabold text-red-600 mb-2">پرداخت ناموفق</div>
             <div className="text-sm text-gray-500 mb-6 leading-relaxed">
-              {failReason || 'خطا در پردازش پرداخت. لطفاً دوباره امتحان کنید.'}
+              {failReason || t.payErrTimeout}
             </div>
             <div className="grid grid-cols-2 gap-3">
               <button onClick={retryPayment}
@@ -337,7 +338,7 @@ export default function PaymentPage() {
               </button>
               <a href="/order"
                 className="flex items-center justify-center h-11 rounded-xl bg-gray-100 border border-gray-200 text-gray-600 font-bold text-sm no-underline hover:bg-gray-200 transition-colors">
-                ↩ بازگشت
+                {t.payBack}
               </a>
             </div>
           </div>

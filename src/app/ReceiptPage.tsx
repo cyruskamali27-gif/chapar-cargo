@@ -1,17 +1,6 @@
 import { ArrowLeft, Home } from 'lucide-react';
 import { Store } from '../lib/store';
-
-// ── Labels (exact from receipt.html) ──────────────────────────────────────────
-const TYPE_LABELS:  Record<string, string> = { personal:'ارسال شخصی', store:'سفارش فروشگاه', chapar:'خرید توسط چاپار' };
-const CARGO_LABELS: Record<string, string> = { clothing:'پوشاک', electronics:'الکترونیک', documents:'اسناد', medicine:'دارو', food:'خوراکی', other:'سایر' };
-const PAY_LABELS:   Record<string, string> = { card:'کارت بانکی', toman:'واریز تومانی', usd:'USD', paypal:'PayPal', debit:'Debit Card', credit:'Credit Card', usdt:'USDT', usdc:'USDC', wallet:'Digital Wallet' };
-
-const STATUS_MAP: Record<string, string> = {
-  delivered: 'تحویل موفق ✅',
-  cancelled: 'لغو شده ❌',
-  in_transit: 'در مسیر ✈️',
-  matched: 'مسافر تأیید شد 👤',
-};
+import { useLang } from '../lib/LangContext';
 
 interface Order {
   trackId: string; type?: string; origin?: string; dest?: string;
@@ -27,6 +16,18 @@ interface Order {
 interface Props { onBack: () => void; onHome: () => void; t: Record<string, string>; trackId: string | null; }
 
 export default function ReceiptPage({ onBack, onHome, trackId }: Props) {
+  const { t, isRTL } = useLang();
+
+  const TYPE_LABELS:  Record<string, string> = { personal:t.rcptTypePersonal, store:t.rcptTypeStore, chapar:t.rcptTypeChapar };
+  const CARGO_LABELS: Record<string, string> = { clothing:t.rcptCargoClothing, electronics:t.rcptCargoElectronics, documents:t.rcptCargoDocuments, medicine:t.rcptCargoMedicine, food:t.rcptCargoFood, other:t.rcptCargoOther };
+  const PAY_LABELS:   Record<string, string> = { card:t.rcptPayCard, toman:t.rcptPayToman, usd:'USD', paypal:'PayPal', debit:'Debit Card', credit:'Credit Card', usdt:'USDT', usdc:'USDC', wallet:'Digital Wallet' };
+  const STATUS_MAP: Record<string, string> = {
+    delivered: t.rcptStatusDelivered,
+    cancelled: t.rcptStatusCancelled,
+    in_transit: t.rcptStatusTransit,
+    matched: t.rcptStatusMatched,
+  };
+
   // Also support URL param (when navigated from legacy HTML)
   const urlId = new URLSearchParams(window.location.search).get('id');
   const id = trackId || urlId;
@@ -38,14 +39,14 @@ export default function ReceiptPage({ onBack, onHome, trackId }: Props) {
 
   if (!order) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center px-4" dir="rtl">
+      <div className="min-h-screen bg-white flex items-center justify-center px-4" dir={isRTL ? 'rtl' : 'ltr'}>
         <div className="max-w-sm w-full text-center">
           <div className="text-5xl mb-4">📭</div>
-          <h2 className="text-lg font-extrabold text-gray-900 mb-2">سفارش یافت نشد</h2>
-          <p className="text-sm text-gray-400 mb-5">این رسید وجود ندارد یا حذف شده است.</p>
+          <h2 className="text-lg font-extrabold text-gray-900 mb-2">{t.rcptNotFound}</h2>
+          <p className="text-sm text-gray-400 mb-5">{t.rcptNotFoundDesc}</p>
           <div className="flex gap-3">
-            <button onClick={onBack} className="flex-1 ds-btn-secondary py-2.5">بازگشت</button>
-            <button onClick={onHome} className="flex-1 ds-btn-primary py-2.5">خانه</button>
+            <button onClick={onBack} className="flex-1 ds-btn-secondary py-2.5">{t.rcptBack}</button>
+            <button onClick={onHome} className="flex-1 ds-btn-primary py-2.5">{t.rcptHome}</button>
           </div>
         </div>
       </div>
@@ -53,7 +54,7 @@ export default function ReceiptPage({ onBack, onHome, trackId }: Props) {
   }
 
   const adminStatus = statuses[order.trackId] || order.status || 'pending';
-  const statusLabel = STATUS_MAP[adminStatus] ?? 'در پردازش ⏳';
+  const statusLabel = STATUS_MAP[adminStatus] ?? t.rcptStatusProcessing;
 
   const paidDate = order.paidAt
     ? new Date(order.paidAt).toLocaleDateString('fa-IR', { year:'numeric', month:'long', day:'numeric' }) +
@@ -72,25 +73,25 @@ export default function ReceiptPage({ onBack, onHome, trackId }: Props) {
   ).trim();
 
   const rows: [string, string, boolean][] = [
-    ['مسیر',        (order.originLabel || order.origin || '—') + ' ← ' + (order.destLabel || order.dest || '—'), true],
-    ['نوع سفارش',   TYPE_LABELS[order.type ?? ''] || order.type || '—',         true],
-    ['نوع کالا',    CARGO_LABELS[order.cargoType ?? ''] || order.cargoType || order.detectedItem || '—', true],
-    ['وزن',         order.weight ? order.weight + ' kg' : '—',                   false],
-    ['تاریخ ارسال', order.sendDate || order.date || '—',                         false],
-    ['نام فرستنده', ((order.firstName || '') + ' ' + (order.lastName || '')).trim() || '—', true],
-    ['ایمیل',       order.email  || '—',                                          false],
-    ['شماره تماس',  order.phone  || '—',                                          false],
-    ['نام گیرنده',  recvName     || '—',                                          true],
-    ['تلفن گیرنده', order.recPhone  || order.recvPhone  || '—',                  false],
-    ['آدرس تحویل',  order.recAddress || order.recvAddress || '—',                 true],
-    ['روش پرداخت',  PAY_LABELS[order.payMethod ?? ''] || order.payMethod || '—', true],
-    ['تاریخ پرداخت', paidDate,                                                    false],
-    ['وضعیت',       statusLabel,                                                  true],
+    [t.rcptRowRoute,     (order.originLabel || order.origin || '—') + ' ← ' + (order.destLabel || order.dest || '—'), true],
+    [t.rcptRowType,      TYPE_LABELS[order.type ?? ''] || order.type || '—',         true],
+    [t.rcptRowCargo,     CARGO_LABELS[order.cargoType ?? ''] || order.cargoType || order.detectedItem || '—', true],
+    [t.rcptRowWeight,    order.weight ? order.weight + ' kg' : '—',                   false],
+    [t.rcptRowSendDate,  order.sendDate || order.date || '—',                         false],
+    [t.rcptRowSender,    ((order.firstName || '') + ' ' + (order.lastName || '')).trim() || '—', true],
+    [t.rcptRowEmail,     order.email  || '—',                                          false],
+    [t.rcptRowPhone,     order.phone  || '—',                                          false],
+    [t.rcptRowReceiver,  recvName     || '—',                                          true],
+    [t.rcptRowRecvPhone, order.recPhone  || order.recvPhone  || '—',                  false],
+    [t.rcptRowAddress,   order.recAddress || order.recvAddress || '—',                 true],
+    [t.rcptRowPayMethod, PAY_LABELS[order.payMethod ?? ''] || order.payMethod || '—', true],
+    [t.rcptRowPayDate,   paidDate,                                                    false],
+    [t.rcptRowStatus,    statusLabel,                                                  true],
   ];
 
   function shareReceipt() {
     const url  = window.location.origin + '?page=receipt&id=' + order.trackId;
-    const text = 'رسید سفارش چاپار — ' + order.trackId;
+    const text = t.rcptShareText + order.trackId;
     if (navigator.share) {
       navigator.share({ title: text, url }).catch(() => {});
     } else {
@@ -99,18 +100,18 @@ export default function ReceiptPage({ onBack, onHome, trackId }: Props) {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50" dir="rtl">
+    <div className="min-h-screen bg-gray-50" dir={isRTL ? 'rtl' : 'ltr'}>
       {/* Header */}
       <div className="bg-white border-b border-gray-100 px-4 sm:px-6 py-4 print:hidden">
         <div className="max-w-xl mx-auto flex items-center gap-3">
           <button onClick={onBack} className="ds-nav-btn group">
-            <ArrowLeft className="w-4 h-4" /><span>بازگشت</span>
+            <ArrowLeft className="w-4 h-4" /><span>{t.rcptBack}</span>
           </button>
           <button onClick={onHome} className="ds-nav-btn ds-nav-btn-home">
-            <Home className="w-4 h-4" /><span>خانه</span>
+            <Home className="w-4 h-4" /><span>{t.rcptHome}</span>
           </button>
           <div className="mr-auto">
-            <h1 className="text-sm font-extrabold text-gray-900">رسید سفارش</h1>
+            <h1 className="text-sm font-extrabold text-gray-900">{t.rcptTitle}</h1>
             <div className="text-xs text-gray-400 font-mono">{order.trackId}</div>
           </div>
         </div>
@@ -121,11 +122,11 @@ export default function ReceiptPage({ onBack, onHome, trackId }: Props) {
         <div className="flex gap-3 mb-5 print:hidden">
           <button onClick={() => window.print()}
             className="flex-1 py-2.5 bg-white border border-gray-200 text-gray-700 text-sm font-bold rounded-xl hover:bg-gray-50 transition-colors">
-            🖨️ چاپ
+            {t.rcptPrint}
           </button>
           <button onClick={shareReceipt}
             className="flex-1 py-2.5 bg-white border border-gray-200 text-gray-700 text-sm font-bold rounded-xl hover:bg-gray-50 transition-colors">
-            📤 اشتراک‌گذاری
+            {t.rcptShare}
           </button>
         </div>
 
@@ -136,12 +137,12 @@ export default function ReceiptPage({ onBack, onHome, trackId }: Props) {
             <div className="flex items-center gap-3 mb-3">
               <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center text-xl">📦</div>
               <div>
-                <div className="text-xs font-bold opacity-70">کد پیگیری</div>
+                <div className="text-xs font-bold opacity-70">{t.rcptTrackingCode}</div>
                 <div className="text-lg font-extrabold tracking-wider font-mono">{order.trackId}</div>
               </div>
             </div>
             <div className="text-xl font-extrabold">
-              {Number(order.valueToman || 0).toLocaleString('fa-IR')} تومان
+              {Number(order.valueToman || 0).toLocaleString('fa-IR')} {t.rcptToman}
               {usdDisplay && <span className="text-sm opacity-70 mr-2">· {usdDisplay}</span>}
             </div>
           </div>
@@ -163,7 +164,7 @@ export default function ReceiptPage({ onBack, onHome, trackId }: Props) {
           <a href={`/track?id=${order.trackId}`}
             className="text-sm font-bold text-cyan-600 hover:underline"
             style={{ textDecoration:'none' }}>
-            پیگیری وضعیت سفارش →
+            {t.rcptTrackLink}
           </a>
         </div>
       </div>

@@ -15,6 +15,7 @@ import { useState } from 'react';
 import { ArrowLeft, Home } from 'lucide-react';
 import { saveOrder } from '../lib/store';
 import { useSession } from '../lib/SessionContext';
+import { useLang } from '../lib/LangContext';
 import SendPackagePage from '../app/SendPackagePage';
 import { translations } from '../app/i18n';
 
@@ -22,10 +23,10 @@ type View = 'picker' | 'buy-types' | 'send-package' | 'buy-for-me';
 
 export default function OrderPage() {
   const { session } = useSession();
+  const { t, isRTL } = useLang();
   const [view, setView] = useState<View>('picker');
-  const [buyForMeSub, setBuyForMeSub] = useState<'personal' | 'business'>('personal');
 
-  const t = translations['fa'] as Record<string, string>;
+  const tProp = translations['fa'] as Record<string, string>;
 
   function goSendPackage() {
     saveOrder({ type: 'personal' });
@@ -34,7 +35,6 @@ export default function OrderPage() {
 
   function goBuyForMe(sub: 'personal' | 'business') {
     saveOrder({ type: 'chapar', sub });
-    setBuyForMeSub(sub);
     setView('buy-for-me');
   }
 
@@ -43,7 +43,7 @@ export default function OrderPage() {
       <SendPackagePage
         onBack={() => setView('picker')}
         onHome={() => { window.location.href = '/'; }}
-        t={t}
+        t={tProp}
         cargoType="personal"
       />
     );
@@ -54,7 +54,7 @@ export default function OrderPage() {
       <SendPackagePage
         onBack={() => setView('buy-types')}
         onHome={() => { window.location.href = '/'; }}
-        t={t}
+        t={tProp}
         cargoType="chapar"
       />
     );
@@ -69,7 +69,7 @@ export default function OrderPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white" dir="rtl">
+    <div className="min-h-screen bg-white" dir={isRTL ? 'rtl' : 'ltr'}>
 
       {/* Page header */}
       <div className="ds-page-header px-4 sm:px-6">
@@ -77,24 +77,24 @@ export default function OrderPage() {
           <div className="flex items-center gap-3 mb-8 flex-wrap">
             <button onClick={handleBack} className="ds-nav-btn group">
               <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
-              <span>بازگشت</span>
+              <span>{t.ordBack}</span>
             </button>
             <button onClick={() => { window.location.href = '/'; }} className="ds-nav-btn ds-nav-btn-home">
               <Home className="w-4 h-4" />
-              <span>صفحه اصلی</span>
+              <span>{t.ordHome}</span>
             </button>
           </div>
 
           {isPicker ? (
             <>
-              <h1 className="text-3xl lg:text-4xl font-extrabold text-gray-900 mb-2">ثبت سفارش کالا</h1>
-              <p className="text-gray-500">نوع ارسال را انتخاب کنید</p>
+              <h1 className="text-3xl lg:text-4xl font-extrabold text-gray-900 mb-2">{t.ordTitle}</h1>
+              <p className="text-gray-500">{t.ordSubtitle}</p>
             </>
           ) : (
             <>
-              <div className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-1.5">خرید توسط چاپار</div>
-              <h1 className="text-3xl lg:text-4xl font-extrabold text-gray-900 mb-2">نوع درخواست خرید</h1>
-              <p className="text-gray-500">نوع خرید مورد نیاز را انتخاب کنید</p>
+              <div className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-1.5">{t.ordBuyTitle}</div>
+              <h1 className="text-3xl lg:text-4xl font-extrabold text-gray-900 mb-2">{t.ordBuyHeading}</h1>
+              <p className="text-gray-500">{t.ordBuySubtitle}</p>
             </>
           )}
         </div>
@@ -109,20 +109,20 @@ export default function OrderPage() {
               {(session.firstName || '').charAt(0)}
             </div>
             <div className="flex-1">
-              <div className="text-sm font-bold text-gray-900">سلام {session.firstName}!</div>
-              <div className="text-xs text-gray-500 mt-0.5">سفارش در پروفایل شما ذخیره می‌شود</div>
+              <div className="text-sm font-bold text-gray-900">{t.ordGreeting.replace('{name}', session.firstName || '')}</div>
+              <div className="text-xs text-gray-500 mt-0.5">{t.ordSavedProfile}</div>
             </div>
-            <a href="/?page=profile" className="text-xs font-bold text-blue-600 no-underline flex-shrink-0">پروفایل ←</a>
+            <a href="/?page=profile" className="text-xs font-bold text-blue-600 no-underline flex-shrink-0">{t.ordProfileLink}</a>
           </div>
         ) : (
           <div className="flex items-center gap-3 bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3.5">
             <span className="text-base flex-shrink-0">ℹ️</span>
-            <div className="flex-1 text-xs text-gray-500 font-semibold leading-relaxed">برای ذخیره سفارش در پروفایل وارد شوید</div>
+            <div className="flex-1 text-xs text-gray-500 font-semibold leading-relaxed">{t.ordLoginPrompt}</div>
             <a
               href="/?page=auth&return=/order"
               className="flex-shrink-0 bg-blue-50 border border-blue-200 text-blue-600 rounded-lg px-3 py-1.5 text-xs font-bold no-underline"
             >
-              ورود
+              {t.ordLogin}
             </a>
           </div>
         )}
@@ -137,8 +137,8 @@ export default function OrderPage() {
               className="w-full flex items-center justify-between bg-white border-2 border-gray-200 rounded-2xl p-5 hover:border-blue-300 hover:bg-blue-50/30 transition-all text-start group"
             >
               <div>
-                <div className="text-base font-bold text-gray-900 mb-0.5 group-hover:text-blue-700 transition-colors">ارسال شخصی</div>
-                <div className="text-sm text-gray-500">کالای شخصی همراه مسافر</div>
+                <div className="text-base font-bold text-gray-900 mb-0.5 group-hover:text-blue-700 transition-colors">{t.ordPersonalTitle}</div>
+                <div className="text-sm text-gray-500">{t.ordPersonalDesc}</div>
               </div>
               <span className="text-3xl flex-shrink-0">👤</span>
             </button>
@@ -150,8 +150,8 @@ export default function OrderPage() {
               className="w-full flex items-center justify-between bg-white border-2 border-gray-200 rounded-2xl p-5 hover:border-blue-300 hover:bg-blue-50/30 transition-all text-start group"
             >
               <div>
-                <div className="text-base font-bold text-gray-900 mb-0.5 group-hover:text-blue-700 transition-colors">خرید توسط چاپار</div>
-                <div className="text-sm text-gray-500">خرید، دریافت و ارسال کالا</div>
+                <div className="text-base font-bold text-gray-900 mb-0.5 group-hover:text-blue-700 transition-colors">{t.ordChaparTitle}</div>
+                <div className="text-sm text-gray-500">{t.ordChaparDesc}</div>
               </div>
               <span className="text-3xl flex-shrink-0">🛒</span>
             </button>
@@ -162,7 +162,7 @@ export default function OrderPage() {
                 href="/marketplace"
                 className="text-sm font-bold text-blue-600 no-underline opacity-85 hover:opacity-100 transition-opacity"
               >
-                ✈ مشاهده مسافران موجود و مقایسه
+                {t.ordBrowse}
               </a>
             </div>
           </>
@@ -178,8 +178,8 @@ export default function OrderPage() {
               className="w-full flex items-center justify-between bg-white border-2 border-gray-200 rounded-2xl p-5 hover:border-blue-300 hover:bg-blue-50/30 transition-all text-start group"
             >
               <div>
-                <div className="text-base font-bold text-gray-900 mb-0.5 group-hover:text-blue-700 transition-colors">درخواست خرید شخصی</div>
-                <div className="text-sm text-gray-500">خرید کالا برای استفاده شخصی</div>
+                <div className="text-base font-bold text-gray-900 mb-0.5 group-hover:text-blue-700 transition-colors">{t.ordBuyPersonalTitle}</div>
+                <div className="text-sm text-gray-500">{t.ordBuyPersonalDesc}</div>
               </div>
               <span className="text-3xl flex-shrink-0">🧍</span>
             </button>
@@ -191,8 +191,8 @@ export default function OrderPage() {
               className="w-full flex items-center justify-between bg-white border-2 border-gray-200 rounded-2xl p-5 hover:border-blue-300 hover:bg-blue-50/30 transition-all text-start group"
             >
               <div>
-                <div className="text-base font-bold text-gray-900 mb-0.5 group-hover:text-blue-700 transition-colors">درخواست خرید تجاری</div>
-                <div className="text-sm text-gray-500">خرید کالا برای کسب‌وکار یا فروشگاه</div>
+                <div className="text-base font-bold text-gray-900 mb-0.5 group-hover:text-blue-700 transition-colors">{t.ordBuyBusinessTitle}</div>
+                <div className="text-sm text-gray-500">{t.ordBuyBusinessDesc}</div>
               </div>
               <span className="text-3xl flex-shrink-0">🏢</span>
             </button>

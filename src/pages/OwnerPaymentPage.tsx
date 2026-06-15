@@ -8,6 +8,7 @@
  */
 import { useState, useEffect, useRef } from 'react';
 import { Store, getLiveRate, getSession, genId } from '../lib/store';
+import { useLang } from '../lib/LangContext';
 
 /* ── Window globals declared by CDN scripts ───────────────────────────────── */
 declare global {
@@ -68,6 +69,7 @@ interface Order {
 function fmtUsd(v: number) { return '$ ' + Number(v).toFixed(2); }
 
 export default function OwnerPaymentPage() {
+  const { t, isRTL } = useLang();
   const [state,     setState]     = useState<State>('main');
   const [offer,     setOffer]     = useState<Offer | null>(null);
   const [order,     setOrder]     = useState<Order>({});
@@ -105,7 +107,7 @@ export default function OwnerPaymentPage() {
   const [tronWallet,   setTronWallet]   = useState('');
   const [tronUsdtBal,  setTronUsdtBal]  = useState('—');
   const [tronStep,     setTronStep]     = useState<'detect' | 'connected'>('detect');
-  const [tronDetectMsg,setTronDetectMsg]= useState('در حال شناسایی کیف پول Tron...');
+  const [tronDetectMsg,setTronDetectMsg]= useState(t.opayTronNoDetect);
   const [twTxId,       setTwTxId]       = useState('');
   const [twErr,        setTwErr]        = useState('');
   const tronPollRef = useRef<number | null>(null);
@@ -120,7 +122,7 @@ export default function OwnerPaymentPage() {
   const stripeCardWrapRef = useRef<HTMLDivElement>(null);
 
   // Wallet balance display
-  const [walletBal, setWalletBal]       = useState('در حال بارگذاری...');
+  const [walletBal, setWalletBal]       = useState(t.opayWalletLoading);
   const [walletDisabled, setWalletDisabled] = useState(false);
 
   function showToast(msg: string) {
@@ -197,10 +199,10 @@ export default function OwnerPaymentPage() {
       const wbal = wallets[sess.phone]?.balance ?? 0;
       const rate = getLiveRate();
       const enough = wbal >= tot * rate;
-      setWalletBal('موجودی: ' + Math.round(wbal).toLocaleString('fa-IR') + ' ت' + (enough ? '' : ' — ناکافی'));
+      setWalletBal(t.opayWalletBal + Math.round(wbal).toLocaleString('fa-IR') + ' ت' + (enough ? '' : t.opayWalletInsuf));
       setWalletDisabled(!enough);
     } else {
-      setWalletBal('ابتدا وارد شوید');
+      setWalletBal(t.opayWalletNoSession);
       setWalletDisabled(true);
     }
 
@@ -373,18 +375,18 @@ export default function OwnerPaymentPage() {
   // ── Pay button click ───────────────────────────────────────────────────────
   async function doPayment() {
     setErr('');
-    if (!method) { setErr('لطفاً روش پرداخت را انتخاب کنید'); return; }
+    if (!method) { setErr(t.opayMethodLabel ?? t.payMethodLabel); return; }
     if (!kycCheck()) return;
 
     if (method === 'paypal') { setErr('PayPal در این مرحله فعال نیست'); return; }
 
     if (method === 'wallet') {
       const sess = getSession();
-      if (!sess) { setErr('ابتدا وارد شوید'); return; }
+      if (!sess) { setErr(t.opayErrNoSession); return; }
       const wallets = Store.get<Record<string, { balance?: number }>>('wallets') ?? {};
       const wbal = wallets[sess.phone]?.balance ?? 0;
       if (wbal < totalUSDRef.current * getLiveRate()) {
-        setErr('موجودی کیف پول کافی نیست — ابتدا شارژ کنید'); return;
+        setErr(t.opayErrWalletLow); return;
       }
     }
 
@@ -675,11 +677,11 @@ export default function OwnerPaymentPage() {
 
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-gray-50" dir="rtl">
+    <div className="min-h-screen bg-gray-50" dir={isRTL ? 'rtl' : 'ltr'}>
       {/* Header */}
       <div className="bg-white border-b border-gray-200 px-4 py-3 flex items-center gap-3 sticky top-0 z-10 shadow-sm">
-        <button onClick={() => history.back()} className="text-sm text-gray-500 hover:text-gray-800 transition-colors flex items-center gap-1">← بازگشت</button>
-        <span className="text-sm font-bold text-gray-900">پرداخت سفارش‌دهنده</span>
+        <button onClick={() => history.back()} className="text-sm text-gray-500 hover:text-gray-800 transition-colors flex items-center gap-1">← {t.opayBack}</button>
+        <span className="text-sm font-bold text-gray-900">{t.opayTitle}</span>
       </div>
 
       <div className="max-w-lg mx-auto px-4 py-6 pb-24">
@@ -762,8 +764,8 @@ export default function OwnerPaymentPage() {
           <div className="space-y-4">
             {/* Title */}
             <div>
-              <h2 className="text-xl font-extrabold text-gray-900">پرداخت سفارش‌دهنده</h2>
-              <p className="text-sm text-gray-500 mt-1">هزینه حمل + کارمزد چاپار — نگهداری در پرداخت امن</p>
+              <h2 className="text-xl font-extrabold text-gray-900">{t.opayTitle}</h2>
+              <p className="text-sm text-gray-500 mt-1">{t.opayEscrowTitle}</p>
             </div>
 
             {/* Order chip */}
@@ -815,7 +817,7 @@ export default function OwnerPaymentPage() {
 
             {/* Method picker */}
             <div>
-              <div className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">روش پرداخت</div>
+              <div className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">{t.opayMethodLabel}</div>
               <div className="grid grid-cols-3 gap-2">
                 {[
                   { key: 'card',    icon: '💳', label: 'کارت بانکی' },
@@ -955,8 +957,8 @@ export default function OwnerPaymentPage() {
           <div className="space-y-4">
             <div className="text-center py-6">
               <div className="text-6xl mb-3 animate-bounce" style={{ animationDuration: '0.4s', animationIterationCount: 1 }}>✅</div>
-              <div className="text-2xl font-extrabold text-gray-900 mb-2">پرداخت موفق!</div>
-              <div className="text-sm text-gray-500 leading-relaxed">هزینه حمل با موفقیت در پرداخت امن چاپار ثبت شد.</div>
+              <div className="text-2xl font-extrabold text-gray-900 mb-2">{t.opaySuccessTitle}</div>
+              <div className="text-sm text-gray-500 leading-relaxed">{t.opaySuccessDesc}</div>
             </div>
 
             {/* TXN ID */}
@@ -996,9 +998,9 @@ export default function OwnerPaymentPage() {
             </button>
             <a href={txnId ? '/track?id=' + txnId + '&role=owner' : '/track?id=' + (offr?.orderId || '')}
               className="flex items-center justify-center gap-2 h-12 rounded-xl bg-gradient-to-r from-blue-500 to-blue-700 text-white font-bold text-sm hover:opacity-90 transition-all">
-              🔍 پیگیری سفارش
+              {t.opaySuccessTrackBtn}
             </a>
-            <a href="/" className="flex items-center justify-center gap-2 h-12 rounded-xl bg-gray-100 border border-gray-200 text-gray-600 font-bold text-sm hover:bg-gray-200 transition-colors">خانه</a>
+            <a href="/" className="flex items-center justify-center gap-2 h-12 rounded-xl bg-gray-100 border border-gray-200 text-gray-600 font-bold text-sm hover:bg-gray-200 transition-colors">{t.opayHome}</a>
           </div>
         )}
       </div>

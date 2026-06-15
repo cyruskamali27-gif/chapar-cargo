@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, ArrowLeft } from 'lucide-react';
 import { genId, getUsers, saveUsers, type User } from '../lib/store';
 import { useSession } from '../lib/SessionContext';
+import { useLang } from '../lib/LangContext';
 
-// ── Password strength (mirrors app.js pwScore) ───────────────────────────────
+// ── Password strength ─────────────────────────────────────────────────────────
 function pwScore(pw: string): number {
   if (!pw) return 0;
   let s = 0;
@@ -14,13 +15,11 @@ function pwScore(pw: string): number {
   return Math.min(4, Math.max(pw.length ? 1 : 0, s));
 }
 
-const PW_LABELS = ['', 'ضعیف', 'متوسط', 'قوی', 'خیلی قوی'];
 const PW_COLORS = ['', '#ff4757', '#ffa502', '#4cd964', '#2ecc71'];
 
-// ── Sub-components ────────────────────────────────────────────────────────────
 function FieldError({ msg }: { msg: string }) {
   if (!msg) return null;
-  return <p className="text-xs font-semibold text-[#ff4757] mt-1.5">{msg}</p>;
+  return <p className="text-xs font-semibold text-red-600 mt-1.5">{msg}</p>;
 }
 
 function PwInput({
@@ -40,12 +39,12 @@ function PwInput({
         autoComplete="off"
         onChange={e => onChange(e.target.value)}
         onKeyDown={e => { if (e.key === 'Enter') onEnter?.(); }}
-        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 pr-11 py-3 text-sm text-white placeholder-white/30 focus:outline-none focus:border-blue-500/60 transition-colors"
+        className="ds-input pr-11"
       />
       <button
         type="button"
         onClick={() => setShow(s => !s)}
-        className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/70 transition-colors"
+        className="absolute right-3 top-1/2 -translate-y-1/2 text-[#9CA3AF] hover:text-[#6B7280] transition-colors"
         tabIndex={-1}
       >
         {show ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -55,7 +54,9 @@ function PwInput({
 }
 
 function StrengthMeter({ pw }: { pw: string }) {
+  const { t } = useLang();
   const score = pwScore(pw);
+  const PW_LABELS = ['', t.authPwWeak, t.authPwMedium, t.authPwStrong, t.authPwVeryStrong];
   return (
     <div className="mt-2">
       <div className="flex gap-1.5">
@@ -63,7 +64,7 @@ function StrengthMeter({ pw }: { pw: string }) {
           <div
             key={i}
             className="flex-1 h-0.5 rounded-full transition-all duration-300"
-            style={{ background: i < score ? PW_COLORS[score] : 'rgba(255,255,255,0.1)' }}
+            style={{ background: i < score ? PW_COLORS[score] : '#E5E7EB' }}
           />
         ))}
       </div>
@@ -76,24 +77,23 @@ function StrengthMeter({ pw }: { pw: string }) {
   );
 }
 
-// ── Main AuthPage ─────────────────────────────────────────────────────────────
 interface Props {
   onHome: () => void;
+  onSuccess?: () => void;
   defaultTab?: 'login' | 'register';
 }
 
 type Tab = 'login' | 'register' | 'success';
 
-export default function AuthPage({ onHome, defaultTab = 'login' }: Props) {
+export default function AuthPage({ onHome, onSuccess, defaultTab = 'login' }: Props) {
   const { setSession } = useSession();
+  const { t, isRTL } = useLang();
   const [tab, setTab] = useState<Tab>(defaultTab);
 
-  // Login fields
   const [lId, setLId]   = useState('');
   const [lPw, setLPw]   = useState('');
   const [lErr, setLErr] = useState<{ id?: string; pw?: string; global?: string }>({});
 
-  // Register fields
   const [rFirst,  setRFirst]  = useState('');
   const [rLast,   setRLast]   = useState('');
   const [rEmail,  setREmail]  = useState('');
@@ -103,33 +103,33 @@ export default function AuthPage({ onHome, defaultTab = 'login' }: Props) {
   const [rTerms,  setRTerms]  = useState(false);
   const [rErr,    setRErr]    = useState<Record<string, string>>({});
 
-  // Success
   const [successTitle, setSuccessTitle] = useState('');
   const [successSub,   setSuccessSub]   = useState('');
 
   function doLogin() {
     const errors: typeof lErr = {};
-    if (!lId.trim()) errors.id = 'ایمیل یا شماره موبایل الزامی است';
-    if (!lPw)        errors.pw = 'رمز عبور الزامی است';
+    if (!lId.trim()) errors.id = t.authErrEmailRequired;
+    if (!lPw)        errors.pw = t.authErrPasswordRequired;
     if (Object.keys(errors).length) { setLErr(errors); return; }
 
     const users = getUsers();
     const norm  = (s: string) => s.replace(/\D/g, '');
+    const idNorm = lId.trim().toLowerCase();
     const user  = users.find(u =>
-      u.email === lId.trim() ||
+      u.email === idNorm ||
       u.phone === lId.trim() ||
       norm(u.phone) === norm(lId.trim())
     );
 
-    if (!user) { setLErr({ id: 'حسابی با این مشخصات یافت نشد' }); return; }
-    if (user.password !== lPw) { setLErr({ pw: 'رمز عبور اشتباه است' }); return; }
+    if (!user) { setLErr({ id: t.authErrNotFound }); return; }
+    if (user.password !== lPw) { setLErr({ pw: t.authErrWrongPassword }); return; }
 
     setLErr({});
     setSession({ userId: user.id, firstName: user.firstName, lastName: user.lastName, email: user.email, phone: user.phone });
-    setSuccessTitle(`سلام ${user.firstName}!`);
-    setSuccessSub('با موفقیت وارد شدید. در حال انتقال...');
+    setSuccessTitle(`${t.authSuccessLoginPrefix}${user.firstName}!`);
+    setSuccessSub(t.authSuccessLoginSub);
     setTab('success');
-    setTimeout(onHome, 1400);
+    setTimeout(onSuccess ?? onHome, 1400);
   }
 
   function doRegister() {
@@ -137,190 +137,190 @@ export default function AuthPage({ onHome, defaultTab = 'login' }: Props) {
     const email = rEmail.trim().toLowerCase();
     const phone = rPhone.trim();
 
-    if (!rFirst.trim()) errs.first = 'نام الزامی است';
-    if (!rLast.trim())  errs.last  = 'نام خانوادگی الزامی است';
-    if (!email || !/\S+@\S+\.\S+/.test(email)) errs.email = 'آدرس ایمیل معتبر نیست';
-    if (!phone || phone.replace(/\D/g, '').length < 10) errs.phone = 'شماره موبایل معتبر نیست';
-    if (!rPw || rPw.length < 8) errs.pw = 'رمز عبور باید حداقل ۸ کاراکتر باشد';
-    if (rPw && rPw2 && rPw !== rPw2) errs.pw2 = 'رمز عبور و تکرار آن یکسان نیستند';
-    if (!rTerms) errs.terms = 'پذیرش قوانین الزامی است';
+    if (!rFirst.trim()) errs.first = t.authErrFirstName;
+    if (!rLast.trim())  errs.last  = t.authErrLastName;
+    if (!email || !/\S+@\S+\.\S+/.test(email)) errs.email = t.authErrEmail;
+    if (!phone || phone.replace(/\D/g, '').length < 10) errs.phone = t.authErrPhone;
+    if (!rPw || rPw.length < 8) errs.pw = t.authErrPasswordLength;
+    if (rPw && rPw2 && rPw !== rPw2) errs.pw2 = t.authErrPasswordMatch;
+    if (!rTerms) errs.terms = t.authErrTerms;
     if (Object.keys(errs).length) { setRErr(errs); return; }
 
     const users = getUsers();
     const norm  = (s: string) => s.replace(/\D/g, '');
     if (users.find(u => u.email === email))
-      { setRErr({ email: 'این ایمیل قبلاً ثبت شده است' }); return; }
+      { setRErr({ email: t.authErrEmailExists }); return; }
     if (users.find(u => norm(u.phone) === norm(phone)))
-      { setRErr({ phone: 'این شماره موبایل قبلاً ثبت شده است' }); return; }
+      { setRErr({ phone: t.authErrPhoneExists }); return; }
 
     const newUser: User = {
       id: genId('U'), firstName: rFirst.trim(), lastName: rLast.trim(),
       email, phone, password: rPw, createdAt: Date.now(),
     };
-    saveUsers([...users, newUser]);
+    try {
+      saveUsers([...users, newUser]);
+    } catch {
+      setRErr({ global: t.authErrSave });
+      return;
+    }
     setSession({ userId: newUser.id, firstName: newUser.firstName, lastName: newUser.lastName, email, phone });
     setRErr({});
-    setSuccessTitle(`خوش آمدید ${rFirst.trim()}!`);
-    setSuccessSub('حساب شما با موفقیت ساخته شد.');
+    setSuccessTitle(`${t.authSuccessRegisterPrefix}${rFirst.trim()}!`);
+    setSuccessSub(t.authSuccessRegisterSub);
     setTab('success');
-    setTimeout(onHome, 1400);
+    setTimeout(onSuccess ?? onHome, 1400);
   }
 
   const inputCls = (err?: string) =>
-    `w-full bg-white/5 border rounded-xl px-4 py-3 text-sm text-white placeholder-white/30 focus:outline-none transition-colors ${
-      err ? 'border-[#ff4757]/55 bg-[#ff4757]/5' : 'border-white/10 focus:border-blue-500/60'
-    }`;
+    `ds-input ${err ? 'border-red-400 bg-red-50 focus:border-red-400' : ''}`;
 
   return (
-    <div className="min-h-screen bg-[#050810] flex items-center justify-center px-4 py-12" dir="rtl">
+    <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center px-4 pt-20 pb-10" dir={isRTL ? 'rtl' : 'ltr'}>
       <div className="w-full max-w-sm">
-        {/* Logo */}
-        <div className="text-center mb-8">
+        <div className="text-center mb-6">
           <img src="/assets/chapar-logo.png" alt="چاپار" className="h-12 mx-auto mb-4" onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
-          {tab === 'login'    && <><h2 className="text-2xl font-extrabold text-white">خوش آمدید</h2><p className="text-sm text-white/50 mt-1">وارد حساب کاربری خود شوید</p></>}
-          {tab === 'register' && <><h2 className="text-2xl font-extrabold text-white">ثبت نام</h2><p className="text-sm text-white/50 mt-1">حساب کاربری جدید بسازید</p></>}
+          {tab === 'login'    && <><h2 className="text-2xl font-extrabold text-gray-900">{t.authWelcome}</h2><p className="text-sm text-gray-500 mt-1">{t.authLoginSubtitle}</p></>}
+          {tab === 'register' && <><h2 className="text-2xl font-extrabold text-gray-900">{t.authRegisterTitle}</h2><p className="text-sm text-gray-500 mt-1">{t.authRegisterSubtitle}</p></>}
         </div>
 
-        <div className="bg-white/[0.04] border border-white/[0.09] rounded-2xl p-6">
-
-          {/* ── Tab switcher ── */}
+        <div className="ds-card p-6">
           {tab !== 'success' && (
-            <div className="flex bg-white/5 border border-white/[0.09] rounded-2xl p-1.5 mb-6 gap-1">
-              {(['login', 'register'] as const).map(t => (
-                <button key={t} onClick={() => setTab(t)}
+            <div className="flex bg-gray-100 border border-gray-200 rounded-xl p-1 mb-6 gap-1">
+              {(['login', 'register'] as const).map(tabKey => (
+                <button key={tabKey} onClick={() => setTab(tabKey)}
                   className={`flex-1 h-10 rounded-xl text-sm font-bold transition-all ${
-                    tab === t
-                      ? 'bg-blue-600/20 text-blue-400 shadow-[0_0_0_1px_rgba(22,131,255,.25)]'
-                      : 'text-white/40 hover:text-white/60'
+                    tab === tabKey
+                      ? 'bg-white text-cyan-600 shadow-sm border border-gray-200'
+                      : 'text-gray-500 hover:text-gray-900'
                   }`}>
-                  {t === 'login' ? 'ورود' : 'ثبت نام'}
+                  {tabKey === 'login' ? t.authTabLogin : t.authTabRegister}
                 </button>
               ))}
             </div>
           )}
 
-          {/* ══ Login form ══ */}
           {tab === 'login' && (
             <div>
               <div className="mb-4">
-                <label className="block text-xs font-bold text-white/50 mb-1.5">ایمیل یا شماره موبایل</label>
+                <label className="ds-label">{t.authEmailOrPhone}</label>
                 <input type="text" value={lId} onChange={e => { setLId(e.target.value); setLErr({}); }}
-                  placeholder="example@email.com یا ۰۹۱۲..."
+                  placeholder={t.authEmailOrPhonePlaceholder}
                   autoComplete="username"
                   className={inputCls(lErr.id)} />
                 <FieldError msg={lErr.id ?? ''} />
               </div>
 
               <div className="mb-2">
-                <label className="block text-xs font-bold text-white/50 mb-1.5">رمز عبور</label>
-                <PwInput id="lPw" value={lPw} onChange={v => { setLPw(v); setLErr({}); }} placeholder="رمز عبور" onEnter={doLogin} />
+                <label className="ds-label">{t.authPassword}</label>
+                <PwInput id="lPw" value={lPw} onChange={v => { setLPw(v); setLErr({}); }} placeholder={t.authPasswordPlaceholder} onEnter={doLogin} />
                 <FieldError msg={lErr.pw ?? ''} />
               </div>
 
-              <button className="block text-[11px] font-bold text-white/30 hover:text-blue-400 mb-5 mt-1 transition-colors"
-                onClick={() => alert('برای بازیابی رمز عبور با پشتیبانی چاپار تماس بگیرید')}>
-                رمز عبور را فراموش کردم
+              <button className="block text-[11px] font-semibold text-gray-400 hover:text-cyan-600 mb-5 mt-1 transition-colors"
+                onClick={() => alert(t.authForgotPasswordAlert)}>
+                {t.authForgotPassword}
               </button>
 
-              <button onClick={doLogin}
-                className="w-full h-12 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl transition-colors text-sm">
-                ورود
+              <button onClick={doLogin} className="ds-btn-primary w-full h-12">
+                {t.authLoginBtn}
               </button>
 
-              <div className="flex items-center gap-3 my-5 text-white/20 text-xs">
-                <span className="flex-1 border-t border-white/[0.08]" />یا<span className="flex-1 border-t border-white/[0.08]" />
+              <div className="flex items-center gap-3 my-5 text-gray-400 text-xs">
+                <span className="flex-1 border-t border-gray-200" />{t.authOr}<span className="flex-1 border-t border-gray-200" />
               </div>
-              <p className="text-center text-sm text-white/40">
-                حساب ندارید؟{' '}
-                <button onClick={() => setTab('register')} className="text-blue-400 font-bold hover:underline">ثبت نام کنید</button>
+              <p className="text-center text-sm text-gray-500">
+                {t.authNoAccount}{' '}
+                <button onClick={() => setTab('register')} className="text-cyan-600 font-bold hover:underline">{t.authSignUpLink}</button>
               </p>
             </div>
           )}
 
-          {/* ══ Register form ══ */}
           {tab === 'register' && (
             <div>
               <div className="flex gap-3 mb-4">
                 <div className="flex-1">
-                  <label className="block text-xs font-bold text-white/50 mb-1.5">نام</label>
+                  <label className="ds-label">{t.authFirstName}</label>
                   <input type="text" value={rFirst} onChange={e => { setRFirst(e.target.value); setRErr(p => ({ ...p, first: '' })); }}
-                    placeholder="نام" autoComplete="given-name" className={inputCls(rErr.first)} />
+                    placeholder={t.authFirstName} autoComplete="given-name" className={inputCls(rErr.first)} />
                   <FieldError msg={rErr.first ?? ''} />
                 </div>
                 <div className="flex-1">
-                  <label className="block text-xs font-bold text-white/50 mb-1.5">نام خانوادگی</label>
+                  <label className="ds-label">{t.authLastName}</label>
                   <input type="text" value={rLast} onChange={e => { setRLast(e.target.value); setRErr(p => ({ ...p, last: '' })); }}
-                    placeholder="نام خانوادگی" autoComplete="family-name" className={inputCls(rErr.last)} />
+                    placeholder={t.authLastName} autoComplete="family-name" className={inputCls(rErr.last)} />
                   <FieldError msg={rErr.last ?? ''} />
                 </div>
               </div>
 
               <div className="mb-4">
-                <label className="block text-xs font-bold text-white/50 mb-1.5">ایمیل</label>
+                <label className="ds-label">{t.authEmail}</label>
                 <input type="email" value={rEmail} onChange={e => { setREmail(e.target.value); setRErr(p => ({ ...p, email: '' })); }}
                   placeholder="example@email.com" autoComplete="email" className={inputCls(rErr.email)} />
                 <FieldError msg={rErr.email ?? ''} />
               </div>
 
               <div className="mb-4">
-                <label className="block text-xs font-bold text-white/50 mb-1.5">شماره موبایل</label>
+                <label className="ds-label">{t.authPhone}</label>
                 <input type="tel" value={rPhone} onChange={e => { setRPhone(e.target.value); setRErr(p => ({ ...p, phone: '' })); }}
-                  placeholder="۰۹۱۲۳۴۵۶۷۸۹" autoComplete="tel" className={inputCls(rErr.phone)} />
+                  placeholder={t.authPhonePlaceholder} autoComplete="tel" className={inputCls(rErr.phone)} />
                 <FieldError msg={rErr.phone ?? ''} />
               </div>
 
               <div className="mb-4">
-                <label className="block text-xs font-bold text-white/50 mb-1.5">رمز عبور</label>
-                <PwInput id="rPw" value={rPw} onChange={v => { setRPw(v); setRErr(p => ({ ...p, pw: '' })); }} placeholder="حداقل ۸ کاراکتر" />
+                <label className="ds-label">{t.authPassword}</label>
+                <PwInput id="rPw" value={rPw} onChange={v => { setRPw(v); setRErr(p => ({ ...p, pw: '' })); }} placeholder={t.authPasswordMin} />
                 <StrengthMeter pw={rPw} />
                 <FieldError msg={rErr.pw ?? ''} />
               </div>
 
               <div className="mb-4">
-                <label className="block text-xs font-bold text-white/50 mb-1.5">تکرار رمز عبور</label>
-                <PwInput id="rPw2" value={rPw2} onChange={v => { setRPw2(v); setRErr(p => ({ ...p, pw2: '' })); }} placeholder="تکرار رمز عبور" onEnter={doRegister} />
+                <label className="ds-label">{t.authPasswordRepeat}</label>
+                <PwInput id="rPw2" value={rPw2} onChange={v => { setRPw2(v); setRErr(p => ({ ...p, pw2: '' })); }} placeholder={t.authPasswordRepeat} onEnter={doRegister} />
                 <FieldError msg={rErr.pw2 ?? ''} />
               </div>
 
               <div className="flex items-start gap-2.5 mb-5">
                 <input type="checkbox" id="rTerms" checked={rTerms} onChange={e => { setRTerms(e.target.checked); setRErr(p => ({ ...p, terms: '' })); }}
                   className="mt-0.5 w-4 h-4 accent-blue-500 cursor-pointer flex-shrink-0" />
-                <label htmlFor="rTerms" className="text-xs text-white/50 leading-relaxed cursor-pointer">
-                  با <button className="text-blue-400 hover:underline">قوانین و مقررات</button> و <button className="text-blue-400 hover:underline">سیاست حریم خصوصی</button> چاپار موافقم
+                <label htmlFor="rTerms" className="text-xs text-gray-500 leading-relaxed cursor-pointer">
+                  {t.authTermsAgreePrefix}{' '}
+                  <button className="text-cyan-600 hover:underline">{t.authTermsLink1}</button>
+                  {' '}{t.authOr}{' '}
+                  <button className="text-cyan-600 hover:underline">{t.authTermsLink2}</button>
+                  {' '}{t.authTermsAgreeSuffix}
                 </label>
               </div>
               <FieldError msg={rErr.terms ?? ''} />
+              <FieldError msg={rErr.global ?? ''} />
 
-              <button onClick={doRegister}
-                className="w-full h-12 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl transition-colors text-sm">
-                ایجاد حساب کاربری
+              <button onClick={doRegister} className="ds-btn-primary w-full h-12">
+                {t.authCreateAccount}
               </button>
 
-              <div className="flex items-center gap-3 my-5 text-white/20 text-xs">
-                <span className="flex-1 border-t border-white/[0.08]" />یا<span className="flex-1 border-t border-white/[0.08]" />
+              <div className="flex items-center gap-3 my-5 text-gray-400 text-xs">
+                <span className="flex-1 border-t border-gray-200" />{t.authOr}<span className="flex-1 border-t border-gray-200" />
               </div>
-              <p className="text-center text-sm text-white/40">
-                حساب دارید؟{' '}
-                <button onClick={() => setTab('login')} className="text-blue-400 font-bold hover:underline">وارد شوید</button>
+              <p className="text-center text-sm text-gray-500">
+                {t.authHasAccount}{' '}
+                <button onClick={() => setTab('login')} className="text-cyan-600 font-bold hover:underline">{t.authLoginLink}</button>
               </p>
             </div>
           )}
 
-          {/* ══ Success ══ */}
           {tab === 'success' && (
             <div className="text-center py-6">
               <span className="text-6xl block mb-4">🎉</span>
-              <h3 className="text-xl font-extrabold text-white mb-2">{successTitle}</h3>
-              <p className="text-sm text-white/50 leading-relaxed">{successSub}</p>
+              <h3 className="text-xl font-extrabold text-gray-900 mb-2">{successTitle}</h3>
+              <p className="text-sm text-gray-500 leading-relaxed">{successSub}</p>
             </div>
           )}
         </div>
 
-        {/* Back */}
         {tab !== 'success' && (
-          <div className="mt-6 text-center">
-            <button onClick={onHome} className="text-sm text-white/30 hover:text-white/60 transition-colors">
-              ← بازگشت
+          <div className="mt-5 flex justify-center">
+            <button onClick={onHome} className="ds-nav-btn text-sm">
+              <ArrowLeft className="w-4 h-4" />
+              {t.authBackHome}
             </button>
           </div>
         )}

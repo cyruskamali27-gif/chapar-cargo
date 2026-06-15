@@ -8,6 +8,7 @@
  */
 import { useState, useEffect, useRef } from 'react';
 import { Store, getLiveRate, getSession, genId } from '../lib/store';
+import { useLang } from '../lib/LangContext';
 
 declare global {
   interface Window {
@@ -82,6 +83,7 @@ function wlHold(phone: string, amount: number, desc: string, orderId: string | n
 }
 
 export default function TravelerDepositPage() {
+  const { t, isRTL } = useLang();
   const [viewState,  setViewState]  = useState<ViewState>('main');
   const [offer,      setOffer]      = useState<Offer | null>(null);
   const [order,      setOrder]      = useState<Order>({});
@@ -105,7 +107,7 @@ export default function TravelerDepositPage() {
   const [refPaypalNote, setRefPaypalNote] = useState('—');
 
   // Wallet display
-  const [walletBal,      setWalletBal]      = useState('موجودی: در حال بارگذاری...');
+  const [walletBal,      setWalletBal]      = useState(t.tdepWalletLoading);
   const [walletDisabled, setWalletDisabled] = useState(false);
 
   // Stripe
@@ -131,7 +133,7 @@ export default function TravelerDepositPage() {
   const [tronWallet,    setTronWallet]    = useState('');
   const [tronUsdtBal,   setTronUsdtBal]   = useState('—');
   const [tronStep,      setTronStep]      = useState<'detect' | 'connected'>('detect');
-  const [tronDetectMsg, setTronDetectMsg] = useState('در حال شناسایی کیف پول Tron...');
+  const [tronDetectMsg, setTronDetectMsg] = useState(t.tdepTronNoDetect);
   const [tdtwTxId,      setTdtwTxId]      = useState('');
   const [tdtwErr,       setTdtwErr]       = useState('');
   const tronPollRef = useRef<number | null>(null);
@@ -222,7 +224,7 @@ export default function TravelerDepositPage() {
     if (sess) {
       const wbal   = wlGet(sess.phone).balance ?? 0;
       const enough = wbal >= totT;
-      setWalletBal('موجودی: ' + Math.round(wbal).toLocaleString('fa-IR') + ' ت' + (enough ? '' : ' — ناکافی'));
+      setWalletBal(t.tdepWalletBal + Math.round(wbal).toLocaleString('fa-IR') + ' ت' + (enough ? '' : t.tdepWalletInsufLabel));
       setWalletDisabled(!enough);
     }
 
@@ -356,13 +358,13 @@ export default function TravelerDepositPage() {
   // ── Deposit button ─────────────────────────────────────────────────────────
   async function doDeposit() {
     setErr('');
-    if (!method) { setErr('لطفاً روش پرداخت را انتخاب کنید'); return; }
+    if (!method) { setErr(t.tdepMethodLabel); return; }
 
     if (method === 'wallet') {
       const sess = getSession();
-      if (!sess) { setErr('ابتدا وارد شوید'); return; }
+      if (!sess) { setErr(t.tdepErrNoSession); return; }
       if ((wlGet(sess.phone).balance ?? 0) < totalTomanRef.current) {
-        setErr('موجودی کیف پول کافی نیست — ابتدا کیف پول را شارژ کنید'); return;
+        setErr(t.tdepErrWalletLow); return;
       }
     }
 
@@ -635,17 +637,17 @@ export default function TravelerDepositPage() {
   const off  = offer;
 
   const polyStatusLabel = polyStatus === 'waiting_escrow'
-    ? 'در انتظار ثبت کیف پول سفارش‌دهنده...'
+    ? t.tdepPolyWaitingEscrow
     : polyStatus === 'waiting_owner_deposit'
-    ? 'قرارداد ایجاد شد — در انتظار واریز سفارش‌دهنده...'
-    : '✅ سفارش‌دهنده واریز کرد — نوبت شماست!';
+    ? t.tdepPolyWaitingOwner
+    : t.tdepPolyReady;
 
   return (
-    <div className="min-h-screen bg-gray-50" dir="rtl">
+    <div className="min-h-screen bg-gray-50" dir={isRTL ? 'rtl' : 'ltr'}>
       {/* Header */}
       <div className="bg-white border-b border-gray-200 px-4 py-3 flex items-center gap-3 sticky top-0 z-10 shadow-sm">
-        <button onClick={() => history.back()} className="text-sm text-gray-500 hover:text-gray-800 transition-colors">← بازگشت</button>
-        <span className="text-sm font-bold text-gray-900">ودیعه امنیتی مسافر</span>
+        <button onClick={() => history.back()} className="text-sm text-gray-500 hover:text-gray-800 transition-colors">← {t.tdepBack}</button>
+        <span className="text-sm font-bold text-gray-900">{t.tdepTitle}</span>
       </div>
 
       <div className="max-w-lg mx-auto px-4 py-6 pb-24">
@@ -735,8 +737,8 @@ export default function TravelerDepositPage() {
         {viewState === 'main' && off && (
           <div className="space-y-4">
             <div>
-              <h2 className="text-xl font-extrabold text-gray-900">ودیعه امنیتی مسافر</h2>
-              <p className="text-sm text-gray-500 mt-1">تضمین تحویل سالم کالا به گیرنده</p>
+              <h2 className="text-xl font-extrabold text-gray-900">{t.tdepTitle}</h2>
+              <p className="text-sm text-gray-500 mt-1">{t.tdepEscrowTitle}</p>
             </div>
 
             {/* Chip */}
@@ -796,7 +798,7 @@ export default function TravelerDepositPage() {
 
             {/* Method picker */}
             <div>
-              <div className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">روش پرداخت ودیعه</div>
+              <div className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">{t.tdepMethodLabel}</div>
               <div className="grid grid-cols-3 gap-2">
                 {[
                   { key: 'card',    icon: '💳', label: 'کارت بانکی' },
@@ -942,8 +944,8 @@ export default function TravelerDepositPage() {
           <div className="space-y-4">
             <div className="text-center py-6">
               <div className="text-6xl mb-3">🎉</div>
-              <div className="text-2xl font-extrabold text-gray-900 mb-2">ودیعه تودیع شد!</div>
-              <div className="text-sm text-gray-500 leading-relaxed">ودیعه شما در پرداخت امن چاپار ثبت شد.<br />سفارش وارد مرحله <strong className="text-blue-600">در مسیر</strong> شد.</div>
+              <div className="text-2xl font-extrabold text-gray-900 mb-2">{t.tdepSuccessTitle}</div>
+              <div className="text-sm text-gray-500 leading-relaxed">{t.tdepSuccessDesc}</div>
             </div>
 
             {/* TXN box */}
@@ -986,10 +988,10 @@ export default function TravelerDepositPage() {
                 : '/track?role=traveler' + (off?.orderId ? '&id=' + encodeURIComponent(off.orderId) : '')}
               className="flex items-center justify-center gap-2 h-13 py-4 rounded-xl bg-gradient-to-r from-blue-500 to-blue-700 text-white font-bold text-sm shadow-lg hover:opacity-90 transition-all"
             >
-              🔍 پیگیری سفارش
+              {t.tdepSuccessTrackBtn}
             </a>
             <a href="/?page=traveler-dashboard" className="flex items-center justify-center gap-2 h-11 rounded-xl bg-gray-100 border border-gray-200 text-gray-600 font-bold text-sm hover:bg-gray-200 transition-colors">
-              ✈️ داشبورد مسافر
+              ✈️ {t.tdepHome}
             </a>
           </div>
         )}

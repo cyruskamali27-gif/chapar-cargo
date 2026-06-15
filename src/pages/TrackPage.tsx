@@ -3,6 +3,7 @@ import GoogleTrackingMap from '../components/GoogleTrackingMap';
 import { findDemoRoute, DEMO_ROUTES } from '../data/demoTrackingRoutes';
 import type { ShipmentRoute, RouteStatus } from '../types/tracking';
 import { Store } from '../lib/store';
+import { useLang } from '../lib/LangContext';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 type TrackRole = 'owner' | 'traveler' | 'receiver';
@@ -33,20 +34,7 @@ interface Trip {
 }
 
 // ── Constants (exact from track.html) ─────────────────────────────────────────
-const TYPE_LABELS: Record<string, string> = {
-  personal: 'ارسال شخصی', store: 'سفارش فروشگاه', chapar: 'خرید توسط چاپار',
-};
-const CARGO_LABELS: Record<string, string> = {
-  clothing: 'پوشاک', electronics: 'الکترونیک', documents: 'اسناد',
-  medicine: 'دارو', food: 'خوراکی', other: 'سایر',
-};
-const STATUS_META: Record<string, { label: string; cls: string }> = {
-  pending:    { label: 'در انتظار مسافر', cls: 'blue'   },
-  matched:    { label: 'مسافر تأیید شد', cls: 'blue'   },
-  in_transit: { label: 'در مسیر',         cls: 'blue'   },
-  delivered:  { label: 'تحویل موفق',      cls: 'green'  },
-  cancelled:  { label: 'لغو شده',         cls: 'red'    },
-};
+// TYPE_LABELS, CARGO_LABELS, STATUS_META, STEPS_DEF computed inside component (i18n)
 // 5-step state matrix per admin status (from track.html makeSteps)
 const STEP_MATRIX: Record<string, string[]> = {
   pending:    ['done', 'done', 'active',  'pending', 'pending'],
@@ -55,13 +43,6 @@ const STEP_MATRIX: Record<string, string[]> = {
   delivered:  ['done', 'done', 'done',    'done',    'done'   ],
   cancelled:  ['done', 'done', 'pending', 'pending', 'pending'],
 };
-const STEPS_DEF = [
-  { icon: '📋', label: 'ثبت سفارش',               note: 'سفارش در سیستم چاپار ثبت شد' },
-  { icon: '💳', label: 'پرداخت · Secure Hold',     note: 'مبلغ در حساب امانی چاپار نگهداری می‌شود' },
-  { icon: '✈️', label: 'تأیید و تخصیص مسافر',      note: 'مسافر تأیید و تخصیص یافت' },
-  { icon: '🚚', label: 'کالا در مسیر',              note: 'مسافر کالا را تحویل گرفته و در مسیر است' },
-  { icon: '✅', label: 'تحویل موفق',                note: 'پس از تأیید دریافت، مبلغ به مسافر پرداخت می‌شود' },
-];
 // OTP-eligible statuses (from confirm-delivery.html)
 const OTP_ELIGIBLE = new Set(['matched', 'linked_secure_hold_ready', 'handover_completed', 'picked_up', 'in_transit']);
 // Handover-eligible statuses (from track-traveler.html: linked_secure_hold_ready)
@@ -141,6 +122,31 @@ const BADGE_CLS: Record<string, string> = {
 interface TrackPageProps { initialCode?: string; }
 
 export default function TrackPage({ initialCode = '' }: TrackPageProps) {
+  const { t, isRTL } = useLang();
+
+  const TYPE_LABELS: Record<string, string> = {
+    personal: t.trkTypePersonal, store: t.trkTypeStore, chapar: t.trkTypeChapar,
+  };
+  const CARGO_LABELS: Record<string, string> = {
+    clothing: t.trkCargoClothing, electronics: t.trkCargoElectronics,
+    documents: t.trkCargoDocuments, medicine: t.trkCargoMedicine,
+    food: t.trkCargoFood, other: t.trkCargoOther,
+  };
+  const STATUS_META: Record<string, { label: string; cls: string }> = {
+    pending:    { label: t.trkStatusPending,   cls: 'blue'  },
+    matched:    { label: t.trkStatusMatched,   cls: 'blue'  },
+    in_transit: { label: t.trkStatusInTransit, cls: 'blue'  },
+    delivered:  { label: t.trkStatusDelivered, cls: 'green' },
+    cancelled:  { label: t.trkStatusCancelled, cls: 'red'   },
+  };
+  const STEPS_DEF = [
+    { icon: '📋', label: t.trkStep1Label, note: t.trkStep1Note },
+    { icon: '💳', label: t.trkStep2Label, note: t.trkStep2Note },
+    { icon: '✈️', label: t.trkStep3Label, note: t.trkStep3Note },
+    { icon: '🚚', label: t.trkStep4Label, note: t.trkStep4Note },
+    { icon: '✅', label: t.trkStep5Label, note: t.trkStep5Note },
+  ];
+
   // Demo-map state (existing)
   const [demoInput, setDemoInput] = useState(initialCode.toUpperCase());
   const [demoRoute, setDemoRoute] = useState<ShipmentRoute | null>(null);
@@ -189,7 +195,7 @@ export default function TrackPage({ initialCode = '' }: TrackPageProps) {
   const searchDemo = useCallback((code: string) => {
     const found = findDemoRoute(code);
     if (found) { setDemoRoute(found); setDemoError(null); }
-    else { setDemoRoute(null); setDemoError('کد رهگیری پیدا نشد.'); }
+    else { setDemoRoute(null); setDemoError(t.trkDemoNotFound); }
   }, []);
 
   useEffect(() => {
@@ -222,7 +228,7 @@ export default function TrackPage({ initialCode = '' }: TrackPageProps) {
       if (lock?.until && Date.now() < lock.until) {
         setOtpLocked(true);
         setOtpAttempts(5);
-        setOtpError('🔒 تعداد تلاش‌های مجاز تمام شده. لطفاً صبر کنید.');
+        setOtpError(t.trkErrOtpLocked);
         setTimeout(() => {
           setOtpLocked(false); setOtpError('');
           sessionStorage.removeItem('cp_otp_lock');
@@ -271,7 +277,7 @@ export default function TrackPage({ initialCode = '' }: TrackPageProps) {
 
   function doTrack(code = trackCode, trackRole = role) {
     const c = code.trim().toUpperCase();
-    if (!c) { showToast('کد پیگیری را وارد کنید'); return; }
+    if (!c) { showToast(t.trkToastEnterCode); return; }
     doTrackInternal(c, trackRole);
   }
 
@@ -318,7 +324,7 @@ export default function TrackPage({ initialCode = '' }: TrackPageProps) {
   // ── Submit OTP (exact logic from confirm-delivery.html submitCode) ──────
   async function submitOTP() {
     if (otpCode.length !== 4 || !order || otpLoading) return;
-    if (otpLocked) { showToast('🔒 حساب قفل شده است. لطفاً صبر کنید.'); return; }
+    if (otpLocked) { showToast(t.trkToastLocked); return; }
 
     const trackId = order.trackId;
     const maxTries = 5;
@@ -329,7 +335,7 @@ export default function TrackPage({ initialCode = '' }: TrackPageProps) {
     const offers = Store.get<Array<{ orderId?: string; cargoId?: string; travelerId?: string; status?: string }>>('offers') ?? [];
     const matched = offers.find(o => (o.orderId === trackId || o.cargoId === trackId) && o.status === 'accepted');
     if (matched && sess?.userId && sess.userId === matched.travelerId) {
-      setOtpError('مسافر نمی‌تواند تحویل را از طرف گیرنده تأیید کند');
+      setOtpError(t.trkErrOtpSelf);
       setOtpLoading(false); return;
     }
 
@@ -338,7 +344,7 @@ export default function TrackPage({ initialCode = '' }: TrackPageProps) {
       const disputes = JSON.parse(localStorage.getItem('cp__test_disputes') || '[]') as Array<{ cargoId?: string; id?: string; status?: string }>;
       const open = disputes.find(d => (d.cargoId === trackId || d.id === trackId) && d.status === 'open');
       if (open) {
-        setOtpError('🔒 اختلاف باز — آزادسازی وجه تا بسته شدن پرونده ممنوع است');
+        setOtpError(t.trkErrOtpDispute);
         setOtpLoading(false); return;
       }
     } catch { /* ignore */ }
@@ -347,7 +353,7 @@ export default function TrackPage({ initialCode = '' }: TrackPageProps) {
     const users = Store.get<Array<{ id: string; identityVerified?: boolean }>>('users') ?? [];
     const recvUser = users.find(u => u.id === sess?.userId);
     if (sess?.userId && recvUser && !recvUser.identityVerified) {
-      setOtpError('🔐 برای تأیید تحویل، احراز هویت الزامی است');
+      setOtpError(t.trkErrOtpKyc);
       setOtpLoading(false); return;
     }
 
@@ -359,7 +365,7 @@ export default function TrackPage({ initialCode = '' }: TrackPageProps) {
     const applyLockout = (lockUntil: number) => {
       sessionStorage.setItem('cp_otp_lock', JSON.stringify({ until: lockUntil, txnId: trackId }));
       setOtpLocked(true);
-      setOtpError('🔒 تعداد تلاش‌های مجاز تمام شده. ۵ دقیقه صبر کنید.');
+      setOtpError(t.trkErrOtpLockInit);
       setTimeout(() => { setOtpLocked(false); setOtpError(''); sessionStorage.removeItem('cp_otp_lock'); }, lockUntil - Date.now());
     };
 
@@ -368,7 +374,7 @@ export default function TrackPage({ initialCode = '' }: TrackPageProps) {
       if (newAtt >= maxTries) {
         applyLockout(Date.now() + 5 * 60 * 1000);
       } else {
-        setOtpError(msg ?? `کد نادرست است — ${maxTries - newAtt} تلاش باقی مانده`);
+        setOtpError(msg ?? t.trkErrOtpWrong.replace('{n}', String(maxTries - newAtt)));
       }
       setOtpDigits(['', '', '', '']);
       setTimeout(() => otpRefs[0].current?.focus(), 50);
@@ -389,7 +395,7 @@ export default function TrackPage({ initialCode = '' }: TrackPageProps) {
       escrow[trackId] = { receiverConfirmed: true, senderConfirmed: false, adminApproved: false, releaseStatus: 'pending_sender_admin', requestedAt: Date.now() };
       localStorage.setItem('cp_escrow_releases', JSON.stringify(escrow));
 
-      setOtpConfirmed(true); showToast('✅ تحویل با موفقیت تأیید شد');
+      setOtpConfirmed(true); showToast(t.trkToastOtpOk);
       setOtpLoading(false); return;
     }
 
@@ -401,20 +407,20 @@ export default function TrackPage({ initialCode = '' }: TrackPageProps) {
         body: JSON.stringify({ transactionId: trackId, code: otpCode }),
       });
       if (res.ok) {
-        setOtpConfirmed(true); showToast('✅ تحویل با موفقیت تأیید شد');
+        setOtpConfirmed(true); showToast(t.trkToastOtpOk);
       } else {
-        let msg = 'کد نادرست است. دوباره تلاش کنید.';
+        let msg = t.trkErrOtpGeneral;
         try {
           const body = await res.json();
-          if (res.status === 400) msg = 'کد وارد شده نادرست است.';
+          if (res.status === 400) msg = t.trkErrOtpBadCode;
           else if (res.status === 409) { setOtpConfirmed(true); setOtpLoading(false); return; }
-          else if (body?.error?.includes('dispute')) msg = '🔒 تأیید به دلیل اختلاف فعال مسدود است.';
+          else if (body?.error?.includes('dispute')) msg = t.trkErrOtpDisputeApi;
           else if (body?.error || body?.message) msg = body.error || body.message;
         } catch { /* ignore */ }
         handleWrongCode(msg);
       }
     } catch {
-      setOtpError('ارتباط با سرور برقرار نشد. دوباره تلاش کنید.');
+      setOtpError(t.trkErrOtpConn);
     }
     setOtpLoading(false);
   }
@@ -430,11 +436,11 @@ export default function TrackPage({ initialCode = '' }: TrackPageProps) {
         body: JSON.stringify({ transactionId: order.trackId, travelerName: 'مسافر', note: 'Traveler marked handover via tracking page' }),
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) { showToast((data as Record<string,string>).error || 'خطا در ثبت تحویل'); setHandoverLoading(false); return; }
+      if (!res.ok) { showToast((data as Record<string,string>).error || t.trkErrHovrFail); setHandoverLoading(false); return; }
       setHandoverModal(false); setHandoverDone(true);
-      showToast('تحویل کالا با موفقیت ثبت شد ✅');
+      showToast(t.trkToastHovrOk);
     } catch {
-      showToast('خطا در اتصال به سرور');
+      showToast(t.trkErrConnFail);
     }
     setHandoverLoading(false);
   }
@@ -447,28 +453,28 @@ export default function TrackPage({ initialCode = '' }: TrackPageProps) {
       ratings.push({ trackId: order.trackId, score: starRating, createdAt: Date.now() });
       Store.set('ratings', ratings);
     }
-    setRatingDone(true); showToast('✅ امتیاز شما ثبت شد');
+    setRatingDone(true); showToast(t.trkToastRatingOk);
   }
 
   // ── Copy link (from track.html copyLink) ─────────────────────────────────
   function copyLink(url: string) {
     if (navigator.clipboard) {
-      navigator.clipboard.writeText(url).then(() => showToast('لینک کپی شد ✅')).catch(() => fallbackCopy(url));
+      navigator.clipboard.writeText(url).then(() => showToast(t.trkToastCopied)).catch(() => fallbackCopy(url));
     } else { fallbackCopy(url); }
   }
   function fallbackCopy(url: string) {
     const ta = document.createElement('textarea'); ta.value = url;
     document.body.appendChild(ta); ta.select(); document.execCommand('copy');
-    document.body.removeChild(ta); showToast('لینک کپی شد ✅');
+    document.body.removeChild(ta); showToast(t.trkToastCopied);
   }
 
   // ── Render: entry panel ──────────────────────────────────────────────────
   function renderEntry() {
     return (
-      <div className="p-5" dir="rtl">
+      <div className="p-5" dir={isRTL ? 'rtl' : 'ltr'}>
         <div className="text-center mb-5">
-          <h2 className="text-lg font-bold text-white mb-1">پیگیری سفارش</h2>
-          <p className="text-xs text-gray-400">کد پیگیری سفارش خود را وارد کنید</p>
+          <h2 className="text-lg font-bold text-white mb-1">{t.trkTitle}</h2>
+          <p className="text-xs text-gray-400">{t.trkSubtitle}</p>
         </div>
 
         <form onSubmit={e => { e.preventDefault(); doTrack(); }} className="space-y-3">
@@ -486,14 +492,14 @@ export default function TrackPage({ initialCode = '' }: TrackPageProps) {
             type="submit"
             className="w-full py-3.5 rounded-xl bg-gradient-to-r from-blue-500 to-blue-700 text-white font-bold text-sm hover:opacity-90 transition-all"
           >
-            جستجو
+            {t.trkSearchBtn}
           </button>
         </form>
 
         {/* Recent orders (from cp_history) */}
         {recentOrders.length > 0 && (
           <div className="mt-5">
-            <div className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">سفارش‌های اخیر</div>
+            <div className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">{t.trkRecentOrders}</div>
             <div className="space-y-2">
               {recentOrders.map(o => (
                 <button
@@ -514,7 +520,7 @@ export default function TrackPage({ initialCode = '' }: TrackPageProps) {
 
         {/* Also show demo codes */}
         <div className="mt-5 border-t border-white/8 pt-4">
-          <div className="text-xs text-gray-600 uppercase tracking-widest mb-2 font-semibold">مسیرهای نمونه دمو</div>
+          <div className="text-xs text-gray-600 uppercase tracking-widest mb-2 font-semibold">{t.trkDemoRoutes}</div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             {DEMO_ROUTES.slice(0, 4).map(demo => (
               <button
@@ -535,14 +541,14 @@ export default function TrackPage({ initialCode = '' }: TrackPageProps) {
   // ── Render: not-found ────────────────────────────────────────────────────
   function renderNotFound() {
     return (
-      <div className="p-6 text-center" dir="rtl">
+      <div className="p-6 text-center" dir={isRTL ? 'rtl' : 'ltr'}>
         <div className="text-5xl mb-4">🔍</div>
-        <div className="text-lg font-bold text-white mb-2">سفارشی یافت نشد</div>
+        <div className="text-lg font-bold text-white mb-2">{t.trkNotFoundTitle}</div>
         <div className="text-sm text-gray-400 leading-relaxed mb-5">
-          کد <strong className="text-white">{trackCode}</strong> در سیستم ثبت نشده است.<br />
-          کد را دقیق وارد کنید یا با پشتیبانی تماس بگیرید.
+          <strong className="text-white">{trackCode}</strong> {t.trkNotFoundDesc1}<br />
+          {t.trkNotFoundDesc2}
         </div>
-        <button onClick={goBack} className="px-6 py-2.5 bg-white/8 border border-white/12 rounded-xl text-sm text-gray-300 hover:bg-white/12 transition-all">← بازگشت</button>
+        <button onClick={goBack} className="px-6 py-2.5 bg-white/8 border border-white/12 rounded-xl text-sm text-gray-300 hover:bg-white/12 transition-all">{t.trkBackBtn}</button>
       </div>
     );
   }
@@ -555,9 +561,9 @@ export default function TrackPage({ initialCode = '' }: TrackPageProps) {
     const regTs = o.paidAt ? fmtTs(o.paidAt) : '—';
 
     const stepTs = [regTs, paidDate,
-      s === 'cancelled' ? 'لغو شده' : st[2] === 'active' ? 'در جریان' : st[2] === 'done' ? 'انجام شد' : '—',
-      st[3] !== 'pending' ? 'در مسیر' : '—',
-      s === 'delivered' ? 'تحویل داده شد' : '—',
+      s === 'cancelled' ? t.trkStepCancelled : st[2] === 'active' ? t.trkStepActive : st[2] === 'done' ? t.trkStepDone : '—',
+      st[3] !== 'pending' ? t.trkStepInTransit : '—',
+      s === 'delivered' ? t.trkStepDelivered : '—',
     ];
 
     return (
@@ -580,7 +586,7 @@ export default function TrackPage({ initialCode = '' }: TrackPageProps) {
                   <div className={`w-0.5 flex-1 min-h-4 mt-1 transition-colors ${state === 'done' ? 'bg-green-500/35' : 'bg-white/10'}`} />
                 )}
               </div>
-              <div className={`flex-1 pb-5 ${i === STEPS_DEF.length - 1 ? 'pb-0' : ''}`} dir="rtl">
+              <div className={`flex-1 pb-5 ${i === STEPS_DEF.length - 1 ? 'pb-0' : ''}`} dir={isRTL ? 'rtl' : 'ltr'}>
                 <div className={`text-xs font-bold mb-0.5 ${labelCls}`}>{step.label}</div>
                 <div className="text-xs text-gray-500" style={{ direction: 'ltr', textAlign: 'right' }}>{stepTs[i]}</div>
                 {state !== 'pending' && <div className="text-xs text-gray-600 mt-0.5 leading-relaxed">{step.note}</div>}
@@ -599,14 +605,14 @@ export default function TrackPage({ initialCode = '' }: TrackPageProps) {
     const senderName = ((o.firstName || '') + ' ' + (o.lastName || '')).trim() || '—';
     const rn = recvName(o);
     const cells: Array<[string, string]> = [];
-    cells.push(['نوع کالا', cargoLabel]);
-    if (!isReceiver && o.dimensions) cells.push(['ابعاد', `${o.dimensions.l} × ${o.dimensions.w} × ${o.dimensions.h} cm`]);
-    if (!isReceiver) cells.push(['وزن', o.weight ? `${o.weight} kg` : '—']);
-    if (isOwner) cells.push(['ارزش', o.valueUSD ? `$ ${parseFloat(o.valueUSD).toFixed(2)}` : fmtToman(o.valueToman || 0)]);
-    cells.push(['تاریخ ارسال', o.sendDate || o.date || '—']);
-    if (isOwner) cells.push(['فرستنده', senderName]);
-    if ((isOwner || isReceiver) && rn) cells.push(['گیرنده', rn]);
-    if ((isOwner || isReceiver) && (o.recPhone || o.recvPhone)) cells.push(['تلفن گیرنده', o.recPhone || o.recvPhone || '']);
+    cells.push([t.trkInfoCargo, cargoLabel]);
+    if (!isReceiver && o.dimensions) cells.push([t.trkInfoDims, `${o.dimensions.l} × ${o.dimensions.w} × ${o.dimensions.h} cm`]);
+    if (!isReceiver) cells.push([t.trkInfoWeight, o.weight ? `${o.weight} kg` : '—']);
+    if (isOwner) cells.push([t.trkInfoValue, o.valueUSD ? `$ ${parseFloat(o.valueUSD).toFixed(2)}` : fmtToman(o.valueToman || 0)]);
+    cells.push([t.trkInfoSendDate, o.sendDate || o.date || '—']);
+    if (isOwner) cells.push([t.trkInfoSender, senderName]);
+    if ((isOwner || isReceiver) && rn) cells.push([t.trkInfoRecipient, rn]);
+    if ((isOwner || isReceiver) && (o.recPhone || o.recvPhone)) cells.push([t.trkInfoRecPhone, o.recPhone || o.recvPhone || '']);
 
     return (
       <div className="grid grid-cols-2 gap-1.5">
@@ -626,13 +632,13 @@ export default function TrackPage({ initialCode = '' }: TrackPageProps) {
     if (s === 'pending') return null;
     const base = window.location.origin + window.location.pathname + '?id=' + (o.trackId || '');
     const links = [
-      { role: 'owner',    label: 'صاحب کالا', icon: '📦' },
-      { role: 'traveler', label: 'مسافر',      icon: '✈️' },
-      { role: 'receiver', label: 'گیرنده',     icon: '🎁' },
+      { role: 'owner',    label: t.trkShareOwner,    icon: '📦' },
+      { role: 'traveler', label: t.trkShareTraveler,  icon: '✈️' },
+      { role: 'receiver', label: t.trkShareReceiver,  icon: '🎁' },
     ];
     return (
       <div className="bg-white/4 border border-white/8 rounded-xl p-3.5 mt-3">
-        <div className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">🔗 لینک‌های پیگیری</div>
+        <div className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">{t.trkShareTitle}</div>
         {links.map(lnk => {
           const url = base + '&role=' + lnk.role;
           return (
@@ -643,7 +649,7 @@ export default function TrackPage({ initialCode = '' }: TrackPageProps) {
             >
               <span className="text-xs font-bold text-gray-300 min-w-16">{lnk.icon} {lnk.label}</span>
               <span className="flex-1 text-xs text-gray-600 truncate" style={{ direction: 'ltr', textAlign: 'left' }}>{url}</span>
-              <span className="text-xs font-bold text-blue-400 flex-shrink-0">کپی</span>
+              <span className="text-xs font-bold text-blue-400 flex-shrink-0">{t.trkShareCopy}</span>
             </button>
           );
         })}
@@ -659,8 +665,8 @@ export default function TrackPage({ initialCode = '' }: TrackPageProps) {
       <div className="flex items-center gap-3.5 bg-white/4 border border-white/9 rounded-xl p-4 mt-3">
         <span className="text-2xl">🔍</span>
         <div>
-          <div className="text-sm font-bold text-white mb-0.5">در انتظار تخصیص مسافر</div>
-          <div className="text-xs text-gray-400">بعد از تأیید مسافر، اطلاعات تماس اینجا نمایش داده می‌شود</div>
+          <div className="text-sm font-bold text-white mb-0.5">{t.trkWaitingTitle}</div>
+          <div className="text-xs text-gray-400">{t.trkWaitingDesc}</div>
         </div>
       </div>
     );
@@ -674,8 +680,8 @@ export default function TrackPage({ initialCode = '' }: TrackPageProps) {
       <div className="flex items-center gap-3.5 bg-blue-500/7 border border-blue-500/18 rounded-xl p-4 mt-3">
         <span className="text-2xl">✅</span>
         <div>
-          <div className="text-sm font-bold text-white mb-0.5">مسافر تأیید شد</div>
-          <div className="text-xs text-gray-400">اطلاعات تماس توسط پشتیبانی چاپار ارسال می‌شود</div>
+          <div className="text-sm font-bold text-white mb-0.5">{t.trkConfirmedTitle}</div>
+          <div className="text-xs text-gray-400">{t.trkConfirmedDesc}</div>
         </div>
       </div>
     );
@@ -684,8 +690,8 @@ export default function TrackPage({ initialCode = '' }: TrackPageProps) {
       <div className="flex items-center gap-3.5 bg-blue-500/7 border border-blue-500/18 rounded-xl p-4 mt-3">
         <span className="text-2xl">✈️</span>
         <div className="flex-1">
-          <div className="text-sm font-bold text-white mb-0.5">{trip.userName || 'مسافر چاپار'}</div>
-          <div className="text-xs text-gray-400">مسافر تأیید شده · {trip.originCity || trip.origin || ''} ← {trip.destCity || trip.destination || ''}</div>
+          <div className="text-sm font-bold text-white mb-0.5">{trip.userName || t.trkTravelerDefault}</div>
+          <div className="text-xs text-gray-400">{t.trkVerifiedBadge} · {trip.originCity || trip.origin || ''} ← {trip.destCity || trip.destination || ''}</div>
         </div>
         {trip.phone && (
           <a href={`tel:${trip.phone}`} className="flex-shrink-0 text-sm font-bold text-green-400 bg-green-400/10 border border-green-400/25 rounded-lg px-3 py-1.5" style={{ direction: 'ltr' }}>
@@ -705,15 +711,15 @@ export default function TrackPage({ initialCode = '' }: TrackPageProps) {
     if (ratingDone) {
       return (
         <div className="bg-green-500/6 border border-green-500/20 rounded-xl p-4 mt-3 text-center">
-          <div className="text-sm font-bold text-white mb-1">✅ امتیاز شما ثبت شد</div>
+          <div className="text-sm font-bold text-white mb-1">{t.trkRatingDone}</div>
           <div className="text-2xl">{'⭐'.repeat(starRating)}</div>
         </div>
       );
     }
     return (
       <div className="bg-yellow-500/6 border border-yellow-500/20 rounded-xl p-4 mt-3">
-        <div className="text-sm font-bold text-white mb-1">به مسافر امتیاز دهید</div>
-        <div className="text-xs text-gray-400 mb-3">تجربه ارسال با این مسافر چطور بود؟</div>
+        <div className="text-sm font-bold text-white mb-1">{t.trkRatingTitle}</div>
+        <div className="text-xs text-gray-400 mb-3">{t.trkRatingQ}</div>
         <div className="flex gap-2 flex-row-reverse justify-start mb-3">
           {[1, 2, 3, 4, 5].map(n => (
             <button key={n} onClick={() => setStarRating(n)} className={`text-2xl transition-all ${n <= starRating ? 'opacity-100' : 'opacity-30 hover:opacity-70'}`}>⭐</button>
@@ -724,7 +730,7 @@ export default function TrackPage({ initialCode = '' }: TrackPageProps) {
           disabled={!starRating}
           className="w-full py-2.5 rounded-xl bg-gradient-to-r from-yellow-500 to-orange-500 text-white font-bold text-sm disabled:opacity-40 hover:opacity-90 transition-all"
         >
-          ثبت امتیاز
+          {t.trkRatingSubmit}
         </button>
       </div>
     );
@@ -741,7 +747,7 @@ export default function TrackPage({ initialCode = '' }: TrackPageProps) {
         onClick={() => { setRole('receiver'); window.history.replaceState(null, '', url); }}
         className="w-full mt-3 flex items-center justify-center gap-2 h-12 rounded-xl bg-gradient-to-r from-green-500 to-green-600 text-white font-bold text-sm shadow-lg hover:opacity-90 transition-all"
       >
-        ✅ تأیید دریافت کالا
+        {t.trkConfirmCTA}
       </button>
     );
   }
@@ -752,32 +758,32 @@ export default function TrackPage({ initialCode = '' }: TrackPageProps) {
     if (handoverDone) {
       return (
         <div className="bg-blue-500/6 border border-blue-500/18 rounded-xl p-4 mt-3 text-center">
-          <div className="text-sm font-bold text-white">✅ کالا تحویل داده شد</div>
-          <div className="text-xs text-gray-400 mt-1">در انتظار تأیید گیرنده در ۷۲ ساعت</div>
+          <div className="text-sm font-bold text-white">{t.trkHovrDoneTitle}</div>
+          <div className="text-xs text-gray-400 mt-1">{t.trkHovrDoneDesc}</div>
         </div>
       );
     }
     if (!HANDOVER_ELIGIBLE.has(s)) {
       return (
         <div className="bg-white/4 border border-white/8 rounded-xl p-4 mt-3">
-          <div className="text-sm font-bold text-white mb-1">وضعیت کالا</div>
+          <div className="text-sm font-bold text-white mb-1">{t.trkHovrStatusTitle}</div>
           <div className="text-xs text-gray-400">
-            {s === 'pending' ? 'در انتظار فعال‌شدن پرداخت امن' : s === 'delivered' ? '✅ کالا با موفقیت تحویل داده شد' : STATUS_META[s]?.label || s}
+            {s === 'pending' ? t.trkHovrPendingPay : s === 'delivered' ? t.trkHovrFinalDone : STATUS_META[s]?.label || s}
           </div>
         </div>
       );
     }
     return (
       <div className="bg-green-500/6 border border-green-500/18 rounded-xl p-4 mt-3">
-        <div className="text-sm font-bold text-white mb-1">📦 کالا را تحویل گرفتید؟</div>
+        <div className="text-sm font-bold text-white mb-1">{t.trkHovrReadyTitle}</div>
         <div className="text-xs text-gray-400 leading-relaxed mb-3">
-          اگر کالا را از مالک دریافت کرده‌اید، تأیید کنید. گیرنده ۷۲ ساعت فرصت دارد دریافت را تأیید کند.
+          {t.trkHovrReadyDesc}
         </div>
         <button
           onClick={() => setHandoverModal(true)}
           className="w-full py-3 rounded-xl bg-gradient-to-r from-green-500 to-green-600 text-white font-bold text-sm hover:opacity-90 transition-all"
         >
-          📦 کالا را تحویل گرفتم
+          {t.trkHovrBtn}
         </button>
       </div>
     );
@@ -792,25 +798,24 @@ export default function TrackPage({ initialCode = '' }: TrackPageProps) {
         <div className="mt-3 space-y-3">
           <div className="bg-green-500/8 border border-green-500/25 rounded-xl p-5 text-center">
             <div className="text-4xl mb-3">✅</div>
-            <div className="text-base font-bold text-green-400 mb-1">تأیید گیرنده ثبت شد!</div>
+            <div className="text-base font-bold text-green-400 mb-1">{t.trkOtpOkTitle}</div>
             <div className="text-xs text-gray-400 leading-relaxed">
-              تأیید شما ثبت شد.<br />
-              🔒 آزادسازی وجه منوط به تأیید فرستنده + بررسی ادمین چاپار است.
+              {t.trkOtpOkDesc}
             </div>
           </div>
           {/* Rate traveler */}
           {!ratingDone ? (
             <div className="bg-white/4 border border-white/8 rounded-xl p-4 text-center">
-              <div className="text-sm font-bold text-white mb-3">⭐ به مسافر امتیاز بدهید</div>
+              <div className="text-sm font-bold text-white mb-3">{t.trkRateTitle}</div>
               <div className="flex justify-center gap-3 mb-3">
                 {[1, 2, 3, 4, 5].map(n => (
                   <button key={n} onClick={() => setStarRating(n)} className={`text-3xl transition-all ${n <= starRating ? 'opacity-100' : 'opacity-30 hover:opacity-60'}`}>⭐</button>
                 ))}
               </div>
-              <button onClick={submitRating} disabled={!starRating} className="w-full py-2 rounded-xl bg-blue-500/15 border border-blue-500/30 text-blue-400 font-bold text-sm disabled:opacity-40 hover:bg-blue-500/25 transition-all">ثبت امتیاز</button>
+              <button onClick={submitRating} disabled={!starRating} className="w-full py-2 rounded-xl bg-blue-500/15 border border-blue-500/30 text-blue-400 font-bold text-sm disabled:opacity-40 hover:bg-blue-500/25 transition-all">{t.trkRateSubmit}</button>
             </div>
           ) : (
-            <div className="text-center text-sm text-green-400 font-bold">{'⭐'.repeat(starRating)}<br />امتیاز ثبت شد — ممنون!</div>
+            <div className="text-center text-sm text-green-400 font-bold">{'⭐'.repeat(starRating)}<br />{t.trkRateDone}</div>
           )}
         </div>
       );
@@ -820,7 +825,7 @@ export default function TrackPage({ initialCode = '' }: TrackPageProps) {
       return (
         <div className="bg-white/4 border border-white/8 rounded-xl p-4 mt-3 text-center">
           <div className="text-2xl mb-2">⏳</div>
-          <div className="text-sm text-gray-300">در انتظار رسیدن کالا</div>
+          <div className="text-sm text-gray-300">{t.trkOtpWaiting}</div>
           <div className="text-xs text-gray-500 mt-1">{STATUS_META[s]?.label || s}</div>
         </div>
       );
@@ -828,9 +833,9 @@ export default function TrackPage({ initialCode = '' }: TrackPageProps) {
 
     return (
       <div className="bg-blue-500/5 border border-blue-500/18 rounded-xl p-4 mt-3">
-        <div className="text-sm font-bold text-white mb-1">کد تحویل را وارد کنید</div>
+        <div className="text-sm font-bold text-white mb-1">{t.trkOtpTitle}</div>
         <div className="text-xs text-gray-400 leading-relaxed mb-4">
-          کد ۴ رقمی که مسافر به شما داده است را وارد کنید تا دریافت کالا تأیید شود.
+          {t.trkOtpDesc}
         </div>
         {/* 4-digit inputs */}
         <div className="flex gap-2.5 justify-center mb-4" dir="ltr" onPaste={handleOtpPaste}>
@@ -862,7 +867,7 @@ export default function TrackPage({ initialCode = '' }: TrackPageProps) {
           className="w-full h-13 py-3.5 rounded-xl bg-gradient-to-r from-blue-500 to-blue-700 text-white font-bold text-sm disabled:opacity-40 hover:opacity-90 transition-all flex items-center justify-center gap-2"
         >
           {otpLoading && <span className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />}
-          {otpLoading ? 'در حال ارسال...' : 'تأیید دریافت ←'}
+          {otpLoading ? t.trkOtpSending : t.trkOtpSubmit}
         </button>
         {otpError && (
           <div className="mt-3 text-xs text-red-400 bg-red-500/8 border border-red-500/22 rounded-xl p-3 text-center leading-relaxed">{otpError}</div>
@@ -875,22 +880,22 @@ export default function TrackPage({ initialCode = '' }: TrackPageProps) {
   function renderOrder(o: Order, r: TrackRole) {
     const s = o.adminStatus || 'pending';
     const sMeta = STATUS_META[s] || STATUS_META['pending'];
-    const typeLabel = TYPE_LABELS[o.type || ''] || o.type || 'سفارش';
+    const typeLabel = TYPE_LABELS[o.type || ''] || o.type || t.trkTypeDefault;
     const eta = calcETA(s);
     const isOwner = r === 'owner'; const isTraveler = r === 'traveler'; const isReceiver = r === 'receiver';
     const pct = Math.max(8, Math.min(95, animPct));
 
     return (
-      <div className="p-4 space-y-3" dir="rtl">
+      <div className="p-4 space-y-3" dir={isRTL ? 'rtl' : 'ltr'}>
         {/* Back + Role banner */}
         <div className="flex items-center justify-between">
-          <button onClick={goBack} className="text-xs text-gray-400 hover:text-white transition-colors flex items-center gap-1">← بازگشت</button>
+          <button onClick={goBack} className="text-xs text-gray-400 hover:text-white transition-colors flex items-center gap-1">{t.trkBackBtn}</button>
           <span className={`text-xs font-bold px-3 py-1 rounded-full border ${
             isOwner ? 'bg-blue-500/10 border-blue-500/25 text-blue-400' :
             isTraveler ? 'bg-green-500/10 border-green-500/22 text-green-400' :
             'bg-yellow-500/10 border-yellow-500/22 text-yellow-400'
           }`}>
-            {isOwner ? '📦 نمای صاحب کالا' : isTraveler ? '✈️ نمای مسافر' : '🎁 نمای گیرنده'}
+            {isOwner ? t.trkRoleOwner : isTraveler ? t.trkRoleTraveler : t.trkRoleReceiver}
           </span>
         </div>
 
@@ -920,7 +925,7 @@ export default function TrackPage({ initialCode = '' }: TrackPageProps) {
             <div className="flex items-center gap-3 bg-blue-500/7 border border-blue-500/20 rounded-xl px-3 py-2.5 mb-3">
               <span className="text-lg">⏱️</span>
               <div>
-                <div className="text-xs font-bold text-blue-400 uppercase tracking-wide" style={{ fontSize: '9px' }}>زمان تقریبی رسیدن</div>
+                <div className="text-xs font-bold text-blue-400 uppercase tracking-wide" style={{ fontSize: '9px' }}>{t.trkEtaLabel}</div>
                 <div className="text-sm font-extrabold text-white">{eta}</div>
               </div>
             </div>
@@ -931,7 +936,7 @@ export default function TrackPage({ initialCode = '' }: TrackPageProps) {
             <div className="flex items-center gap-2.5 bg-blue-500/8 border border-blue-500/20 rounded-xl px-3 py-2.5 mb-3">
               <span className="text-lg">🔍</span>
               <div>
-                <div className="text-xs font-bold text-blue-400 uppercase tracking-wide mb-0.5" style={{ fontSize: '9px' }}>کالای تشخیص‌داده‌شده</div>
+                <div className="text-xs font-bold text-blue-400 uppercase tracking-wide mb-0.5" style={{ fontSize: '9px' }}>{t.trkDetectedLabel}</div>
                 <div className="text-sm font-bold text-white">{o.detectedItem}</div>
               </div>
             </div>
@@ -943,7 +948,7 @@ export default function TrackPage({ initialCode = '' }: TrackPageProps) {
           {/* Delivery address */}
           {(isOwner || isReceiver) && (o.recAddress || o.recvAddress) && (
             <div className="mt-2 bg-white/4 border border-white/7 rounded-xl px-3 py-2.5">
-              <span className="text-xs font-bold text-gray-500 uppercase tracking-wide" style={{ fontSize: '9px' }}>آدرس تحویل: </span>
+              <span className="text-xs font-bold text-gray-500 uppercase tracking-wide" style={{ fontSize: '9px' }}>{t.trkDeliveryAddr} </span>
               <span className="text-xs text-gray-400">{o.recAddress || o.recvAddress}</span>
             </div>
           )}
@@ -951,7 +956,7 @@ export default function TrackPage({ initialCode = '' }: TrackPageProps) {
           {/* Description (owner only) */}
           {isOwner && o.description && (
             <div className="mt-2 bg-white/4 border border-white/7 rounded-xl p-3">
-              <div className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1" style={{ fontSize: '9px' }}>توضیحات</div>
+              <div className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1" style={{ fontSize: '9px' }}>{t.trkDescLabel}</div>
               <div className="text-xs text-gray-400 leading-relaxed">{o.description}</div>
             </div>
           )}
@@ -959,7 +964,7 @@ export default function TrackPage({ initialCode = '' }: TrackPageProps) {
 
         {/* Timeline */}
         <div>
-          <div className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">وضعیت سفارش</div>
+          <div className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">{t.trkTimelineTitle}</div>
           <div className="bg-white/5 border border-white/10 rounded-2xl p-4">
             {renderTimeline(o)}
           </div>
@@ -977,8 +982,7 @@ export default function TrackPage({ initialCode = '' }: TrackPageProps) {
         <div className="flex items-start gap-3 bg-blue-500/6 border border-blue-500/15 rounded-2xl px-4 py-3.5 mt-2">
           <span className="text-2xl flex-shrink-0">📱</span>
           <div className="text-xs text-gray-400 leading-relaxed">
-            برای دریافت آپدیت‌های لحظه‌ای در تلگرام، کد<br />
-            <strong className="text-white">{o.trackId}</strong> را به بات ارسال کنید:<br />
+            {t.trkTelegramCard.replace('{code}', o.trackId)}<br />
             <strong className="text-blue-400">@ChaparTrackBot</strong>
           </div>
         </div>
@@ -1010,7 +1014,7 @@ export default function TrackPage({ initialCode = '' }: TrackPageProps) {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
               </div>
-              <p className="text-gray-600 text-sm">کد رهگیری را وارد کنید</p>
+              <p className="text-gray-600 text-sm">{t.trkEnterCodeHint}</p>
             </div>
           </div>
         )}
@@ -1028,7 +1032,7 @@ export default function TrackPage({ initialCode = '' }: TrackPageProps) {
         </a>
         {!showRealOrder && (
           <a href="/tracking-preview" className="pointer-events-auto text-xs text-gray-400 hover:text-white transition-colors bg-white/5 border border-white/10 rounded-lg px-3 py-1.5">
-            ایجاد مسیر جدید
+            {t.trkCreateRoute}
           </a>
         )}
       </div>
@@ -1040,7 +1044,7 @@ export default function TrackPage({ initialCode = '' }: TrackPageProps) {
             onClick={() => setPanelOpen(o => !o)}
             className="bg-white/10 backdrop-blur-xl border border-white/10 rounded-full px-5 py-1.5 text-xs text-gray-300 hover:bg-white/15 transition-all shadow-xl"
           >
-            {panelOpen ? '▼ بستن پنل' : '▲ رهگیری مرسوله'}
+            {panelOpen ? t.trkPanelClose : t.trkPanelOpen}
           </button>
         </div>
 
@@ -1064,7 +1068,7 @@ export default function TrackPage({ initialCode = '' }: TrackPageProps) {
                         dir="ltr"
                       />
                       <button type="submit" className="px-5 py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-sm font-bold text-white hover:from-cyan-400 hover:to-blue-500 transition-all">
-                        دمو
+                        {t.trkDemoBtn}
                       </button>
                     </form>
                     {demoError && <p className="mt-2 text-xs text-red-400 text-center">{demoError}</p>}
@@ -1095,9 +1099,9 @@ export default function TrackPage({ initialCode = '' }: TrackPageProps) {
                           </div>
                         </div>
                         <div className="grid grid-cols-3 gap-3">
-                          {demoRoute.distanceText && <div className="rounded-xl bg-white/3 border border-white/5 px-3 py-2 text-center"><div className="text-xs text-gray-500 mb-0.5">فاصله</div><div className="text-xs font-bold text-white">{demoRoute.distanceText}</div></div>}
-                          {demoRoute.durationText  && <div className="rounded-xl bg-white/3 border border-white/5 px-3 py-2 text-center"><div className="text-xs text-gray-500 mb-0.5">زمان</div><div className="text-xs font-bold text-white">{demoRoute.durationText}</div></div>}
-                          <div className="rounded-xl bg-white/3 border border-white/5 px-3 py-2 text-center"><div className="text-xs text-gray-500 mb-0.5">امانت</div><div className="text-xs font-bold text-white">{ESCROW_FA[demoRoute.escrowStatus]}</div></div>
+                          {demoRoute.distanceText && <div className="rounded-xl bg-white/3 border border-white/5 px-3 py-2 text-center"><div className="text-xs text-gray-500 mb-0.5">{t.trkDemoDistance}</div><div className="text-xs font-bold text-white">{demoRoute.distanceText}</div></div>}
+                          {demoRoute.durationText  && <div className="rounded-xl bg-white/3 border border-white/5 px-3 py-2 text-center"><div className="text-xs text-gray-500 mb-0.5">{t.trkDemoTime}</div><div className="text-xs font-bold text-white">{demoRoute.durationText}</div></div>}
+                          <div className="rounded-xl bg-white/3 border border-white/5 px-3 py-2 text-center"><div className="text-xs text-gray-500 mb-0.5">{t.trkDemoEscrow}</div><div className="text-xs font-bold text-white">{ESCROW_FA[demoRoute.escrowStatus]}</div></div>
                         </div>
                         {demoRoute.securityLevel && (
                           <div className="flex items-center gap-2">
@@ -1107,19 +1111,19 @@ export default function TrackPage({ initialCode = '' }: TrackPageProps) {
                                 : 'bg-gray-500/10 text-gray-400 border-gray-500/30'
                             }`}>
                               <span className="w-1.5 h-1.5 rounded-full bg-current opacity-70" />
-                              {demoRoute.securityLevel === 'GUARANTEED' ? 'حمل تضمینی' : 'حمل عادی'}
+                              {demoRoute.securityLevel === 'GUARANTEED' ? t.trkDemoGuaranteed : t.trkDemoStandard}
                             </span>
-                            {demoRoute.identityVerificationRequired && <span className="text-[10px] text-gray-500 bg-white/5 border border-white/10 px-2 py-0.5 rounded-full">احراز هویت</span>}
-                            {demoRoute.cargoVerificationRequired && <span className="text-[10px] text-gray-500 bg-white/5 border border-white/10 px-2 py-0.5 rounded-full">تأیید کالا</span>}
+                            {demoRoute.identityVerificationRequired && <span className="text-[10px] text-gray-500 bg-white/5 border border-white/10 px-2 py-0.5 rounded-full">{t.trkDemoIdVerif}</span>}
+                            {demoRoute.cargoVerificationRequired && <span className="text-[10px] text-gray-500 bg-white/5 border border-white/10 px-2 py-0.5 rounded-full">{t.trkDemoCargoVerif}</span>}
                             {demoRoute.otpDeliveryRequired && <span className="text-[10px] text-gray-500 bg-white/5 border border-white/10 px-2 py-0.5 rounded-full">OTP</span>}
-                            {demoRoute.deliveryPhotoRequired && <span className="text-[10px] text-gray-500 bg-white/5 border border-white/10 px-2 py-0.5 rounded-full">عکس تحویل</span>}
+                            {demoRoute.deliveryPhotoRequired && <span className="text-[10px] text-gray-500 bg-white/5 border border-white/10 px-2 py-0.5 rounded-full">{t.trkDemoDeliveryPhoto}</span>}
                           </div>
                         )}
                         <div className="rounded-xl bg-white/2 border border-white/5 p-3">
-                          <div className="text-xs text-gray-500 uppercase tracking-widest mb-2 font-semibold">وضعیت مسیر</div>
+                          <div className="text-xs text-gray-500 uppercase tracking-widest mb-2 font-semibold">{t.trkDemoRouteStatus}</div>
                           <DemoRouteTimeline status={demoRoute.status} />
                         </div>
-                        {demoRoute.eta && <div className="text-center text-xs text-gray-500">تاریخ تحویل تخمینی: <span className="text-white font-semibold">{demoRoute.eta}</span></div>}
+                        {demoRoute.eta && <div className="text-center text-xs text-gray-500">{t.trkDemoEtaLabel} <span className="text-white font-semibold">{demoRoute.eta}</span></div>}
                       </div>
                     );
                   })()}
@@ -1138,10 +1142,10 @@ export default function TrackPage({ initialCode = '' }: TrackPageProps) {
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-md flex items-end justify-center" onClick={e => { if (e.target === e.currentTarget) setHandoverModal(false); }}>
           <div className="bg-[#0d1a36] border border-white/10 rounded-t-3xl w-full max-w-md px-6 pb-9 pt-7">
             <div className="w-9 h-1 bg-white/20 rounded-full mx-auto mb-6" />
-            <div className="text-lg font-extrabold mb-2.5" dir="rtl">📦 تأیید تحویل کالا</div>
-            <div className="text-xs text-gray-400 leading-relaxed mb-6" dir="rtl">
-              با تأیید این مرحله تأیید می‌کنید که کالا را از مالک تحویل گرفته‌اید و مسئولیت ایمنی آن تا تحویل به گیرنده بر عهده شماست.<br /><br />
-              <strong>گیرنده ۷۲ ساعت فرصت دارد دریافت کالا را تأیید کند.</strong>
+            <div className="text-lg font-extrabold mb-2.5" dir={isRTL ? 'rtl' : 'ltr'}>{t.trkHovrModalTitle}</div>
+            <div className="text-xs text-gray-400 leading-relaxed mb-6" dir={isRTL ? 'rtl' : 'ltr'}>
+              {t.trkHovrModalDesc}<br /><br />
+              <strong>{t.trkHovrModalNote}</strong>
             </div>
             <div className="space-y-2.5">
               <button
@@ -1149,10 +1153,10 @@ export default function TrackPage({ initialCode = '' }: TrackPageProps) {
                 disabled={handoverLoading}
                 className="w-full py-4 rounded-2xl bg-gradient-to-r from-green-500 to-green-600 text-white font-extrabold text-sm disabled:opacity-50 hover:opacity-90 transition-all"
               >
-                {handoverLoading ? 'در حال ثبت...' : '✅ کالا را تحویل گرفتم'}
+                {handoverLoading ? t.trkHovrModalLoading : t.trkHovrModalConfirm}
               </button>
               <button onClick={() => setHandoverModal(false)} className="w-full py-3.5 rounded-2xl bg-transparent border border-white/13 text-gray-400 font-bold text-sm hover:bg-white/6 transition-all">
-                انصراف
+                {t.trkHovrModalCancel}
               </button>
             </div>
           </div>

@@ -1,14 +1,16 @@
 import { useState } from 'react';
 import { BadgeCheck, Camera, Phone, Cpu, Upload, Package, FileText, AlertCircle, CheckCircle, Clock, XCircle } from 'lucide-react';
 import type { VerificationStatus } from './shipmentTypes';
+import { useLang } from '../lib/LangContext';
 
 // ─── Status badge ──────────────────────────────────────────────────────────────
 export function StatusBadge({ status }: { status: VerificationStatus }) {
+  const { t } = useLang();
   const cfg = {
-    PENDING:       { label: 'در انتظار',        cls: 'bg-yellow-50 text-yellow-700 border-yellow-200', Icon: Clock },
-    VERIFIED:      { label: 'تأیید شده',        cls: 'bg-green-50 text-green-700 border-green-200',   Icon: CheckCircle },
-    REJECTED:      { label: 'رد شده',           cls: 'bg-red-50 text-red-700 border-red-200',         Icon: XCircle },
-    MANUAL_REVIEW: { label: 'بررسی دستی',       cls: 'bg-blue-50 text-blue-700 border-blue-200',      Icon: AlertCircle },
+    PENDING:       { label: t.verPending,      cls: 'bg-yellow-50 text-yellow-700 border-yellow-200', Icon: Clock },
+    VERIFIED:      { label: t.verVerified,     cls: 'bg-green-50 text-green-700 border-green-200',   Icon: CheckCircle },
+    REJECTED:      { label: t.verRejected,     cls: 'bg-red-50 text-red-700 border-red-200',         Icon: XCircle },
+    MANUAL_REVIEW: { label: t.verManualReview, cls: 'bg-blue-50 text-blue-700 border-blue-200',      Icon: AlertCircle },
   }[status];
   return (
     <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full border ${cfg.cls}`}>
@@ -47,6 +49,7 @@ interface IdentityVerificationProps {
 }
 
 export function IdentityVerification({ enabled, onToggle, status }: IdentityVerificationProps) {
+  const { t } = useLang();
   return (
     <div className="border border-gray-200 rounded-xl overflow-hidden">
       {/* Header toggle */}
@@ -60,8 +63,8 @@ export function IdentityVerification({ enabled, onToggle, status }: IdentityVeri
             <BadgeCheck className={`w-4 h-4 ${enabled ? 'text-blue-600' : 'text-gray-400'}`} />
           </div>
           <div className="text-start">
-            <div className="text-sm font-semibold text-gray-900">احراز هویت</div>
-            <div className="text-xs text-gray-500">تأیید هویت با هوش مصنوعی</div>
+            <div className="text-sm font-semibold text-gray-900">{t.verIdentityTitle}</div>
+            <div className="text-xs text-gray-500">{t.verIdentitySub}</div>
           </div>
         </div>
         <div className="flex items-center gap-3">
@@ -76,14 +79,14 @@ export function IdentityVerification({ enabled, onToggle, status }: IdentityVeri
       {enabled && (
         <div className="border-t border-gray-100 px-5 py-5 bg-slate-50 space-y-4">
           <div className="grid grid-cols-2 gap-3">
-            <FileUploadStub label="کارت ملی یا پاسپورت" accept="image/*,.pdf" icon={FileText} />
-            <FileUploadStub label="سلفی / عکس زنده" accept="image/*" icon={Camera} />
+            <FileUploadStub label={t.verDocUpload} accept="image/*,.pdf" icon={FileText} />
+            <FileUploadStub label={t.verSelfieUpload} accept="image/*" icon={Camera} />
           </div>
 
           <div className="flex items-center justify-between bg-white border border-gray-200 rounded-xl px-4 py-3">
             <div className="flex items-center gap-2">
               <Phone className="w-4 h-4 text-gray-400" />
-              <span className="text-sm text-gray-700">تأیید شماره موبایل</span>
+              <span className="text-sm text-gray-700">{t.verPhoneConfirm}</span>
             </div>
             <StatusBadge status="VERIFIED" />
           </div>
@@ -91,13 +94,13 @@ export function IdentityVerification({ enabled, onToggle, status }: IdentityVeri
           <div className="flex items-center justify-between bg-white border border-gray-200 rounded-xl px-4 py-3">
             <div className="flex items-center gap-2">
               <Cpu className="w-4 h-4 text-gray-400" />
-              <span className="text-sm text-gray-700">بررسی هوش مصنوعی</span>
+              <span className="text-sm text-gray-700">{t.verAiCheck}</span>
             </div>
             <StatusBadge status={status} />
           </div>
 
           <p className="text-xs text-gray-400 leading-relaxed">
-            اطلاعات هویتی شما به‌صورت رمزنگاری‌شده ذخیره می‌شود و تنها برای تأیید هویت استفاده خواهد شد.
+            {t.verIdentityNote}
           </p>
         </div>
       )}
@@ -113,6 +116,7 @@ interface CargoVerificationProps {
 }
 
 export function CargoVerification({ enabled, onToggle, status }: CargoVerificationProps) {
+  const { t } = useLang();
   const [declaredValue, setDeclaredValue] = useState('');
   const [serial, setSerial]               = useState('');
 
@@ -129,8 +133,8 @@ export function CargoVerification({ enabled, onToggle, status }: CargoVerificati
             <Package className={`w-4 h-4 ${enabled ? 'text-purple-600' : 'text-gray-400'}`} />
           </div>
           <div className="text-start">
-            <div className="text-sm font-semibold text-gray-900">احراز کالا</div>
-            <div className="text-xs text-gray-500">تأیید محتوا و ارزش کالا</div>
+            <div className="text-sm font-semibold text-gray-900">{t.verCargoTitle}</div>
+            <div className="text-xs text-gray-500">{t.verCargoSub}</div>
           </div>
         </div>
         <div className="flex items-center gap-3">
@@ -145,19 +149,19 @@ export function CargoVerification({ enabled, onToggle, status }: CargoVerificati
       {enabled && (
         <div className="border-t border-gray-100 px-5 py-5 bg-slate-50 space-y-4">
           <div className="grid grid-cols-2 gap-3">
-            <FileUploadStub label="عکس‌های کالا (اجباری)" accept="image/*" icon={Camera} />
-            <FileUploadStub label="ویدیو کالا (اختیاری)" accept="video/*" icon={Upload} />
+            <FileUploadStub label={t.verCargoPhotos} accept="image/*" icon={Camera} />
+            <FileUploadStub label={t.verCargoVideo} accept="video/*" icon={Upload} />
           </div>
-          <FileUploadStub label="رسید خرید (اختیاری)" accept="image/*,.pdf" icon={FileText} />
+          <FileUploadStub label={t.verCargoReceipt} accept="image/*,.pdf" icon={FileText} />
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">ارزش اعلام‌شده ($)</label>
+              <label className="block text-xs font-medium text-gray-500 mb-1">{t.verDeclaredValue}</label>
               <input type="number" placeholder="200" className="ds-input text-sm"
                 value={declaredValue} onChange={e => setDeclaredValue(e.target.value)} />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">شماره سریال (اختیاری)</label>
+              <label className="block text-xs font-medium text-gray-500 mb-1">{t.verSerialNumber}</label>
               <input type="text" placeholder="SN-XXXX" className="ds-input text-sm"
                 value={serial} onChange={e => setSerial(e.target.value)} />
             </div>
@@ -166,13 +170,13 @@ export function CargoVerification({ enabled, onToggle, status }: CargoVerificati
           <div className="flex items-center justify-between bg-white border border-gray-200 rounded-xl px-4 py-3">
             <div className="flex items-center gap-2">
               <Cpu className="w-4 h-4 text-gray-400" />
-              <span className="text-sm text-gray-700">بررسی ریسک هوش مصنوعی</span>
+              <span className="text-sm text-gray-700">{t.verAiRiskCheck}</span>
             </div>
             <StatusBadge status={status} />
           </div>
 
           <p className="text-xs text-gray-400 leading-relaxed">
-            احراز کالا احتمال اختلاف را کاهش می‌دهد و پوشش بیمه‌ای بیشتری ارائه می‌دهد.
+            {t.verCargoNote}
           </p>
         </div>
       )}

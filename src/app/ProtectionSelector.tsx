@@ -1,4 +1,5 @@
 import type { SecurityLevel } from './shipmentTypes';
+import { useLang } from '../lib/LangContext';
 
 interface Props {
   securityLevel: SecurityLevel;
@@ -13,29 +14,6 @@ interface Props {
   onDeliveryPhoto: (v: boolean) => void;
 }
 
-const LEVELS: { value: SecurityLevel; label: string; sub: string; badge: string; recommended?: boolean }[] = [
-  {
-    value: 'STANDARD',
-    label: 'حمل عادی',
-    sub: 'مناسب برای مدارک، نامه‌ها و اقلام کم‌ارزش. بدون ودیعه.',
-    badge: 'حمل عادی',
-  },
-  {
-    value: 'GUARANTEED',
-    label: 'حمل تضمینی',
-    sub: 'برای کالاهای ارزشمند. ودیعه مسافر قفل می‌شود تا تضمین تحویل داشته باشید.',
-    badge: 'حمل تضمینی',
-    recommended: true,
-  },
-];
-
-const OPTIONAL_SERVICES: { key: keyof Props; label: string; desc: string }[] = [
-  { key: 'identityVerificationRequired', label: 'احراز هویت مسافر',   desc: 'تأیید هویت مسافر پیش از تحویل کالا' },
-  { key: 'cargoVerificationRequired',    label: 'تأیید کالا',          desc: 'بررسی و تأیید محتوای بسته توسط مسافر' },
-  { key: 'otpDeliveryRequired',          label: 'OTP تحویل',           desc: 'کد تأیید یک‌بار مصرف برای تحویل نهایی' },
-  { key: 'deliveryPhotoRequired',        label: 'عکس تحویل',           desc: 'مسافر موظف به ارسال عکس لحظه تحویل است' },
-];
-
 export default function SecuritySelector({
   securityLevel, onSecurityLevel,
   identityVerificationRequired, cargoVerificationRequired,
@@ -43,6 +21,20 @@ export default function SecuritySelector({
   onIdentityVerification, onCargoVerification,
   onOtpDelivery, onDeliveryPhoto,
 }: Props) {
+  const { t } = useLang();
+
+  const LEVELS: { value: SecurityLevel; label: string; sub: string; recommended?: boolean }[] = [
+    { value: 'STANDARD',   label: t.protStandardLabel,   sub: t.protStandardSub },
+    { value: 'GUARANTEED', label: t.protGuaranteedLabel, sub: t.protGuaranteedSub, recommended: true },
+  ];
+
+  const OPTIONAL_SERVICES: { key: string; label: string; desc: string }[] = [
+    { key: 'identityVerificationRequired', label: t.protIdentityLabel, desc: t.protIdentityDesc },
+    { key: 'cargoVerificationRequired',    label: t.protCargoLabel,    desc: t.protCargoDesc },
+    { key: 'otpDeliveryRequired',          label: t.protOtpLabel,      desc: t.protOtpDesc },
+    { key: 'deliveryPhotoRequired',        label: t.protPhotoLabel,    desc: t.protPhotoDesc },
+  ];
+
   const boolGetters: Record<string, boolean> = {
     identityVerificationRequired,
     cargoVerificationRequired,
@@ -62,7 +54,7 @@ export default function SecuritySelector({
       <div>
         <div className="flex items-center gap-2 mb-3">
           <div className="w-1 h-5 bg-cyan-500 rounded-full" />
-          <h3 className="text-base font-bold text-gray-900">سطح امنیت حمل</h3>
+          <h3 className="text-base font-bold text-gray-900">{t.protSecurityLevelTitle}</h3>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {LEVELS.map(opt => {
@@ -88,7 +80,7 @@ export default function SecuritySelector({
                     </span>
                   </div>
                   {opt.recommended && (
-                    <span className="text-[10px] font-bold bg-cyan-500 text-white px-2 py-0.5 rounded-full">پیشنهادی</span>
+                    <span className="text-[10px] font-bold bg-cyan-500 text-white px-2 py-0.5 rounded-full">{t.protRecommended}</span>
                   )}
                 </div>
                 <p className={`text-xs leading-relaxed ${active ? 'text-cyan-600' : 'text-gray-500'}`}>{opt.sub}</p>
@@ -102,8 +94,8 @@ export default function SecuritySelector({
       <div>
         <div className="flex items-center gap-2 mb-3">
           <div className="w-1 h-5 bg-gray-300 rounded-full" />
-          <h3 className="text-sm font-bold text-gray-700">خدمات تکمیلی</h3>
-          <span className="text-xs text-gray-400">(اختیاری)</span>
+          <h3 className="text-sm font-bold text-gray-700">{t.protOptionalTitle}</h3>
+          <span className="text-xs text-gray-400">{t.protOptional}</span>
         </div>
         <div className="space-y-2">
           {OPTIONAL_SERVICES.map(svc => {
@@ -138,6 +130,7 @@ export default function SecuritySelector({
 
 // Badge for marketplace cards and route lists
 export function SecurityBadge({ level }: { level: SecurityLevel }) {
+  const { t } = useLang();
   const isGuaranteed = level === 'GUARANTEED';
   return (
     <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full border ${
@@ -146,7 +139,7 @@ export function SecurityBadge({ level }: { level: SecurityLevel }) {
         : 'bg-gray-100 text-gray-600 border-gray-200'
     }`}>
       <span className="w-1.5 h-1.5 rounded-full bg-current opacity-60" />
-      {isGuaranteed ? 'حمل تضمینی' : 'حمل عادی'}
+      {isGuaranteed ? t.protBadgeGuaranteed : t.protBadgeStandard}
     </span>
   );
 }

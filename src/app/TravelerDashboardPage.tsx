@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { ArrowLeft, Home } from 'lucide-react';
 import { Store, genId } from '../lib/store';
 import { useSession } from '../lib/SessionContext';
+import { useLang } from '../lib/LangContext';
 
 interface Trip {
   id: string; userId: string; origin: string; originCity?: string;
@@ -24,17 +25,6 @@ interface Rating { tripId: string; score: number; }
 
 const CARGO_ICONS: Record<string,string> = {
   personal:'📦', medicine:'💊', documents:'📄', clothing:'👗', electronics:'💻', gift:'🎁', other:'📦', food:'🍱'
-};
-const CARGO_LABELS: Record<string,string> = {
-  personal:'کالای شخصی', medicine:'دارو', documents:'مدارک', clothing:'لباس', electronics:'الکترونیک', gift:'هدیه'
-};
-const STATUS_FA: Record<string,string> = {
-  pending:'در انتظار', matched:'تخصیص‌یافته', in_transit:'در مسیر',
-  delivered:'تحویل شد', cancelled:'لغو شده', picked_up:'تحویل گرفته شد'
-};
-const OFFER_STATUS_FA: Record<string,string> = {
-  pending:'در انتظار', accepted:'قبول شد', declined:'رد شد',
-  countered:'پیشنهاد مقابل', owner_paid:'پرداخت شد'
 };
 const OFFER_STATUS_CLS: Record<string,string> = {
   pending:   'bg-yellow-50 text-yellow-700 border-yellow-200',
@@ -63,6 +53,19 @@ interface Props { onBack: () => void; onHome: () => void; t: Record<string,strin
 
 export default function TravelerDashboardPage({ onHome, onNewTrip, onNavigate }: Props) {
   const { session } = useSession();
+  const { t, isRTL } = useLang();
+  const CARGO_LABELS: Record<string,string> = {
+    personal:t.tdashCargoPersonal, medicine:t.tdashCargoMedicine, documents:t.tdashCargoDocuments,
+    clothing:t.tdashCargoClothing, electronics:t.tdashCargoElectronics, gift:t.tdashCargoGift,
+  };
+  const STATUS_FA: Record<string,string> = {
+    pending:t.tdashStatusPending, matched:t.tdashStatusMatched, in_transit:t.tdashStatusTransit,
+    delivered:t.tdashStatusDelivered, cancelled:t.tdashStatusCancelled, picked_up:t.tdashStatusPickedUp,
+  };
+  const OFFER_STATUS_FA: Record<string,string> = {
+    pending:t.tdashOfferPending, accepted:t.tdashOfferAccepted, declined:t.tdashOfferDeclined,
+    countered:t.tdashOfferCountered, owner_paid:t.tdashOfferPaid,
+  };
   const TODAY = new Date().toISOString().split('T')[0];
 
   const [tab, setTab]             = useState<'trips'|'orders'|'myoffers'>('trips');
@@ -111,19 +114,7 @@ export default function TravelerDashboardPage({ onHome, onNewTrip, onNavigate }:
 
   useEffect(() => { loadData(); }, [loadData]);
 
-  if (!session) {
-    return (
-      <div className="min-h-screen bg-white flex items-center justify-center px-4" dir="rtl">
-        <div className="text-center max-w-sm">
-          <div className="text-5xl mb-4">✈️</div>
-          <h2 className="text-lg font-extrabold text-gray-900 mb-2">ابتدا وارد شوید</h2>
-          <p className="text-sm text-gray-400 mb-5 leading-relaxed">برای مشاهده داشبورد مسافر، ابتدا وارد حساب خود شوید</p>
-          <button onClick={() => onNavigate('auth')}
-            className="ds-btn-primary px-6 py-2.5 text-sm">← ورود به حساب</button>
-        </div>
-      </div>
-    );
-  }
+  if (!session) return null; // App.tsx redirects to auth
 
   // ── Derived data ──────────────────────────────────────────────────────────────
   const activeTrips    = myTrips.filter(t => t.status === 'active' && t.date >= TODAY);
@@ -163,9 +154,9 @@ export default function TravelerDashboardPage({ onHome, onNewTrip, onNavigate }:
   }
 
   function submitOffer() {
-    if (!offerTripId)          { setOfferErr('لطفاً سفر مرتبط را انتخاب کنید'); return; }
+    if (!offerTripId)          { setOfferErr(t.tdashErrTrip); return; }
     const price = parseFloat(offerPrice) || 0;
-    if (!price || price <= 0)  { setOfferErr('لطفاً قیمت پیشنهادی را وارد کنید'); return; }
+    if (!price || price <= 0)  { setOfferErr(t.tdashErrPrice); return; }
     if (!offerOrder) return;
     const trip = myTrips.find(t => t.id === offerTripId);
     const oid  = genId('OF');
@@ -184,18 +175,18 @@ export default function TravelerDashboardPage({ onHome, onNewTrip, onNavigate }:
 
     const notifs = Store.get<object[]>('notifications') ?? [];
     notifs.unshift({ id: genId('N'), type: 'offer_received',
-      title: 'پیشنهاد جدید دریافت شد ✈️',
-      body: `${offer.travelerName} برای سفارش ${offer.orderId} پیشنهاد ارسال کرد.`,
+      title: t.tdashNotifTitle,
+      body: t.tdashNotifBody.replace('{name}', offer.travelerName ?? '').replace('{id}', offer.orderId ?? ''),
       orderId: offer.orderId, offerId: oid, at: Date.now(), read: false });
     Store.set('notifications', notifs.slice(0, 200));
 
     setOfferOrder(null);
-    showToast('✅ پیشنهاد شما با موفقیت ارسال شد');
+    showToast(t.tdashOfferSent);
     loadData(); setTab('myoffers');
   }
 
   function acceptCounterOffer(offerId: string) {
-    if (!confirm('پیشنهاد مقابل را قبول می‌کنید؟')) return;
+    if (!confirm(t.tdashConfirmCounter)) return;
     let all = Store.get<Offer[]>('offers') ?? [];
     all = all.map(o => o.offerId !== offerId ? o : { ...o, status: 'accepted', price: o.counterPrice ?? o.price });
     Store.set('offers', all);
@@ -208,21 +199,21 @@ export default function TravelerDashboardPage({ onHome, onNewTrip, onNavigate }:
       st[offer.trackId || offer.orderId || ''] = 'matched';
       Store.set('admin_statuses', st);
     }
-    showToast('✅ پیشنهاد مقابل قبول شد'); loadData();
+    showToast(t.tdashCounterAccepted); loadData();
   }
 
   function rejectCounterOffer(offerId: string) {
     let all = Store.get<Offer[]>('offers') ?? [];
     all = all.map(o => o.offerId !== offerId ? o : { ...o, status: 'declined' });
     Store.set('offers', all);
-    showToast('پیشنهاد رد شد', false); loadData();
+    showToast(t.tdashCounterRejected, false); loadData();
   }
 
   function doDeleteTrip(tripId: string) {
-    if (!confirm('آیا مطمئن هستید می‌خواهید این سفر حذف شود؟\nسفر از لیست پنهان خواهد شد.')) return;
+    if (!confirm(t.tdashConfirmDeleteTrip)) return;
     const all = Store.get<Trip[]>('trips') ?? [];
-    Store.set('trips', all.map(t => t.id === tripId ? { ...t, status: 'deleted' } : t));
-    showToast('سفر حذف شد', false); loadData();
+    Store.set('trips', all.map(tr => tr.id === tripId ? { ...tr, status: 'deleted' } : tr));
+    showToast(t.tdashTripDeleted, false); loadData();
   }
 
   function openEditModal(trip: Trip) {
@@ -231,7 +222,7 @@ export default function TravelerDashboardPage({ onHome, onNewTrip, onNavigate }:
       return (st === 'matched' || st === 'in_transit') &&
         offers.some(of => of.orderId === o.trackId && of.travelerId === session.userId && of.status === 'accepted');
     });
-    if (hasMatchedOrd) { showToast('🔒 تغییر سفر پس از تخصیص کالا ممنوع است.', false); return; }
+    if (hasMatchedOrd) { showToast(t.tdashEditLocked, false); return; }
     setEditTrip(trip);
     setEtDate(trip.date || '');
     setEtCap(String(trip.capacity ?? ''));
@@ -239,15 +230,15 @@ export default function TravelerDashboardPage({ onHome, onNewTrip, onNavigate }:
   }
 
   function saveEdit() {
-    if (!etDate || !editTrip) { showToast('تاریخ سفر الزامی است', false); return; }
+    if (!etDate || !editTrip) { showToast(t.tdashErrDate, false); return; }
     const all = Store.get<Trip[]>('trips') ?? [];
-    Store.set('trips', all.map(t => t.id !== editTrip.id ? t : {
-      ...t, date: etDate,
+    Store.set('trips', all.map(tr => tr.id !== editTrip.id ? tr : {
+      ...tr, date: etDate,
       capacity: parseFloat(etCap) || undefined,
       minPricePerKg: parseFloat(etMinPx) || undefined,
       updatedAt: Date.now(),
     }));
-    setEditTrip(null); showToast('سفر ویرایش شد ✅'); loadData();
+    setEditTrip(null); showToast(t.tdashTripEdited); loadData();
   }
 
   function openPickup(ordId: string)   { setPhotoMode('pickup');   setPhotoOrd(ordId); setPhotoData(null); }
@@ -256,14 +247,14 @@ export default function TravelerDashboardPage({ onHome, onNewTrip, onNavigate }:
   function onFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (!file.type.startsWith('image/')) { showToast('فایل انتخابی باید تصویر باشد', false); return; }
+    if (!file.type.startsWith('image/')) { showToast(t.tdashErrImage, false); return; }
     const reader = new FileReader();
     reader.onload = ev => setPhotoData(ev.target?.result as string);
     reader.readAsDataURL(file);
   }
 
   function submitPhoto() {
-    if (!photoData) { showToast('⚠️ عکس گرفتن اجباری است', false); return; }
+    if (!photoData) { showToast(t.tdashErrPhoto, false); return; }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const tracking: any[] = Store.get('_test_tracking') ?? [];
     let idx = tracking.findIndex((t: { orderId?: string; trackId?: string }) => t.orderId === photoOrd || t.trackId === photoOrd);
@@ -273,11 +264,11 @@ export default function TravelerDashboardPage({ onHome, onNewTrip, onNavigate }:
     if (photoMode === 'pickup') {
       Object.assign(entry, { pickupPhoto: true, pickupPhotoAt: Date.now(), pickupPhotoData: 'captured' });
       st[photoOrd] = 'picked_up';
-      showToast('✅ تحویل از فرستنده تأیید شد — عکس ذخیره شد');
+      showToast(t.tdashPickupConfirmed);
     } else {
       Object.assign(entry, { deliveryPhoto: true, deliveryPhotoAt: Date.now(), deliveryPhotoData: 'captured' });
       st[photoOrd] = 'delivered';
-      showToast('✅ تحویل به گیرنده تأیید شد — عکس ذخیره شد');
+      showToast(t.tdashDeliveryConfirmed);
     }
     Store.set('admin_statuses', st);
     Store.set('_test_tracking', tracking);
@@ -286,19 +277,19 @@ export default function TravelerDashboardPage({ onHome, onNewTrip, onNavigate }:
 
   // ── Render ────────────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-gray-50" dir="rtl">
+    <div className="min-h-screen bg-gray-50" dir={isRTL ? 'rtl' : 'ltr'}>
       {/* Header */}
       <div className="bg-white border-b border-gray-100 px-4 sm:px-6 py-4">
         <div className="max-w-2xl mx-auto flex items-center gap-3">
           <button onClick={() => window.history.back()} className="ds-nav-btn group">
-            <ArrowLeft className="w-4 h-4" /><span>بازگشت</span>
+            <ArrowLeft className="w-4 h-4" /><span>{t.tdashBack}</span>
           </button>
           <button onClick={onHome} className="ds-nav-btn ds-nav-btn-home">
-            <Home className="w-4 h-4" /><span>خانه</span>
+            <Home className="w-4 h-4" /><span>{t.tdashHome}</span>
           </button>
           <div className="mr-auto">
-            <h1 className="text-base font-extrabold text-gray-900">داشبورد مسافر</h1>
-            <p className="text-xs text-gray-400">سلام {session.firstName}، آمار سفرهای شما</p>
+            <h1 className="text-base font-extrabold text-gray-900">{t.tdashTitle}</h1>
+            <p className="text-xs text-gray-400">{t.tdashGreeting.replace('{name}', session.firstName || '')}</p>
           </div>
         </div>
       </div>
@@ -307,10 +298,10 @@ export default function TravelerDashboardPage({ onHome, onNewTrip, onNavigate }:
         {/* Stat grid */}
         <div className="grid grid-cols-2 gap-3 mb-5">
           {[
-            { icon:'✈️', val:myTrips.length,                      lbl:'کل سفرها',       cls:'text-blue-600'  },
-            { icon:'📦', val:deliveredCount,                      lbl:'تحویل داده شد',  cls:'text-green-600' },
-            { icon:'⭐', val:avgRating > 0 ? avgRating.toFixed(1) : '—', lbl:'امتیاز میانگین', cls:'text-amber-600' },
-            { icon:'💰', val:earnings > 0 ? fmtShortNum(earnings) : '—', lbl:'درآمد (تومان)',  cls:'text-green-600' },
+            { icon:'✈️', val:myTrips.length,                      lbl:t.tdashStatTrips,     cls:'text-blue-600'  },
+            { icon:'📦', val:deliveredCount,                      lbl:t.tdashStatDelivered, cls:'text-green-600' },
+            { icon:'⭐', val:avgRating > 0 ? avgRating.toFixed(1) : '—', lbl:t.tdashStatRating, cls:'text-amber-600' },
+            { icon:'💰', val:earnings > 0 ? fmtShortNum(earnings) : '—', lbl:t.tdashStatEarnings, cls:'text-green-600' },
           ].map(s => (
             <div key={s.lbl} className="bg-white border border-gray-100 rounded-2xl p-4 text-center shadow-sm">
               <div className="text-2xl mb-1">{s.icon}</div>
@@ -323,15 +314,15 @@ export default function TravelerDashboardPage({ onHome, onNewTrip, onNavigate }:
         {/* New trip CTA */}
         <button onClick={onNewTrip}
           className="w-full ds-btn-primary py-3 flex items-center justify-center gap-2 mb-5 rounded-xl text-sm font-bold">
-          ✈️ ثبت سفر جدید
+          {t.tdashNewTrip}
         </button>
 
         {/* Tab bar */}
         <div className="flex gap-1.5 bg-gray-100 rounded-xl p-1.5 mb-5">
           {([
-            { key:'trips',    label:'سفرهای من',     badge:0,                  badgeCls:'' },
-            { key:'orders',   label:'سفارش‌های باز', badge:openOrders.length,  badgeCls:'' },
-            { key:'myoffers', label:'پیشنهادهای من', badge:pendingOfferCount,  badgeCls:'bg-amber-500' },
+            { key:'trips',    label:t.tdashTabTrips,  badge:0,                  badgeCls:'' },
+            { key:'orders',   label:t.tdashTabOrders, badge:openOrders.length,  badgeCls:'' },
+            { key:'myoffers', label:t.tdashTabOffers, badge:pendingOfferCount,  badgeCls:'bg-amber-500' },
           ] as const).map(tb => (
             <button key={tb.key} onClick={() => setTab(tb.key)}
               className={`flex-1 py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all
@@ -351,8 +342,8 @@ export default function TravelerDashboardPage({ onHome, onNewTrip, onNavigate }:
           sortedTrips.length === 0 ? (
             <div className="text-center py-12 text-gray-400">
               <div className="text-5xl mb-3">✈️</div>
-              <div className="text-base font-bold text-gray-700 mb-1">هنوز سفری ثبت نشده</div>
-              <div className="text-sm">سفر جدید خود را همین حالا ثبت کنید</div>
+              <div className="text-base font-bold text-gray-700 mb-1">{t.tdashNoTrips}</div>
+              <div className="text-sm">{t.tdashNoTripsDesc}</div>
             </div>
           ) : (
             <div className="space-y-3">
@@ -375,12 +366,12 @@ export default function TravelerDashboardPage({ onHome, onNewTrip, onNavigate }:
                         isActive  ? 'bg-blue-50 text-blue-700 border-blue-200'
                         : isPending ? 'bg-amber-50 text-amber-700 border-amber-200'
                         : 'bg-gray-100 text-gray-500 border-gray-200'
-                      }`}>{isActive ? 'فعال' : isPending ? '⏳ در انتظار تأیید' : 'گذشته'}</span>
+                      }`}>{isActive ? t.tdashTripActive : isPending ? t.tdashTripPending : t.tdashTripPast}</span>
                     </div>
                     <div className="flex flex-wrap gap-3 text-xs text-gray-500 mb-2">
                       <span>📅 {fmtDate(trip.date)}</span>
                       {trip.capacity != null   && <span>⚖️ {trip.capacity} kg</span>}
-                      {trip.minPricePerKg != null && <span>💰 از $ {Number(trip.minPricePerKg).toFixed(2)}</span>}
+                      {trip.minPricePerKg != null && <span>💰 $ {Number(trip.minPricePerKg).toFixed(2)}</span>}
                       {trip.phone             && <span>📞 {trip.phone}</span>}
                     </div>
                     {trip.cargoOptions && trip.cargoOptions.length > 0 && (
@@ -396,12 +387,12 @@ export default function TravelerDashboardPage({ onHome, onNewTrip, onNavigate }:
                       <div className="text-sm text-amber-500 mb-2">
                         {'⭐'.repeat(Math.round(tripAvg))}{'☆'.repeat(5 - Math.round(tripAvg))}
                         <span className="font-bold text-amber-600 mr-1">{tripAvg.toFixed(1)}</span>
-                        <span className="text-xs text-gray-400">({tripRatings.length} نظر)</span>
+                        <span className="text-xs text-gray-400">({tripRatings.length} {t.tdashReviews})</span>
                       </div>
                     )}
                     {tripOrds.length > 0 ? (
                       <div className="space-y-1.5 mb-2">
-                        <div className="text-xs font-bold text-gray-400">{tripOrds.length} سفارش تخصیص‌یافته</div>
+                        <div className="text-xs font-bold text-gray-400">{t.tdashAssignedOrders.replace('{n}', String(tripOrds.length))}</div>
                         {tripOrds.map(o => {
                           const st      = statuses[o.trackId] || '';
                           const canChat = st === 'matched' || st === 'in_transit';
@@ -423,19 +414,19 @@ export default function TravelerDashboardPage({ onHome, onNewTrip, onNavigate }:
                               {canChat && (
                                 <a href={`/chat?order=${encodeURIComponent(o.trackId)}&peer=${encodeURIComponent(o.userId||'')}&name=${encodeURIComponent((o.firstName||'')+' '+(o.lastName||''))}&role=traveler`}
                                   className="flex items-center justify-center gap-1 px-3 py-1.5 bg-blue-50 border border-blue-200 text-blue-700 text-xs font-bold rounded-xl no-underline hover:bg-blue-100 transition-colors">
-                                  💬 پیام امن با فرستنده
+                                  {t.tdashChatSender}
                                 </a>
                               )}
                               {canPick && (
                                 <button onClick={() => openPickup(o.trackId)}
                                   className="w-full flex items-center justify-center gap-1 px-3 py-1.5 bg-green-50 border border-green-200 text-green-700 text-xs font-bold rounded-xl hover:bg-green-100 transition-colors">
-                                  📷 تأیید تحویل از فرستنده (عکس اجباری)
+                                  {t.tdashConfirmPickup}
                                 </button>
                               )}
                               {canDel && (
                                 <button onClick={() => openDelivery(o.trackId)}
                                   className="w-full flex items-center justify-center gap-1 px-3 py-1.5 bg-amber-50 border border-amber-200 text-amber-700 text-xs font-bold rounded-xl hover:bg-amber-100 transition-colors">
-                                  📷 تأیید تحویل به گیرنده (عکس اجباری)
+                                  {t.tdashConfirmDelivery}
                                 </button>
                               )}
                             </div>
@@ -443,18 +434,18 @@ export default function TravelerDashboardPage({ onHome, onNewTrip, onNavigate }:
                         })}
                       </div>
                     ) : (
-                      <div className="text-xs text-gray-400 mb-2">هنوز سفارشی به این سفر تخصیص داده نشده</div>
+                      <div className="text-xs text-gray-400 mb-2">{t.tdashNoAssigned}</div>
                     )}
                     <div className="flex gap-2 mt-2">
                       {isActive && (
                         <button onClick={() => openEditModal(trip)}
                           className="flex-1 h-9 bg-blue-50 border border-blue-200 text-blue-700 text-xs font-bold rounded-xl hover:bg-blue-100 transition-colors">
-                          ✏️ ویرایش
+                          {t.tdashEdit}
                         </button>
                       )}
                       <button onClick={() => doDeleteTrip(trip.id)}
                         className="flex-1 h-9 bg-red-50 border border-red-200 text-red-600 text-xs font-bold rounded-xl hover:bg-red-100 transition-colors">
-                        🗑 حذف
+                        {t.tdashDelete}
                       </button>
                     </div>
                   </div>
@@ -469,19 +460,19 @@ export default function TravelerDashboardPage({ onHome, onNewTrip, onNavigate }:
           activeTrips.length === 0 ? (
             <div className="text-center py-12 text-gray-400">
               <div className="text-5xl mb-3">✈️</div>
-              <div className="text-base font-bold text-gray-700 mb-1">هنوز سفر فعالی ندارید</div>
-              <p className="text-sm mb-4">برای ارسال پیشنهاد به سفارش‌دهندگان،<br />ابتدا یک سفر فعال ثبت کنید</p>
-              <button onClick={onNewTrip} className="ds-btn-primary px-6 py-2.5 text-sm">✈️ ثبت سفر جدید</button>
+              <div className="text-base font-bold text-gray-700 mb-1">{t.tdashNoActiveTrip}</div>
+              <p className="text-sm mb-4">{t.tdashNoActiveTripDesc}</p>
+              <button onClick={onNewTrip} className="ds-btn-primary px-6 py-2.5 text-sm">{t.tdashNewTrip}</button>
             </div>
           ) : openOrders.length === 0 ? (
             <div className="text-center py-12 text-gray-400">
               <div className="text-5xl mb-3">📭</div>
-              <div className="text-base font-bold text-gray-700 mb-1">سفارش باز جدیدی نیست</div>
-              <div className="text-sm">به همه سفارش‌های موجود پیشنهاد داده‌اید<br />یا در حال حاضر سفارش جدیدی ثبت نشده</div>
+              <div className="text-base font-bold text-gray-700 mb-1">{t.tdashNoOpenOrders}</div>
+              <div className="text-sm">{t.tdashNoOpenOrdersDesc}</div>
             </div>
           ) : (
             <div>
-              <div className="text-xs font-bold text-gray-400 mb-3">{openOrders.length} سفارش باز برای پیشنهاد</div>
+              <div className="text-xs font-bold text-gray-400 mb-3">{t.tdashOpenForOffers.replace('{n}', String(openOrders.length))}</div>
               <div className="space-y-3">
                 {openOrders.map(o => {
                   const icon = CARGO_ICONS[o.cargoType || ''] || '📦';
@@ -504,7 +495,7 @@ export default function TravelerDashboardPage({ onHome, onNewTrip, onNavigate }:
                       </div>
                       <button onClick={() => openOfferModal(o)}
                         className="w-full ds-btn-primary py-2.5 text-sm rounded-xl">
-                        ✈️ ارسال پیشنهاد
+                        {t.tdashSendOffer}
                       </button>
                     </div>
                   );
@@ -519,8 +510,8 @@ export default function TravelerDashboardPage({ onHome, onNewTrip, onNavigate }:
           myOffers.length === 0 ? (
             <div className="text-center py-12 text-gray-400">
               <div className="text-5xl mb-3">📋</div>
-              <div className="text-base font-bold text-gray-700 mb-1">پیشنهادی نداده‌اید</div>
-              <div className="text-sm">از تب «سفارش‌های باز» برای سفارش‌های موجود پیشنهاد بدهید</div>
+              <div className="text-base font-bold text-gray-700 mb-1">{t.tdashNoOffers}</div>
+              <div className="text-sm">{t.tdashNoOffersDesc}</div>
             </div>
           ) : (
             <div className="space-y-3">
@@ -542,7 +533,7 @@ export default function TravelerDashboardPage({ onHome, onNewTrip, onNavigate }:
                     </div>
                     <div className="text-xs text-gray-500 mb-2">
                       <span className="font-bold text-amber-600">$ {parseFloat(String(offer.price)).toFixed(2)} USD</span>
-                      {trip?.date && <span className="mr-2">· سفر {fmtDate(trip.date)}</span>}
+                      {trip?.date && <span className="mr-2">· {t.tdashTripLabel} {fmtDate(trip.date)}</span>}
                       {trip?.origin && <span className="mr-2">· {trip.originCity || trip.origin} → {trip.destCity || trip.destination}</span>}
                     </div>
                     {offer.message && (
@@ -550,22 +541,22 @@ export default function TravelerDashboardPage({ onHome, onNewTrip, onNavigate }:
                     )}
                     {offer.status === 'owner_paid' && (
                       <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-2">
-                        <div className="text-xs font-bold text-amber-700 mb-2">💰 سفارش‌دهنده پرداخت کرد — ودیعه امنیتی شما نیاز است</div>
+                        <div className="text-xs font-bold text-amber-700 mb-2">{t.tdashOwnerPaid}</div>
                         <a href={`/traveler-deposit?offerId=${offer.offerId || offer.id}`}
                           className="flex items-center justify-center gap-1 bg-amber-500 text-white text-xs font-extrabold rounded-xl py-2 no-underline hover:opacity-90">
-                          🛡️ پرداخت ودیعه ←
+                          {t.tdashPayDeposit}
                         </a>
                       </div>
                     )}
                     {offer.status === 'accepted' && (
                       <a href={`/track?id=${offer.trackId || offer.orderId}`}
                         className="flex items-center justify-center gap-1 bg-green-50 border border-green-200 text-green-700 text-xs font-bold rounded-xl py-2 mb-2 no-underline hover:bg-green-100">
-                        📦 مشاهده سفارش ←
+                        {t.tdashViewOrder}
                       </a>
                     )}
                     {offer.status === 'countered' && (
                       <div className="bg-blue-50 border border-blue-200 rounded-xl p-3">
-                        <div className="text-xs font-bold text-blue-700 mb-1">💬 پیشنهاد مقابل صاحب کالا:</div>
+                        <div className="text-xs font-bold text-blue-700 mb-1">{t.tdashCounterTitle}</div>
                         <div className="text-lg font-extrabold text-amber-600 mb-1">
                           $ {parseFloat(String(offer.counterPrice || 0)).toFixed(2)} USD
                         </div>
@@ -573,11 +564,11 @@ export default function TravelerDashboardPage({ onHome, onNewTrip, onNavigate }:
                         <div className="flex gap-2">
                           <button onClick={() => rejectCounterOffer(offer.offerId || offer.id || '')}
                             className="flex-1 py-2 bg-red-50 border border-red-200 text-red-600 text-xs font-bold rounded-xl hover:bg-red-100 transition-colors">
-                            رد کردن
+                            {t.tdashCounterReject}
                           </button>
                           <button onClick={() => acceptCounterOffer(offer.offerId || offer.id || '')}
                             className="flex-[2] py-2 ds-btn-primary text-xs rounded-xl">
-                            ✅ قبول پیشنهاد مقابل
+                            {t.tdashCounterAccept}
                           </button>
                         </div>
                       </div>
@@ -595,7 +586,7 @@ export default function TravelerDashboardPage({ onHome, onNewTrip, onNavigate }:
         <div className="fixed inset-0 z-50 bg-black/60 flex items-end justify-center" onClick={() => setOfferOrder(null)}>
           <div className="w-full max-w-lg bg-white rounded-t-2xl p-5 pb-8 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-base font-extrabold">پیشنهاد حمل کالا</h3>
+              <h3 className="text-base font-extrabold">{t.tdashOfferModalTitle}</h3>
               <button onClick={() => setOfferOrder(null)} className="text-gray-400 text-xl font-bold hover:text-gray-700">✕</button>
             </div>
             <div className="bg-blue-50 border border-blue-100 rounded-xl px-3 py-2.5 mb-4 flex items-center gap-3">
@@ -607,31 +598,31 @@ export default function TravelerDashboardPage({ onHome, onNewTrip, onNavigate }:
               {offerOrder.valueUSD && <div className="text-sm font-bold text-amber-600">$ {parseFloat(offerOrder.valueUSD).toFixed(0)}</div>}
             </div>
             <div className="mb-3">
-              <label className="ds-label block mb-1">سفر مرتبط</label>
+              <label className="ds-label block mb-1">{t.tdashRelatedTrip}</label>
               <select value={offerTripId} onChange={e => setOfferTripId(e.target.value)} className="ds-input w-full">
-                {activeTrips.map(t => (
-                  <option key={t.id} value={t.id}>
-                    {t.originCity || t.origin} → {t.destCity || t.destination} ({t.date})
+                {activeTrips.map(tr => (
+                  <option key={tr.id} value={tr.id}>
+                    {tr.originCity || tr.origin} → {tr.destCity || tr.destination} ({tr.date})
                   </option>
                 ))}
               </select>
             </div>
             <div className="mb-3">
-              <label className="ds-label block mb-1">قیمت پیشنهادی (تومان)</label>
+              <label className="ds-label block mb-1">{t.tdashOfferPrice}</label>
               <input type="number" value={offerPrice} onChange={e => setOfferPrice(e.target.value)}
-                placeholder="مثال: ۵۰۰۰۰۰" min="0" className="ds-input w-full" style={{ direction: 'ltr' }} />
+                placeholder={t.tdashOfferPricePlaceholder} min="0" className="ds-input w-full" style={{ direction: 'ltr' }} />
             </div>
             <div className="mb-4">
-              <label className="ds-label block mb-1">پیام (اختیاری)</label>
+              <label className="ds-label block mb-1">{t.tdashOfferMsg}</label>
               <textarea value={offerMsg} onChange={e => setOfferMsg(e.target.value)}
-                placeholder="توضیحات، شرایط خاص..." className="ds-input w-full min-h-[72px] resize-none" />
+                placeholder={t.tdashOfferMsgPlaceholder} className="ds-input w-full min-h-[72px] resize-none" />
             </div>
             {offerErr && (
               <div className="text-xs text-red-600 font-bold mb-3 bg-red-50 border border-red-200 rounded-xl px-3 py-2">{offerErr}</div>
             )}
             <div className="flex gap-2">
-              <button onClick={() => setOfferOrder(null)} className="flex-1 ds-btn-secondary py-2.5">لغو</button>
-              <button onClick={submitOffer} className="flex-[2] ds-btn-primary py-2.5">ارسال پیشنهاد ✈️</button>
+              <button onClick={() => setOfferOrder(null)} className="flex-1 ds-btn-secondary py-2.5">{t.tdashCancel}</button>
+              <button onClick={submitOffer} className="flex-[2] ds-btn-primary py-2.5">{t.tdashSubmitOffer}</button>
             </div>
           </div>
         </div>
@@ -642,25 +633,25 @@ export default function TravelerDashboardPage({ onHome, onNewTrip, onNavigate }:
         <div className="fixed inset-0 z-50 bg-black/60 flex items-end justify-center" onClick={() => setEditTrip(null)}>
           <div className="w-full max-w-lg bg-white rounded-t-2xl p-5 pb-8" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-1">
-              <h3 className="text-base font-extrabold">ویرایش سفر</h3>
+              <h3 className="text-base font-extrabold">{t.tdashEditTripTitle}</h3>
               <button onClick={() => setEditTrip(null)} className="text-gray-400 text-xl font-bold hover:text-gray-700">✕</button>
             </div>
             <div className="text-[10px] text-gray-400 font-mono mb-4">{editTrip.id}</div>
             <div className="mb-3">
-              <label className="ds-label block mb-1">تاریخ سفر</label>
+              <label className="ds-label block mb-1">{t.tdashTripDate}</label>
               <input type="date" value={etDate} onChange={e => setEtDate(e.target.value)} className="ds-input w-full" style={{ direction: 'ltr' }} />
             </div>
             <div className="mb-3">
-              <label className="ds-label block mb-1">ظرفیت (kg)</label>
-              <input type="number" value={etCap} onChange={e => setEtCap(e.target.value)} placeholder="مثال: 20" min="0" className="ds-input w-full" style={{ direction: 'ltr' }} />
+              <label className="ds-label block mb-1">{t.tdashCapacity}</label>
+              <input type="number" value={etCap} onChange={e => setEtCap(e.target.value)} placeholder={t.tdashCapacityPlaceholder} min="0" className="ds-input w-full" style={{ direction: 'ltr' }} />
             </div>
             <div className="mb-4">
-              <label className="ds-label block mb-1">حداقل قیمت هر کیلو (USD)</label>
-              <input type="number" value={etMinPx} onChange={e => setEtMinPx(e.target.value)} placeholder="مثال: 5" min="0" step="0.1" className="ds-input w-full" style={{ direction: 'ltr' }} />
+              <label className="ds-label block mb-1">{t.tdashMinPrice}</label>
+              <input type="number" value={etMinPx} onChange={e => setEtMinPx(e.target.value)} placeholder={t.tdashMinPricePlaceholder} min="0" step="0.1" className="ds-input w-full" style={{ direction: 'ltr' }} />
             </div>
             <div className="flex gap-2">
-              <button onClick={() => setEditTrip(null)} className="flex-1 ds-btn-secondary py-2.5">لغو</button>
-              <button onClick={saveEdit} className="flex-[2] ds-btn-primary py-2.5">✅ ذخیره</button>
+              <button onClick={() => setEditTrip(null)} className="flex-1 ds-btn-secondary py-2.5">{t.tdashCancel}</button>
+              <button onClick={saveEdit} className="flex-[2] ds-btn-primary py-2.5">{t.tdashSave}</button>
             </div>
           </div>
         </div>
@@ -673,9 +664,9 @@ export default function TravelerDashboardPage({ onHome, onNewTrip, onNavigate }:
             <div className="flex items-center justify-between mb-1">
               <div>
                 <h3 className="text-base font-extrabold">
-                  {photoMode === 'pickup' ? '📦 عکس تحویل از فرستنده' : '🏠 عکس تحویل به گیرنده'}
+                  {photoMode === 'pickup' ? t.tdashPickupTitle : t.tdashDeliveryTitle}
                 </h3>
-                <div className="text-xs text-gray-400 mt-0.5">سفارش: {photoOrd}</div>
+                <div className="text-xs text-gray-400 mt-0.5">{t.tdashOrderLabel} {photoOrd}</div>
               </div>
               <button onClick={() => setPhotoMode(null)} className="text-gray-400 text-xl font-bold hover:text-gray-700">✕</button>
             </div>
@@ -687,16 +678,16 @@ export default function TravelerDashboardPage({ onHome, onNewTrip, onNavigate }:
               <div className="bg-blue-50 border-2 border-dashed border-blue-300 rounded-xl p-7 text-center cursor-pointer mb-4 mt-3"
                 onClick={() => fileRef.current?.click()}>
                 <div className="text-4xl mb-2">📷</div>
-                <div className="text-sm font-bold text-blue-700">برای گرفتن عکس کلیک کنید</div>
-                <div className="text-xs text-gray-400 mt-1">یا فایل را اینجا بکشید</div>
+                <div className="text-sm font-bold text-blue-700">{t.tdashTakePhoto}</div>
+                <div className="text-xs text-gray-400 mt-1">{t.tdashDragFile}</div>
               </div>
             )}
             <input type="file" ref={fileRef} accept="image/*" capture="environment" className="hidden" onChange={onFileChange} />
             <div className="flex gap-2">
-              <button onClick={() => setPhotoMode(null)} className="flex-1 ds-btn-secondary py-2.5">لغو</button>
+              <button onClick={() => setPhotoMode(null)} className="flex-1 ds-btn-secondary py-2.5">{t.tdashCancel}</button>
               <button onClick={submitPhoto} disabled={!photoData}
                 className="flex-[2] ds-btn-primary py-2.5 disabled:opacity-40 disabled:cursor-not-allowed">
-                ✅ ثبت تأیید
+                {t.tdashConfirm}
               </button>
             </div>
           </div>

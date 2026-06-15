@@ -10,6 +10,7 @@
  *  - Pulse rings tuned to 70km max; blue=origin, cyan=destination
  */
 import { useEffect, useRef, useState } from 'react';
+import { useLang } from '../lib/LangContext';
 import { createPortal } from 'react-dom';
 
 /* ── Global type stubs ─────────────────────────────────────────────────────── */
@@ -173,6 +174,7 @@ const FRAME_MS   = 1000 / 15;   // ~15 fps
 
 /* ── Component ────────────────────────────────────────────────────────────── */
 export default function Map3DGlobe({ className, onReady }: { className?: string; onReady?: () => void }) {
+  const { t } = useLang();
   const containerRef    = useRef<HTMLDivElement>(null);
   const mapRef          = useRef<any>(null);
   const routeStates     = useRef<Map<string, RouteState>>(new Map());
@@ -579,13 +581,13 @@ export default function Map3DGlobe({ className, onReady }: { className?: string;
     e.preventDefault();
     const code = trackInput.trim().toUpperCase();
     if (!code) return;
-    if (!routes.length) { setTrackError('در حال بارگذاری...'); return; }
+    if (!routes.length) { setTrackError(t.mapLoading); return; }
     const found = routes.find(r => r.trackingCode.toUpperCase() === code);
     if (found) {
       _flyTo(mapRef.current, found);
     } else {
       clearSelection();
-      setTrackError('کدی پیدا نشد');
+      setTrackError(t.mapNotFound);
     }
   };
 

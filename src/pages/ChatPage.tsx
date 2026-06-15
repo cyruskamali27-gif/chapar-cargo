@@ -5,18 +5,22 @@
  */
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Store, getSession, genId } from '../lib/store';
+import { useLang } from '../lib/LangContext';
+import type { translations } from '../app/i18n';
+
+type T = typeof translations['en'];
 
 // ── Content filter (exact from chat.html) ─────────────────────────────────────
-const BLOCK_PATTERNS = [
-  { re: /(\+?[0-9][\s\-.]?){9,13}[0-9]/g,                                                                                                                         msg: 'شماره تلفن' },
-  { re: /@[A-Za-z0-9_]{4,}/g,                                                                                                                                      msg: 'آیدی تلگرام/کاربری' },
-  { re: /[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}/g,                                                                                                     msg: 'ایمیل' },
-  { re: /(https?:\/\/|www\.)[^\s]+/gi,                                                                                                                              msg: 'لینک خارجی' },
-  { re: /wa\.me\/[0-9]+/gi,                                                                                                                                         msg: 'واتساپ' },
-  { re: /t\.me\/[A-Za-z0-9_]+/gi,                                                                                                                                   msg: 'لینک تلگرام' },
-  { re: /صفر[\s‌]*[نیهدسچپش]|[نیهدسچپش][\s‌]*صفر|یک[\s‌]*دو|دو[\s‌]*سه|سه[\s‌]*چهار|چهار[\s‌]*پنج|نه[\s‌]*هشت/g,            msg: 'اعداد به حروف فارسی' },
-  { re: /\b(zero|one|two|three|four|five|six|seven|eight|nine)[\s,.-]+(zero|one|two|three|four|five|six|seven|eight|nine)\b/gi,                                    msg: 'اعداد به حروف انگلیسی' },
-  { re: /خارج از (چاپار|اپ|پلتفرم)|بیا بریم خارج/gi,                                                                                                             msg: 'تبانی خارج از پلتفرم' },
+const BLOCK_PATTERNS: { re: RegExp; msgKey: keyof T }[] = [
+  { re: /(\+?[0-9][\s\-.]?){9,13}[0-9]/g,                                                                                                                         msgKey: 'chatBlockPhone' },
+  { re: /@[A-Za-z0-9_]{4,}/g,                                                                                                                                      msgKey: 'chatBlockTelegramId' },
+  { re: /[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}/g,                                                                                                     msgKey: 'chatBlockEmail' },
+  { re: /(https?:\/\/|www\.)[^\s]+/gi,                                                                                                                              msgKey: 'chatBlockLink' },
+  { re: /wa\.me\/[0-9]+/gi,                                                                                                                                         msgKey: 'chatBlockWhatsapp' },
+  { re: /t\.me\/[A-Za-z0-9_]+/gi,                                                                                                                                   msgKey: 'chatBlockTelegram' },
+  { re: /صفر[\s‌]*[نیهدسچپش]|[نیهدسچپش][\s‌]*صفر|یک[\s‌]*دو|دو[\s‌]*سه|سه[\s‌]*چهار|چهار[\s‌]*پنج|نه[\s‌]*هشت/g,            msgKey: 'chatBlockPersianNums' },
+  { re: /\b(zero|one|two|three|four|five|six|seven|eight|nine)[\s,.-]+(zero|one|two|three|four|five|six|seven|eight|nine)\b/gi,                                    msgKey: 'chatBlockEnglishNums' },
+  { re: /خارج از (چاپار|اپ|پلتفرم)|بیا بریم خارج/gi,                                                                                                             msgKey: 'chatBlockCollusion' },
 ];
 
 const MOD_PATTERNS = [
@@ -31,16 +35,9 @@ const MOD_PATTERNS = [
   /تلگرام/, /واتساپ/, /ایمیل من/, /شماره من/, /با من تماس/, /contact me/i,
 ];
 
-const AUTO_REPLIES = [
-  'ممنون از پیامتون. بزودی بررسی می‌کنم.',
-  'باشه، متوجه شدم.',
-  'مشخصات کالا را دقیق‌تر توضیح دهید.',
-  'چه وزن و ابعادی داره؟',
-  'تاریخ ارسال مشخص شده؟',
-  'هزینه پیشنهادی من معقوله.',
-  'وضعیت تحویل رو از پیگیری ببینید.',
-  'پرداخت از طریق چاپار انجام می‌شه، نگران نباشید.',
-  'اگه سوالی دارید اینجا بپرسید.',
+const autoReplies = (t: T) => [
+  t.chatReply1, t.chatReply2, t.chatReply3, t.chatReply4, t.chatReply5,
+  t.chatReply6, t.chatReply7, t.chatReply8, t.chatReply9,
 ];
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -60,11 +57,11 @@ interface Order {
   originLabel?: string; destLabel?: string;
 }
 
-function scanMessage(text: string): string[] {
-  const blocked: string[] = [];
+function scanMessage(text: string): (keyof T)[] {
+  const blocked: (keyof T)[] = [];
   BLOCK_PATTERNS.forEach(p => {
     p.re.lastIndex = 0;
-    if (p.re.test(text)) blocked.push(p.msg);
+    if (p.re.test(text)) blocked.push(p.msgKey);
   });
   return blocked;
 }
@@ -92,11 +89,12 @@ function fmtDate(ts: number): string {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 export default function ChatPage() {
+  const { t, isRTL } = useLang();
   const session  = getSession();
   const params   = new URLSearchParams(location.search);
   const orderId  = (params.get('order') || params.get('id') || '').toUpperCase();
   const peerId   = params.get('peer') || '';
-  const peerName = params.get('name') || 'طرف مقابل';
+  const peerName = params.get('name') || t.chatPeerDefault;
   const peerRole = params.get('role') || '';
   const chatId   = 'chat_' + (orderId || peerId || 'general');
 
@@ -123,15 +121,16 @@ export default function ChatPage() {
     if (!stored.length) {
       const now = Date.now();
       stored = [
-        { id: 'sys-0', type: 'system', text: 'گفتگو با ' + peerName + ' شروع شد. این مکالمه توسط هوش مصنوعی چاپار مدیریت می‌شود.', at: now - 2000 },
-        { id: 'sys-1', type: 'system', text: '🔒 این گفتگو رمزنگاری شده است. اشتراک‌گذاری اطلاعات تماس در اینجا ممنوع است.', at: now - 1000 },
-        { id: 'ai-greet', type: 'ai', text: 'سلام! من مدیر هوشمند چاپار هستم. این گفتگو را نظارت می‌کنم تا تجربه‌ای امن برای هر دو طرف فراهم شود. چطور می‌توانم کمک کنم؟', at: now },
+        { id: 'sys-0', type: 'system', text: t.chatSysStart.replace('{name}', peerName), at: now - 2000 },
+        { id: 'sys-1', type: 'system', text: t.chatSysEncrypted, at: now - 1000 },
+        { id: 'ai-greet', type: 'ai', text: t.chatAiGreet, at: now },
       ];
       Store.set(chatId, stored);
     }
     msgsRef.current = stored;
     setMsgs([...stored]);
     setTimeout(() => scrollToBottom(false), 50);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Scroll on msgs change
@@ -157,7 +156,7 @@ export default function ChatPage() {
     setMsgs([...msgsRef.current]);
   }
 
-  function logBlocked(text: string, reasons: string[]) {
+  function logBlocked(text: string, reasons: (keyof T | string)[]) {
     const log = Store.get<unknown[]>('chat_blocked_log') ?? [];
     log.push({ orderId, userId: session?.userId, text: maskBlockedContent(text), reasons, at: Date.now() });
     Store.set('chat_blocked_log', log.slice(0, 200));
@@ -178,7 +177,7 @@ export default function ChatPage() {
     if (!val.trim()) { setWarnMsg(''); return; }
     const blocked = scanMessage(val);
     if (blocked.length) {
-      setWarnMsg('⛔ پیام حاوی ' + blocked.join('، ') + ' است — ارسال مسدود شد');
+      setWarnMsg(t.chatWarnContains.replace('{items}', blocked.map(k => t[k]).join('، ')));
     } else {
       setWarnMsg('');
     }
@@ -226,7 +225,8 @@ export default function ChatPage() {
     setTimeout(() => setIsTyping(true), 1200);
     setTimeout(() => {
       setIsTyping(false);
-      const reply = AUTO_REPLIES[Math.floor(Math.random() * AUTO_REPLIES.length)];
+      const replies = autoReplies(t);
+      const reply = replies[Math.floor(Math.random() * replies.length)];
       addMsg({ id: genId('MSG'), type: 'them', text: reply, at: Date.now() });
     }, 2800 + Math.random() * 1400);
   }
@@ -234,21 +234,12 @@ export default function ChatPage() {
   const avatarLetter = () => (session?.firstName || session?.name || '؟')[0] ?? '؟';
   const canSend = input.trim().length > 0 && !warnMsg && input.length <= 500;
 
-  const peerRoleLabel = peerRole === 'traveler' ? '✈️ مسافر' : peerRole === 'sender' ? '📦 فرستنده' : peerRole;
+  const peerRoleLabel = peerRole === 'traveler' ? t.chatRoleTraveler : peerRole === 'sender' ? t.chatRoleSender : peerRole;
 
-  // ── No auth ──────────────────────────────────────────────────────────────────
+  // ── No auth — redirect directly to AuthPage (no interstitial) ───────────────
   if (!session) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 p-8 text-center" dir="rtl">
-        <div className="text-6xl mb-4">🔐</div>
-        <div className="text-xl font-bold text-gray-900 mb-2">ورود لازم است</div>
-        <div className="text-sm text-gray-500 mb-6">برای استفاده از پیام‌رسان، وارد شوید</div>
-        <a href={'/?page=auth&return=' + encodeURIComponent(location.href)}
-           className="inline-flex items-center justify-center h-12 px-6 bg-blue-600 text-white rounded-xl font-bold text-sm">
-          ورود / ثبت نام ←
-        </a>
-      </div>
-    );
+    window.location.replace('/?page=auth&return=' + encodeURIComponent(location.href));
+    return null;
   }
 
   // ── Render messages ───────────────────────────────────────────────────────────
@@ -273,7 +264,7 @@ export default function ChatPage() {
         nodes.push(
           <div key={m.id} className="flex items-center gap-2 px-3 py-2 bg-blue-50 border border-blue-100 rounded-xl text-xs text-blue-500 self-stretch mx-2 animate-pulse">
             <div className="w-2 h-2 rounded-full bg-blue-500 shrink-0" />
-            🤖 هوش مصنوعی در حال بررسی پیام...
+            {t.chatScanning}
           </div>
         );
         return;
@@ -294,7 +285,7 @@ export default function ChatPage() {
             <div className="w-7 h-7 rounded-full bg-gradient-to-br from-purple-600 to-indigo-700 flex items-center justify-center text-xs shrink-0 shadow">🤖</div>
             <div>
               <div className="bg-purple-50 border border-purple-200 rounded-2xl rounded-br-sm px-3 py-2.5 text-sm text-gray-800 leading-relaxed">{m.text}</div>
-              <div className="text-[10px] text-gray-400 mt-1 pr-1">{ts} · هوش مصنوعی چاپار</div>
+              <div className="text-[10px] text-gray-400 mt-1 pr-1">{ts} · {t.chatAiLabel}</div>
             </div>
           </div>
         );
@@ -307,8 +298,8 @@ export default function ChatPage() {
             <div className="w-7 h-7 rounded-full bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center text-xs font-bold text-white shrink-0 shadow">{avatarLetter()}</div>
             <div>
               <div className="bg-red-50 border border-red-200 rounded-2xl rounded-bl-sm px-3 py-2.5 text-sm text-red-600 italic leading-relaxed">
-                ⛔ {m.blockedPreview || 'پیام مسدود شد'}
-                <div className="inline-block bg-red-100 rounded-md px-2 py-0.5 text-[10px] text-red-500 font-bold mr-2 mt-1">🤖 مسدود توسط AI</div>
+                ⛔ {m.blockedPreview || t.chatBlockedMsg}
+                <div className="inline-block bg-red-100 rounded-md px-2 py-0.5 text-[10px] text-red-500 font-bold mr-2 mt-1">{t.chatBlockedByAi}</div>
               </div>
               <div className="text-[10px] text-gray-400 mt-1 pl-1 text-left">{ts}</div>
             </div>
@@ -345,7 +336,7 @@ export default function ChatPage() {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-gray-50 overflow-hidden" dir="rtl">
+    <div className="flex flex-col h-screen bg-gray-50 overflow-hidden" dir={isRTL ? 'rtl' : 'ltr'}>
 
       {/* Top bar */}
       <div className="flex-shrink-0 bg-white border-b border-gray-200 px-4 py-3 flex items-center gap-3 shadow-sm z-10">
@@ -358,10 +349,10 @@ export default function ChatPage() {
           <div className="text-sm font-bold text-gray-900 truncate">{peerName}</div>
           {peerRoleLabel && <div className="text-xs text-gray-400">{peerRoleLabel}</div>}
           <div className="text-xs text-green-600 flex items-center gap-1">
-            <div className="w-1.5 h-1.5 rounded-full bg-green-500" />آنلاین
+            <div className="w-1.5 h-1.5 rounded-full bg-green-500" />{t.chatOnline}
           </div>
         </div>
-        <div className="text-xs text-green-600 border border-green-200 bg-green-50 rounded-full px-2.5 py-1 flex items-center gap-1 shrink-0">🔒 امن</div>
+        <div className="text-xs text-green-600 border border-green-200 bg-green-50 rounded-full px-2.5 py-1 flex items-center gap-1 shrink-0">{t.chatSecure}</div>
       </div>
 
       {/* Order chip */}
@@ -375,14 +366,14 @@ export default function ChatPage() {
             </div>
           </div>
           <button onClick={() => { location.href = '/track?id=' + orderId; }}
-                  className="mr-auto text-xs font-bold text-blue-600">پیگیری ←</button>
+                  className="mr-auto text-xs font-bold text-blue-600">{t.chatTrack}</button>
         </div>
       )}
 
       {/* Warning banner */}
       <div className="flex-shrink-0 flex gap-2 px-4 py-2 bg-amber-50 border-b border-amber-100 text-xs text-amber-700 leading-relaxed">
         <span className="shrink-0">⚠️</span>
-        <span>اشتراک‌گذاری شماره تلفن، ایمیل، لینک‌های خارجی یا آیدی‌های شبکه‌های اجتماعی در این چت <strong>ممنوع</strong> است. پیام‌های حاوی این اطلاعات خودکار مسدود می‌شوند.</span>
+        <span>{t.chatWarnBanner}</span>
       </div>
 
       {/* Messages area */}
@@ -390,8 +381,8 @@ export default function ChatPage() {
         {msgs.length === 0 && (
           <div className="flex-1 flex flex-col items-center justify-center text-center py-16">
             <div className="text-5xl mb-3">💬</div>
-            <div className="text-base font-bold text-gray-800 mb-2">گفتگو را شروع کنید</div>
-            <div className="text-sm text-gray-400 leading-relaxed">پیام امن خود را بنویسید.<br />هوش مصنوعی چاپار اطلاعات تماس را فیلتر می‌کند.</div>
+            <div className="text-base font-bold text-gray-800 mb-2">{t.chatEmptyTitle}</div>
+            <div className="text-sm text-gray-400 leading-relaxed">{t.chatEmptyDesc}</div>
           </div>
         )}
         {renderMsgs()}
@@ -414,7 +405,7 @@ export default function ChatPage() {
       <div className="flex-shrink-0 bg-white border-t border-gray-200 px-3 py-2">
         {modErr && (
           <div className="bg-red-50 border border-red-200 rounded-2xl px-4 py-2 text-xs font-bold text-red-600 text-center mb-2">
-            این پیام شامل اطلاعات تماس یا تلاش برای دور زدن سیستم است و ارسال نشد.
+            {t.chatModError}
           </div>
         )}
         {warnMsg && <div className="text-xs text-red-500 px-2 py-1 mb-1">{warnMsg}</div>}
@@ -425,7 +416,7 @@ export default function ChatPage() {
             onChange={onInputChange}
             onKeyDown={onKeyDown}
             rows={1}
-            placeholder="پیام بنویسید..."
+            placeholder={t.chatPlaceholder}
             className="flex-1 resize-none rounded-2xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-900 outline-none focus:border-blue-400 placeholder:text-gray-400 leading-relaxed overflow-hidden"
             style={{ maxHeight: '100px' }}
           />
@@ -436,7 +427,7 @@ export default function ChatPage() {
           >➤</button>
         </div>
         <div className="text-center text-[10px] text-gray-400 mt-1.5 opacity-70">
-          🤖 مدیریت هوش مصنوعی فعال — تمام پیام‌ها بررسی می‌شوند
+          {t.chatAiFooter}
         </div>
       </div>
     </div>

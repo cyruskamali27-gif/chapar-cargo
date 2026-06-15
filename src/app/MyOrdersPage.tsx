@@ -1,16 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'motion/react';
 import { ArrowLeft, Home, Search } from 'lucide-react';
-import { Store, getLiveRate } from '../lib/store';
+import { Store } from '../lib/store';
 import { useSession } from '../lib/SessionContext';
+import { useLang } from '../lib/LangContext';
 
 // ── Constants (exact from myorders.html) ─────────────────────────────────────
 const CARGO_ICONS: Record<string, string> = {
   clothing:'👗', electronics:'💻', documents:'📄', medicine:'💊', food:'🍱', other:'📦',
-};
-const STATUS_LABELS: Record<string, string> = {
-  pending:'در انتظار مسافر', matched:'مسافر تأیید شد',
-  in_transit:'در مسیر', delivered:'تحویل موفق', cancelled:'لغو شده',
 };
 const STATUS_COLORS: Record<string, string> = {
   pending:    'bg-yellow-50 text-yellow-700 border-yellow-200',
@@ -39,6 +36,11 @@ function fmtDate(ts?: number) {
 
 export default function MyOrdersPage({ onHome, onOpenReceipt }: Props) {
   const { session } = useSession();
+  const { t, isRTL } = useLang();
+  const STATUS_LABELS: Record<string, string> = {
+    pending: t.mordStatusPending, matched: t.mordStatusMatched,
+    in_transit: t.mordStatusTransit, delivered: t.mordStatusDelivered, cancelled: t.mordStatusCancelled,
+  };
   const [orders, setOrders]           = useState<Order[]>([]);
   const [search, setSearch]           = useState('');
   const [dateFrom, setDateFrom]       = useState('');
@@ -103,20 +105,20 @@ export default function MyOrdersPage({ onHome, onOpenReceipt }: Props) {
   const delivered = orders.filter(o => o.adminStatus === 'delivered').length;
 
   function cancelOrder(trackId: string) {
-    if (!confirm('آیا می‌خواهید سفارش ' + trackId + ' را لغو کنید؟')) return;
+    if (!confirm(t.mordConfirmCancel.replace('{id}', trackId))) return;
     const statuses = Store.get<Record<string,string>>('admin_statuses') ?? {};
     statuses[trackId] = 'cancelled';
     Store.set('admin_statuses', statuses);
-    showToast('سفارش ' + trackId + ' لغو شد');
+    showToast(t.mordCancelled.replace('{id}', trackId));
     loadOrders();
   }
 
   function deleteOrder(trackId: string) {
-    if (!confirm('آیا مطمئن هستید می‌خواهید این آگهی حذف شود؟')) return;
+    if (!confirm(t.mordConfirmDelete)) return;
     const statuses = Store.get<Record<string,string>>('admin_statuses') ?? {};
     statuses[trackId] = 'deleted';
     Store.set('admin_statuses', statuses);
-    showToast('آگهی ' + trackId + ' حذف شد');
+    showToast(t.mordDeleted.replace('{id}', trackId));
     loadOrders();
   }
 
@@ -130,7 +132,7 @@ export default function MyOrdersPage({ onHome, onOpenReceipt }: Props) {
 
   function saveEdit() {
     if (!editOrder) return;
-    if (!editFirst || !editLast || !editPhone || !editAddr) { setEditErr('لطفاً همه فیلدها را پر کنید'); return; }
+    if (!editFirst || !editLast || !editPhone || !editAddr) { setEditErr(t.mordEditErr); return; }
     const hist = Store.get<Order[]>('history') ?? [];
     const idx  = hist.findIndex(o => o.trackId === editOrder.trackId);
     if (idx !== -1) {
@@ -141,7 +143,7 @@ export default function MyOrdersPage({ onHome, onOpenReceipt }: Props) {
       Store.set('history', hist);
     }
     setEditOrder(null);
-    showToast('آگهی ویرایش شد ✅');
+    showToast(t.mordEdited);
     loadOrders();
   }
 
@@ -155,7 +157,7 @@ export default function MyOrdersPage({ onHome, onOpenReceipt }: Props) {
   }
 
   function acceptOffer(offerId: string, trackId: string, tripId: string) {
-    if (!confirm('آیا این پیشنهاد را قبول و برای پرداخت ادامه می‌دهید؟')) return;
+    if (!confirm(t.mordConfirmAccept)) return;
     const allOffers = Store.get<Array<Record<string,unknown>>>('offers') ?? [];
     const updated = allOffers.map(o => {
       if (o.trackId !== trackId && o.orderId !== trackId) return o;
@@ -174,34 +176,36 @@ export default function MyOrdersPage({ onHome, onOpenReceipt }: Props) {
   function declineOffer(offerId: string, trackId: string) {
     const allOffers = Store.get<Array<Record<string,unknown>>>('offers') ?? [];
     Store.set('offers', allOffers.map(o => o.offerId === offerId ? { ...o, status: 'declined' } : o));
-    showToast('پیشنهاد رد شد');
+    showToast(t.mordOfferDeclined);
     const updated = allOffers.map(o => o.offerId === offerId ? { ...o, status: 'declined' } : o);
     setOffers(updated.filter(f => f.trackId === trackId || f.orderId === trackId).sort((a, b) => (b.createdAt as number) - (a.createdAt as number)));
   }
 
   const FILTER_CHIPS = [
-    { val: '',           label: 'همه' },
-    { val: 'pending',    label: 'در انتظار' },
-    { val: 'in_transit', label: 'در مسیر' },
-    { val: 'delivered',  label: 'تحویل شد' },
-    { val: 'cancelled',  label: 'لغو شده' },
-    { val: 'deleted',    label: 'حذف شده' },
+    { val: '',           label: t.mordFilterAll },
+    { val: 'pending',    label: t.mordFilterPending },
+    { val: 'in_transit', label: t.mordFilterTransit },
+    { val: 'delivered',  label: t.mordFilterDelivered },
+    { val: 'cancelled',  label: t.mordFilterCancelled },
+    { val: 'deleted',    label: t.mordFilterDeleted },
   ];
 
+  if (!session) return null; // App.tsx renderPage guard redirects to auth
+
   return (
-    <div className="min-h-screen bg-gray-50" dir="rtl">
+    <div className="min-h-screen bg-gray-50" dir={isRTL ? 'rtl' : 'ltr'}>
       {/* Header */}
       <div className="bg-white border-b border-gray-100 px-4 sm:px-6 py-4">
         <div className="max-w-3xl mx-auto flex items-center gap-3">
           <button onClick={() => window.history.back()} className="ds-nav-btn group">
-            <ArrowLeft className="w-4 h-4" /><span>بازگشت</span>
+            <ArrowLeft className="w-4 h-4" /><span>{t.mordBack}</span>
           </button>
           <button onClick={onHome} className="ds-nav-btn ds-nav-btn-home">
-            <Home className="w-4 h-4" /><span>خانه</span>
+            <Home className="w-4 h-4" /><span>{t.mordHome}</span>
           </button>
           <div className="mr-auto">
-            <h1 className="text-lg font-extrabold text-gray-900">سفارش‌های من</h1>
-            {session && <p className="text-xs text-gray-400">سلام {session.firstName}، سفارش‌های شما اینجاست</p>}
+            <h1 className="text-lg font-extrabold text-gray-900">{t.mordTitle}</h1>
+            {session && <p className="text-xs text-gray-400">{t.mordGreeting.replace('{name}', session.firstName || '')}</p>}
           </div>
         </div>
       </div>
@@ -210,10 +214,10 @@ export default function MyOrdersPage({ onHome, onOpenReceipt }: Props) {
         {/* Stats bar */}
         <div className="grid grid-cols-4 gap-3">
           {[
-            { val: total,     lbl: 'کل',        color: 'text-gray-900'   },
-            { val: pending,   lbl: 'در انتظار',  color: 'text-yellow-600' },
-            { val: transit,   lbl: 'در مسیر',    color: 'text-purple-600' },
-            { val: delivered, lbl: 'تحویل شد',   color: 'text-green-600'  },
+            { val: total,     lbl: t.mordStatTotal,     color: 'text-gray-900'   },
+            { val: pending,   lbl: t.mordStatPending,   color: 'text-yellow-600' },
+            { val: transit,   lbl: t.mordStatTransit,   color: 'text-purple-600' },
+            { val: delivered, lbl: t.mordStatDelivered, color: 'text-green-600'  },
           ].map(s => (
             <div key={s.lbl} className="ds-card p-3 text-center">
               <div className={`text-lg font-extrabold ${s.color}`}>{s.val.toLocaleString('fa-IR')}</div>
@@ -226,23 +230,23 @@ export default function MyOrdersPage({ onHome, onOpenReceipt }: Props) {
         <div className="ds-card p-4 space-y-3">
           <div className="relative">
             <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <input type="search" className="ds-input pr-9" placeholder="جستجو در سفارش‌ها..."
+            <input type="search" className="ds-input pr-9" placeholder={t.mordSearch}
               value={search} onChange={e => setSearch(e.target.value)} />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="ds-label text-[11px]">از تاریخ</label>
+              <label className="ds-label text-[11px]">{t.mordDateFrom}</label>
               <input type="date" className="ds-input text-sm" value={dateFrom} onChange={e => setDateFrom(e.target.value)} />
             </div>
             <div>
-              <label className="ds-label text-[11px]">تا تاریخ</label>
+              <label className="ds-label text-[11px]">{t.mordDateTo}</label>
               <input type="date" className="ds-input text-sm" value={dateTo} onChange={e => setDateTo(e.target.value)} />
             </div>
           </div>
           {(dateFrom || dateTo) && (
             <button onClick={() => { setDateFrom(''); setDateTo(''); }}
               className="text-xs font-bold text-cyan-600 hover:underline bg-transparent border-none cursor-pointer p-0">
-              پاک کردن فیلتر تاریخ
+              {t.mordClearDates}
             </button>
           )}
         </div>
@@ -263,13 +267,13 @@ export default function MyOrdersPage({ onHome, onOpenReceipt }: Props) {
           <div className="ds-card p-10 text-center">
             <div className="text-5xl mb-3">📭</div>
             <div className="text-base font-extrabold text-gray-800 mb-1">
-              {orders.length === 0 ? 'هنوز سفارشی ندارید' : 'نتیجه‌ای یافت نشد'}
+              {orders.length === 0 ? t.mordEmptyNone : t.mordEmptyNoResult}
             </div>
             <p className="text-sm text-gray-400 mb-4">
-              {orders.length === 0 ? 'اولین سفارش خود را همین حالا ثبت کنید.' : 'فیلتر دیگری را امتحان کنید.'}
+              {orders.length === 0 ? t.mordEmptyNoneDesc : t.mordEmptyNoResultDesc}
             </p>
             {orders.length === 0 && (
-              <button onClick={onHome} className="ds-btn-primary px-6 py-2.5 text-sm">📦 ثبت اولین سفارش</button>
+              <button onClick={onHome} className="ds-btn-primary px-6 py-2.5 text-sm">{t.mordFirstOrder}</button>
             )}
           </div>
         ) : (
@@ -277,7 +281,7 @@ export default function MyOrdersPage({ onHome, onOpenReceipt }: Props) {
             {filtered.map(o => {
               const icon     = CARGO_ICONS[o.cargoType ?? ''] ?? '📦';
               const st       = o.adminStatus ?? 'pending';
-              const stLabel  = STATUS_LABELS[st] ?? 'در انتظار';
+              const stLabel  = STATUS_LABELS[st] ?? t.mordStatusPending;
               const stColor  = STATUS_COLORS[st] ?? STATUS_COLORS.pending;
               const offerCnt = getPendingOfferCount(o.trackId);
               return (
@@ -311,14 +315,14 @@ export default function MyOrdersPage({ onHome, onOpenReceipt }: Props) {
                     {/* Receipt */}
                     <button onClick={() => onOpenReceipt(o.trackId)}
                       className="text-[10px] font-bold px-2.5 py-1 rounded-lg bg-yellow-50 border border-yellow-200 text-yellow-700 hover:bg-yellow-100 transition-colors">
-                      📄 رسید
+                      {t.mordReceipt}
                     </button>
                     {/* Confirm delivery */}
                     {(st === 'in_transit' || st === 'matched') && (
                       <a href={`/track?id=${o.trackId}&role=receiver`}
                         className="text-[10px] font-bold px-2.5 py-1 rounded-lg bg-green-50 border border-green-200 text-green-700 hover:bg-green-100 transition-colors no-underline"
                         style={{ textDecoration:'none' }}>
-                        ✅ تأیید تحویل
+                        {t.mordConfirmDelivery}
                       </a>
                     )}
                     {/* Chat */}
@@ -328,12 +332,12 @@ export default function MyOrdersPage({ onHome, onOpenReceipt }: Props) {
                       if (!tripId) return null;
                       const trips = Store.get<Array<{id:string; userName?:string}>>('trips') ?? [];
                       const trip  = trips.find(t => t.id === tripId);
-                      const name  = trip?.userName || 'مسافر';
+                      const name  = trip?.userName || t.mordTraveler;
                       return (
                         <a href={`/chat?order=${encodeURIComponent(o.trackId)}&peer=${encodeURIComponent(tripId)}&name=${encodeURIComponent(name)}&role=sender`}
                           className="text-[10px] font-bold px-2.5 py-1 rounded-lg bg-blue-50 border border-blue-200 text-blue-700 hover:bg-blue-100 transition-colors no-underline"
                           style={{ textDecoration:'none' }}>
-                          💬 پیام
+                          {t.mordChat}
                         </a>
                       );
                     })()}
@@ -341,28 +345,28 @@ export default function MyOrdersPage({ onHome, onOpenReceipt }: Props) {
                     {st === 'pending' && (
                       <button onClick={() => openEdit(o)}
                         className="text-[10px] font-bold px-2.5 py-1 rounded-lg bg-gray-50 border border-gray-200 text-gray-600 hover:bg-gray-100 transition-colors">
-                        ✏️ ویرایش
+                        {t.mordEdit}
                       </button>
                     )}
                     {/* Cancel */}
                     {st === 'pending' && (
                       <button onClick={() => cancelOrder(o.trackId)}
                         className="text-[10px] font-bold px-2.5 py-1 rounded-lg bg-red-50 border border-red-200 text-red-600 hover:bg-red-100 transition-colors">
-                        لغو
+                        {t.mordCancel}
                       </button>
                     )}
                     {/* Delete */}
                     {(st === 'pending' || st === 'cancelled') && (
                       <button onClick={() => deleteOrder(o.trackId)}
                         className="text-[10px] font-bold px-2.5 py-1 rounded-lg bg-red-50 border border-red-200 text-red-600 hover:bg-red-100 transition-colors">
-                        🗑 حذف
+                        {t.mordDelete}
                       </button>
                     )}
                     {/* Offer badge */}
                     {st === 'pending' && offerCnt > 0 && (
                       <button onClick={() => openOffersModal(o)}
                         className="text-[10px] font-bold px-2.5 py-1 rounded-lg bg-cyan-50 border border-cyan-300 text-cyan-700 hover:bg-cyan-100 transition-colors">
-                        💼 {offerCnt} پیشنهاد
+                        💼 {offerCnt} {t.mordOffers}
                       </button>
                     )}
                   </div>
@@ -379,35 +383,35 @@ export default function MyOrdersPage({ onHome, onOpenReceipt }: Props) {
           onClick={() => setEditOrder(null)}>
           <div className="w-full max-w-md bg-white rounded-2xl p-6" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-base font-extrabold text-gray-900">ویرایش سفارش {editOrder.trackId}</h3>
+              <h3 className="text-base font-extrabold text-gray-900">{t.mordEditTitle.replace('{id}', editOrder.trackId)}</h3>
               <button onClick={() => setEditOrder(null)} className="text-gray-400 text-xl leading-none">✕</button>
             </div>
             <div className="space-y-3">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="ds-label text-[11px]">نام گیرنده</label>
+                  <label className="ds-label text-[11px]">{t.mordRecFirst}</label>
                   <input className="ds-input text-sm" value={editFirst} onChange={e => setEditFirst(e.target.value)} />
                 </div>
                 <div>
-                  <label className="ds-label text-[11px]">نام خانوادگی</label>
+                  <label className="ds-label text-[11px]">{t.mordRecLast}</label>
                   <input className="ds-input text-sm" value={editLast} onChange={e => setEditLast(e.target.value)} />
                 </div>
               </div>
               <div>
-                <label className="ds-label text-[11px]">تلفن گیرنده</label>
+                <label className="ds-label text-[11px]">{t.mordRecPhone}</label>
                 <input className="ds-input text-sm" value={editPhone} onChange={e => setEditPhone(e.target.value)} style={{ direction:'ltr' }} />
               </div>
               <div>
-                <label className="ds-label text-[11px]">آدرس تحویل</label>
+                <label className="ds-label text-[11px]">{t.mordRecAddress}</label>
                 <input className="ds-input text-sm" value={editAddr} onChange={e => setEditAddr(e.target.value)} />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="ds-label text-[11px]">ارزش کالا</label>
+                  <label className="ds-label text-[11px]">{t.mordCargoValue}</label>
                   <input type="number" className="ds-input text-sm" value={editValue} onChange={e => setEditValue(e.target.value)} style={{ direction:'ltr' }} />
                 </div>
                 <div>
-                  <label className="ds-label text-[11px]">ارز</label>
+                  <label className="ds-label text-[11px]">{t.mordCurrency}</label>
                   <select className="ds-input text-sm" value={editCurr} onChange={e => setEditCurr(e.target.value)}>
                     {['USD','EUR','CAD','GBP','AED','IRR','USDT'].map(c => <option key={c} value={c}>{c}</option>)}
                   </select>
@@ -415,8 +419,8 @@ export default function MyOrdersPage({ onHome, onOpenReceipt }: Props) {
               </div>
               {editErr && <div className="text-sm text-red-600 font-medium">{editErr}</div>}
               <div className="flex gap-3 pt-2">
-                <button onClick={() => setEditOrder(null)} className="flex-1 ds-btn-secondary py-2.5">انصراف</button>
-                <button onClick={saveEdit} className="flex-1 ds-btn-primary py-2.5">ذخیره</button>
+                <button onClick={() => setEditOrder(null)} className="flex-1 ds-btn-secondary py-2.5">{t.mordCancelBtn}</button>
+                <button onClick={saveEdit} className="flex-1 ds-btn-primary py-2.5">{t.mordSave}</button>
               </div>
             </div>
           </div>
@@ -431,8 +435,8 @@ export default function MyOrdersPage({ onHome, onOpenReceipt }: Props) {
             <div className="sticky top-0 bg-white border-b border-gray-100 px-5 py-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <div className="text-base font-extrabold text-gray-900">پیشنهادها</div>
-                  <div className="text-xs text-gray-400">{offersOrder.trackId} · {offers.length} پیشنهاد</div>
+                  <div className="text-base font-extrabold text-gray-900">{t.mordOffersTitle}</div>
+                  <div className="text-xs text-gray-400">{offersOrder.trackId} · {t.mordOffersCount.replace('{n}', String(offers.length))}</div>
                 </div>
                 <button onClick={() => setOffersOrder(null)} className="text-gray-400 text-xl leading-none">✕</button>
               </div>
@@ -441,7 +445,7 @@ export default function MyOrdersPage({ onHome, onOpenReceipt }: Props) {
               {offers.length === 0 ? (
                 <div className="text-center py-8 text-gray-400">
                   <div className="text-4xl mb-3">📭</div>
-                  <div className="text-sm font-bold">هنوز پیشنهادی دریافت نشده</div>
+                  <div className="text-sm font-bold">{t.mordNoOffers}</div>
                 </div>
               ) : offers.map((offer, i) => {
                 const trips = Store.get<Array<{id:string; originCity?:string; origin?:string; destCity?:string; destination?:string; date?:string; capacity?:number}>>('trips') ?? [];
@@ -453,10 +457,10 @@ export default function MyOrdersPage({ onHome, onOpenReceipt }: Props) {
                   <div key={i} className="bg-gray-50 border border-gray-200 rounded-xl p-4">
                     <div className="flex items-center gap-3 mb-3">
                       <div className="w-9 h-9 rounded-full bg-cyan-100 flex items-center justify-center text-sm font-extrabold text-cyan-700">
-                        {(offer.travelerName as string || 'م').charAt(0)}
+                        {(offer.travelerName as string || t.mordTravelerDefault).charAt(0)}
                       </div>
                       <div className="flex-1">
-                        <div className="text-sm font-bold text-gray-900">{offer.travelerName as string || 'مسافر'}</div>
+                        <div className="text-sm font-bold text-gray-900">{offer.travelerName as string || t.mordTravelerDefault}</div>
                         <div className="text-xs text-gray-400">{masked}</div>
                       </div>
                       <div className="text-sm font-extrabold text-yellow-600">
@@ -478,16 +482,16 @@ export default function MyOrdersPage({ onHome, onOpenReceipt }: Props) {
                       <div className="flex gap-2">
                         <button onClick={() => declineOffer(offer.offerId as string, offersOrder.trackId)}
                           className="flex-1 py-2 text-xs font-bold rounded-lg border border-red-200 text-red-600 bg-red-50 hover:bg-red-100 transition-colors">
-                          رد کردن
+                          {t.mordDecline}
                         </button>
                         <button onClick={() => acceptOffer(offer.offerId as string, offersOrder.trackId, offer.tripId as string)}
                           className="flex-2 py-2 text-xs font-bold rounded-lg ds-btn-primary flex-1">
-                          ✅ قبول پیشنهاد
+                          {t.mordAccept}
                         </button>
                       </div>
                     ) : (
                       <div className={`text-center text-xs font-bold py-2 ${offer.status === 'accepted' ? 'text-green-600' : 'text-gray-400'}`}>
-                        {offer.status === 'accepted' ? '✅ قبول شده' : '✕ رد شده'}
+                        {offer.status === 'accepted' ? t.mordAccepted : t.mordDeclinedLabel}
                       </div>
                     )}
                   </div>

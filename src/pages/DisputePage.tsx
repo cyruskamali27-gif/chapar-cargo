@@ -5,34 +5,11 @@
  */
 import { useState, useEffect } from 'react';
 import { Store, genId } from '../lib/store';
+import { useLang } from '../lib/LangContext';
+import type { translations } from '../app/i18n';
 
-// ── Data (exact from dispute.html) ───────────────────────────────────────────
-const DISPUTE_TYPES: Record<string, { label: string; party: string; action: string }> = {
-  damage:   { label: 'کالای آسیب‌دیده',  party: 'مسافر',    action: 'بازپرداخت خسارت از سپرده مسافر' },
-  lost:     { label: 'کالای مفقود',       party: 'مسافر',    action: 'پرداخت کامل ارزش کالا از سپرده مسافر + بررسی بیشتر' },
-  mismatch: { label: 'عدم تطابق کالا',   party: 'فرستنده',  action: 'مقایسه با تصاویر و ویدیوی ثبت‌شده — در صورت تأیید: کنسل' },
-  fraud:    { label: 'کلاهبرداری',        party: 'نامشخص',   action: 'مسدود کردن حساب + بررسی فوری تیم امنیت' },
-  payment:  { label: 'مشکل پرداخت',       party: 'سیستم',    action: 'بررسی تراکنش + بازپرداخت در صورت اشکال' },
-  other:    { label: 'سایر',              party: 'نامشخص',   action: 'بررسی دستی توسط تیم پشتیبانی' },
-};
-
-const DTYPE_CARDS = [
-  { key: 'damage',   icon: '💔', label: 'کالای آسیب‌دیده' },
-  { key: 'lost',     icon: '❓', label: 'کالای مفقود' },
-  { key: 'mismatch', icon: '🔄', label: 'عدم تطابق کالا' },
-  { key: 'fraud',    icon: '🚨', label: 'کلاهبرداری' },
-  { key: 'payment',  icon: '💳', label: 'مشکل پرداخت' },
-  { key: 'other',    icon: '📝', label: 'سایر' },
-];
-
-const TIMELINE = [
-  { icon: '📷', status: 'pass', title: 'تأیید رسانه بار',       desc: 'ویدیو و تصاویر بار توسط هوش مصنوعی بررسی شد — نوع کالا تطابق دارد — ریسک پایین', time: 'ثبت در مرحله cargo.html' },
-  { icon: '🪪', status: 'pass', title: 'تأیید هویت',             desc: 'مدرک هویتی اسکن و تأیید شد — تطابق چهره: ۹۶٪ — مدرک معتبر',                    time: 'ثبت در مرحله verify.html' },
-  { icon: '💳', status: 'pass', title: 'تطابق هویت پرداخت',      desc: 'پرداخت‌کننده با هویت ثبت‌شده تطابق دارد — روش پرداخت تأیید شد',                 time: 'ثبت در مرحله payment.html' },
-  { icon: '✈️', status: 'pass', title: 'سازگاری مسیر',           desc: 'مبدا و مقصد اعلام‌شده با مسیر مسافر منطبق است',                                  time: 'ثبت هنگام تطابق سفارش' },
-  { icon: '📦', status: 'pend', title: 'اثبات تحویل',            desc: 'در انتظار تأیید گیرنده و فرستنده',                                               time: 'در انتظار' },
-  { icon: '⚠️', status: 'warn', title: 'اختلاف ثبت شد',          desc: 'کاربر درخواست بررسی اختلاف ارائه داد',                                           time: 'همین لحظه' },
-];
+type T = typeof translations['en'];
+type PartyKey = 'traveler' | 'sender' | 'unknown' | 'system';
 
 const TL_STYLE: Record<string, { dot: string; title: string }> = {
   pass: { dot: 'bg-green-50 border-2 border-green-300',       title: 'text-green-600' },
@@ -40,14 +17,6 @@ const TL_STYLE: Record<string, { dot: string; title: string }> = {
   warn: { dot: 'bg-amber-50 border-2 border-amber-300',       title: 'text-amber-600' },
   pend: { dot: 'bg-gray-100 border-2 border-gray-200',        title: 'text-gray-400' },
 };
-
-const SCAN_STEPS = [
-  'بررسی شواهد رسانه‌ای ثبت‌شده...',
-  'مقایسه با داده‌های هویتی...',
-  'ارزیابی ریسک هر طرف...',
-  'بررسی سابقه تراکنش‌ها...',
-  'تهیه گزارش اختلاف...',
-];
 
 interface OrderData {
   trackId?: string;
@@ -67,8 +36,38 @@ function showToast(msg: string) {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 export default function DisputePage() {
+  const { t, isRTL } = useLang();
   const params = new URLSearchParams(location.search);
   const urlId  = params.get('id');
+
+  const DISPUTE_TYPES: Record<string, { label: string; partyKey: PartyKey; action: string }> = {
+    damage:   { label: t.dispDamageLabel,   partyKey: 'traveler', action: t.dispDamageAction },
+    lost:     { label: t.dispLostLabel,     partyKey: 'traveler', action: t.dispLostAction },
+    mismatch: { label: t.dispMismatchLabel, partyKey: 'sender',   action: t.dispMismatchAction },
+    fraud:    { label: t.dispFraudLabel,    partyKey: 'unknown',  action: t.dispFraudAction },
+    payment:  { label: t.dispPaymentLabel,  partyKey: 'system',   action: t.dispPaymentAction },
+    other:    { label: t.dispOtherLabel,    partyKey: 'unknown',  action: t.dispOtherAction },
+  };
+  const partyLabel: Record<PartyKey, string> = {
+    traveler: t.dispPartyTraveler, sender: t.dispPartySender, unknown: t.dispPartyUnknown, system: t.dispPartySystem,
+  };
+  const DTYPE_CARDS = [
+    { key: 'damage',   icon: '💔', label: t.dispDamageLabel },
+    { key: 'lost',     icon: '❓', label: t.dispLostLabel },
+    { key: 'mismatch', icon: '🔄', label: t.dispMismatchLabel },
+    { key: 'fraud',    icon: '🚨', label: t.dispFraudLabel },
+    { key: 'payment',  icon: '💳', label: t.dispPaymentLabel },
+    { key: 'other',    icon: '📝', label: t.dispOtherLabel },
+  ];
+  const TIMELINE = [
+    { icon: '📷', status: 'pass', title: t.dispTl1Title, desc: t.dispTl1Desc, time: t.dispTl1Time },
+    { icon: '🪪', status: 'pass', title: t.dispTl2Title, desc: t.dispTl2Desc, time: t.dispTl2Time },
+    { icon: '💳', status: 'pass', title: t.dispTl3Title, desc: t.dispTl3Desc, time: t.dispTl3Time },
+    { icon: '✈️', status: 'pass', title: t.dispTl4Title, desc: t.dispTl4Desc, time: t.dispTl4Time },
+    { icon: '📦', status: 'pend', title: t.dispTl5Title, desc: t.dispTl5Desc, time: t.dispTl5Time },
+    { icon: '⚠️', status: 'warn', title: t.dispTl6Title, desc: t.dispTl6Desc, time: t.dispTl6Time },
+  ];
+  const SCAN_STEPS = [t.dispScan1, t.dispScan2, t.dispScan3, t.dispScan4, t.dispScan5];
 
   const [orderId, setOrderId]       = useState(urlId ? urlId.toUpperCase() : '');
   const [order, setOrder]           = useState<OrderData | null>(null);
@@ -82,27 +81,28 @@ export default function DisputePage() {
 
   useEffect(() => {
     if (urlId) loadOrderById(urlId.toUpperCase());
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   function loadOrderById(id: string) {
     const hist  = Store.get<OrderData[]>('history') ?? [];
     const sts   = Store.get<Record<string, string>>('admin_statuses') ?? {};
     const found = hist.find(o => o.trackId === id);
-    if (!found) { showToast('سفارش یافت نشد'); return; }
+    if (!found) { showToast(t.dispOrderNotFound); return; }
     setOrder({ ...found, adminStatus: sts[id] || 'pending' });
     setOrderId(id);
   }
 
   function handleManualSearch() {
     const id = manualInput.trim().toUpperCase();
-    if (!id) { showToast('کد پیگیری را وارد کنید'); return; }
+    if (!id) { showToast(t.dispEnterCode); return; }
     loadOrderById(id);
   }
 
   function submitDispute() {
     setErr('');
-    if (!dtype) { setErr('لطفاً نوع مشکل را انتخاب کنید'); return; }
-    if (!desc || desc.length < 20) { setErr('لطفاً شرح مشکل را کامل‌تر بنویسید (حداقل ۲۰ کاراکتر)'); return; }
+    if (!dtype) { setErr(t.dispErrType); return; }
+    if (!desc || desc.length < 20) { setErr(t.dispErrDesc); return; }
 
     const tk = genId('DIP');
     const disputes = Store.get<object[]>('disputes') ?? [];
@@ -129,36 +129,36 @@ export default function DisputePage() {
   const isKnown = dtype !== 'other' && dtype !== 'fraud';
 
   const evidences = [
-    '✅ تصاویر و ویدیوی بار هنگام ثبت: موجود و تأیید شده',
-    '✅ هویت هر دو طرف: تأیید شده',
-    '✅ پرداخت: ثبت شده',
-    dtype === 'damage'   ? '⚠️ گزارش آسیب توسط گیرنده: ثبت شد' :
-    dtype === 'lost'     ? '❌ تأیید تحویل: دریافت نشده' :
-    dtype === 'mismatch' ? '⚠️ ادعای عدم تطابق کالا با تصاویر: در بررسی' :
-                           '⚠️ جزئیات اضافی: نیاز به بررسی دستی',
+    t.dispEv1,
+    t.dispEv2,
+    t.dispEv3,
+    dtype === 'damage'   ? t.dispEvDamage :
+    dtype === 'lost'     ? t.dispEvLost :
+    dtype === 'mismatch' ? t.dispEvMismatch :
+                           t.dispEvOther,
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50" dir="rtl">
+    <div className="min-h-screen bg-gray-50" dir={isRTL ? 'rtl' : 'ltr'}>
       {/* Header */}
       <div className="bg-white border-b border-gray-200 px-4 py-3 flex items-center gap-3 sticky top-0 z-10 shadow-sm">
-        <button onClick={() => history.back()} className="text-sm text-gray-500 hover:text-gray-800 transition-colors">← بازگشت</button>
-        <span className="text-sm font-bold text-gray-900">بررسی اختلاف</span>
+        <button onClick={() => history.back()} className="text-sm text-gray-500 hover:text-gray-800 transition-colors">{t.dispBack}</button>
+        <span className="text-sm font-bold text-gray-900">{t.dispTitle}</span>
       </div>
 
       <div className="max-w-lg mx-auto px-4 py-6 pb-20">
         <div className="flex items-center justify-center mb-1">
           <img src="/assets/chapar-logo.png" alt="چاپار" className="h-8 object-contain" />
         </div>
-        <h2 className="text-xl font-bold text-gray-900 text-center mb-1">بررسی اختلاف</h2>
-        <p className="text-sm text-gray-500 text-center mb-6">هوش مصنوعی چاپار تمام مراحل سفارش را بررسی می‌کند</p>
+        <h2 className="text-xl font-bold text-gray-900 text-center mb-1">{t.dispTitle}</h2>
+        <p className="text-sm text-gray-500 text-center mb-6">{t.dispSubtitle}</p>
 
         {/* AI monitoring banner */}
         <div className="flex items-center gap-3 bg-blue-50 border border-blue-100 rounded-2xl px-4 py-3 mb-5">
           <div className="w-11 h-11 rounded-full bg-blue-100 border-2 border-blue-300 flex items-center justify-center text-xl shrink-0" style={{ animation: 'pulse 1.8s ease infinite' }}>🤖</div>
           <div>
-            <div className="text-sm font-bold text-gray-900">پایش هوش مصنوعی چاپار</div>
-            <div className="text-xs text-gray-500 mt-0.5">از شروع تا تحویل — تمام مراحل ثبت و تحلیل می‌شود</div>
+            <div className="text-sm font-bold text-gray-900">{t.dispAiBanner}</div>
+            <div className="text-xs text-gray-500 mt-0.5">{t.dispAiBannerDesc}</div>
           </div>
         </div>
 
@@ -170,24 +170,24 @@ export default function DisputePage() {
               <div className="text-sm font-bold text-blue-600 tracking-wider">{orderId}</div>
               <div className="text-xs text-gray-500">{(order.originLabel || order.origin || '—') + ' ← ' + (order.destLabel || order.dest || '—')}</div>
             </div>
-            <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-amber-100 text-amber-700">در بررسی</span>
+            <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-amber-100 text-amber-700">{t.dispInReview}</span>
           </div>
         ) : (
           /* Manual order entry */
           <div className="mb-5">
-            <label className="block text-xs font-bold text-gray-500 mb-2">کد پیگیری سفارش (اختیاری)</label>
+            <label className="block text-xs font-bold text-gray-500 mb-2">{t.dispManualCodeLabel}</label>
             <div className="flex gap-2">
               <input type="text" value={manualInput} onChange={e => setManualInput(e.target.value.toUpperCase().replace(/[^A-Z0-9\-]/g, ''))}
                      placeholder="CH-XXXXX"
                      className="flex-1 border border-gray-200 rounded-xl px-4 py-3 text-sm font-bold tracking-widest text-center bg-white outline-none focus:border-blue-400 ltr" />
               <button onClick={handleManualSearch}
-                      className="shrink-0 border border-gray-200 rounded-xl px-4 py-3 text-sm font-bold text-gray-700 bg-white hover:bg-gray-50 transition-colors">جستجو</button>
+                      className="shrink-0 border border-gray-200 rounded-xl px-4 py-3 text-sm font-bold text-gray-700 bg-white hover:bg-gray-50 transition-colors">{t.dispSearch}</button>
             </div>
           </div>
         )}
 
         {/* AI Timeline */}
-        <div className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">🔍 لاگ پایش هوش مصنوعی</div>
+        <div className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">{t.dispLogTitle}</div>
         <div className="mb-6">
           {TIMELINE.map((item, idx) => (
             <div key={idx} className="flex gap-3 relative pb-4 last:pb-0">
@@ -207,8 +207,8 @@ export default function DisputePage() {
         {/* Dispute form */}
         {phase === 'form' && (
           <div className="border-t border-gray-100 pt-5">
-            <div className="text-sm font-bold text-gray-900 mb-4">ثبت اعتراض</div>
-            <div className="text-xs font-bold text-gray-500 mb-3">نوع مشکل:</div>
+            <div className="text-sm font-bold text-gray-900 mb-4">{t.dispFormTitle}</div>
+            <div className="text-xs font-bold text-gray-500 mb-3">{t.dispTypeLabel}</div>
             <div className="grid grid-cols-2 gap-2 mb-4">
               {DTYPE_CARDS.map(c => (
                 <button key={c.key} onClick={() => setDtype(c.key)}
@@ -224,9 +224,9 @@ export default function DisputePage() {
             </div>
 
             <div className="mb-4">
-              <label className="block text-xs font-bold text-gray-500 mb-2">شرح مشکل</label>
+              <label className="block text-xs font-bold text-gray-500 mb-2">{t.dispDescLabel}</label>
               <textarea value={desc} onChange={e => setDesc(e.target.value)} rows={4}
-                        placeholder="جزئیات مشکل را به طور کامل توضیح دهید..."
+                        placeholder={t.dispDescPlaceholder}
                         onFocus={e => (e.target.style.borderColor = 'rgba(239,68,68,.5)')}
                         onBlur={e => (e.target.style.borderColor = '')}
                         className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 bg-white outline-none resize-vertical leading-relaxed" />
@@ -237,7 +237,7 @@ export default function DisputePage() {
             <button onClick={submitDispute}
                     className="w-full h-12 rounded-2xl text-white font-bold text-sm flex items-center justify-center gap-2"
                     style={{ background: 'linear-gradient(135deg,#e03050,#b01030)' }}>
-              ⚠️ ارسال اعتراض برای بررسی
+              {t.dispSubmit}
             </button>
           </div>
         )}
@@ -245,7 +245,7 @@ export default function DisputePage() {
         {/* AI analysis (scan) */}
         {(phase === 'scan' || phase === 'decision') && (
           <div className="border-t border-gray-100 pt-5">
-            <div className="text-sm font-bold text-gray-900 mb-4 flex items-center gap-2">🤖 تحلیل هوش مصنوعی</div>
+            <div className="text-sm font-bold text-gray-900 mb-4 flex items-center gap-2">{t.dispAnalysisTitle}</div>
 
             <div className="mb-5 space-y-2">
               {SCAN_STEPS.map((step, i) => (
@@ -262,24 +262,24 @@ export default function DisputePage() {
                 <div className="flex items-center gap-3 mb-5">
                   <span className="text-3xl">🔎</span>
                   <div>
-                    <div className="text-sm font-bold text-gray-900 mb-1">نتیجه بررسی هوش مصنوعی</div>
+                    <div className="text-sm font-bold text-gray-900 mb-1">{t.dispResultTitle}</div>
                     <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${
                       isKnown
                         ? 'bg-amber-50 text-amber-700 border-amber-200'
                         : 'bg-red-50 text-red-600 border-red-200'
                     }`}>
-                      {isKnown ? '⚠️ اختلاف قابل بررسی' : '🚨 نیاز به بررسی فوری'}
+                      {isKnown ? t.dispResultReviewable : t.dispResultUrgent}
                     </span>
                   </div>
                 </div>
 
-                <div className="text-xs font-bold text-gray-500 mb-2">طرف احتمالاً مسئول:</div>
+                <div className="text-xs font-bold text-gray-500 mb-2">{t.dispLikelyParty}</div>
                 <div className="flex items-center gap-2 text-sm font-bold text-gray-900 bg-gray-50 rounded-xl px-4 py-3 mb-4">
-                  <span>{info.party === 'مسافر' ? '✈️' : info.party === 'فرستنده' ? '📦' : '❓'}</span>
-                  {info.party}
+                  <span>{info.partyKey === 'traveler' ? '✈️' : info.partyKey === 'sender' ? '📦' : '❓'}</span>
+                  {partyLabel[info.partyKey]}
                 </div>
 
-                <div className="text-xs font-bold text-gray-500 mb-2">خلاصه شواهد:</div>
+                <div className="text-xs font-bold text-gray-500 mb-2">{t.dispEvidenceSummary}</div>
                 <div className="mb-4 divide-y divide-gray-100">
                   {evidences.map((ev, i) => (
                     <div key={i} className="flex items-start gap-2 py-2 text-xs text-gray-600 leading-relaxed">
@@ -289,22 +289,22 @@ export default function DisputePage() {
                   ))}
                 </div>
 
-                <div className="text-xs font-bold text-gray-500 mb-2">اقدام پیشنهادی:</div>
+                <div className="text-xs font-bold text-gray-500 mb-2">{t.dispRecommendedAction}</div>
                 <div className="bg-blue-50 border border-blue-100 rounded-xl px-4 py-3 text-sm text-gray-700 leading-relaxed mb-4">{info.action}</div>
 
                 <div className="bg-amber-50 border border-amber-100 rounded-xl px-4 py-3 text-xs text-gray-600 leading-relaxed mb-4">
-                  ⏱ تیم چاپار ظرف <strong className="text-amber-600">۴۸ ساعت</strong> با شما تماس می‌گیرد.
-                  شماره پرونده: <strong className="text-blue-600 tracking-wide">{ticket}</strong>
+                  ⏱ {t.disp48h}{' '}
+                  {t.dispCaseNumber} <strong className="text-blue-600 tracking-wide">{ticket}</strong>
                 </div>
 
                 <div className="flex gap-2">
                   <a href="/support"
                      className="flex-1 flex items-center justify-center gap-1.5 py-3 bg-gray-50 border border-gray-200 rounded-xl text-xs font-bold text-gray-700 no-underline">
-                    💬 پشتیبانی
+                    {t.dispSupport}
                   </a>
                   <a href={orderId ? '/track?id=' + orderId : '/'}
                      className="flex-1 flex items-center justify-center gap-1.5 py-3 bg-blue-50 border border-blue-200 rounded-xl text-xs font-bold text-blue-600 no-underline">
-                    🔍 پیگیری سفارش
+                    {t.dispTrackOrder}
                   </a>
                 </div>
               </div>
@@ -314,8 +314,8 @@ export default function DisputePage() {
 
         {/* Bottom nav */}
         <div className="flex gap-3 mt-6">
-          <button onClick={() => history.back()} className="flex-1 h-11 rounded-2xl border border-gray-200 bg-white text-sm font-bold text-gray-600">← بازگشت</button>
-          <button onClick={() => { location.href = '/'; }} className="flex-1 h-11 rounded-2xl border border-gray-200 bg-white text-sm font-bold text-gray-600">خانه</button>
+          <button onClick={() => history.back()} className="flex-1 h-11 rounded-2xl border border-gray-200 bg-white text-sm font-bold text-gray-600">{t.dispBack}</button>
+          <button onClick={() => { location.href = '/'; }} className="flex-1 h-11 rounded-2xl border border-gray-200 bg-white text-sm font-bold text-gray-600">{t.dispHome}</button>
         </div>
       </div>
     </div>

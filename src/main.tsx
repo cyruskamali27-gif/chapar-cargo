@@ -15,6 +15,7 @@ import VerifyPage from "./pages/VerifyPage.tsx";
 import OrderPage from "./pages/OrderPage.tsx";
 import PaymentPage from "./pages/PaymentPage.tsx";
 import { SessionProvider } from "./lib/SessionContext.tsx";
+import { LangProvider } from "./lib/LangContext.tsx";
 
 const path = window.location.pathname;
 
@@ -54,5 +55,7 @@ if (path.startsWith('/google-earth-preview')) {
 }
 
 createRoot(document.getElementById("root")!).render(
-  <SessionProvider>{element}</SessionProvider>
+  <LangProvider>
+    <SessionProvider>{element}</SessionProvider>
+  </LangProvider>
 );

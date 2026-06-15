@@ -4,69 +4,53 @@
  * Static content: trust badges, 4 steps, 6 FAQ items with accordion, CTA.
  */
 import { useState } from 'react';
-
-const STEPS = [
-  { num: '۱', icon: '📦', title: 'ثبت سفارش کالا',      desc: 'مبدا، مقصد و مشخصات کالا را وارد کنید. ویدیویی کوتاه از کالا آپلود کنید تا مسافران اطمینان حاصل کنند.' },
-  { num: '۲', icon: '✈️', title: 'تطبیق با مسافر',      desc: 'سیستم چاپار، سفارش شما را با مسافران تأیید‌شده همان مسیر تطبیق می‌دهد. می‌توانید خودتان هم از صفحه مسافران انتخاب کنید.' },
-  { num: '۳', icon: '🔒', title: 'پرداخت امن (اسکرو)',  desc: 'مبلغ توافق‌شده در حساب امانی چاپار نگهداری می‌شود. مسافر پس از تحویل موفق، مبلغ را دریافت می‌کند.' },
-  { num: '۴', icon: '🎉', title: 'تحویل موفق',           desc: 'گیرنده کالا را تأیید می‌کند، مبلغ به مسافر پرداخت می‌شود و سفارش با موفقیت تکمیل می‌شود.' },
-];
-
-const FAQS = [
-  {
-    q: 'چه نوع کالایی قابل ارسال است؟',
-    a: 'پوشاک، الکترونیک، اسناد، دارو، خوراکی و سایر اقلام قانونی قابل حمل هستند. کالاهای ممنوع، خطرناک یا مایعات بیش از حد مجاز پذیرفته نمی‌شوند. در صورت تردید با پشتیبانی تماس بگیرید.',
-  },
-  {
-    q: 'هزینه ارسال چقدر است؟',
-    a: 'هزینه ارسال توسط مسافر تعیین می‌شود و بر اساس وزن، مسافت و زمان تفاوت دارد. معمولاً بین ۵۰ تا ۷۰ درصد ارزان‌تر از پست یا باربری‌های سنتی است. قبل از پرداخت، هزینه نهایی نمایش داده می‌شود.',
-  },
-  {
-    q: 'اگر کالا آسیب ببیند یا گم شود چه؟',
-    a: 'چاپار قبل از ارسال ویدیوی احراز هویت کالا دریافت می‌کند. در صورت بروز مشکل، تیم پشتیبانی بررسی می‌کند و مبلغ امانی تا رفع اختلاف آزاد نمی‌شود. توصیه می‌کنیم کالا را بیمه کنید.',
-  },
-  {
-    q: 'چقدر طول می‌کشد تا کالا برسد؟',
-    a: 'زمان تحویل به تاریخ پرواز مسافر بستگی دارد. پس از پرداخت، تاریخ دقیق تحویل در صفحه پیگیری نمایش داده می‌شود. اکثر سفارش‌ها ظرف ۲ تا ۷ روز به مقصد می‌رسند.',
-  },
-  {
-    q: 'چطور می‌توانم مسافر شوم؟',
-    a: 'از صفحه «ثبت مسیر مسافر» مسیر و ظرفیت خود را اعلام کنید. بعد از احراز هویت، سفارش‌دهندگان می‌توانند با شما تماس بگیرند. کار جانبی مطمئن در هر سفر!',
-  },
-  {
-    q: 'آیا اطلاعاتم محفوظ است؟',
-    a: 'اطلاعات شما فقط روی همین دستگاه ذخیره می‌شود و به هیچ سرور خارجی ارسال نمی‌شود. شماره تلفن مسافران تا تأیید سفارش پنهان است.',
-  },
-];
+import { useLang } from '../lib/LangContext';
 
 export default function HowtoPage() {
+  const { t, isRTL } = useLang();
   const [openFaq, setOpenFaq] = useState<number | null>(null);
+
+  const STEPS = [
+    { num: '۱', icon: '📦', title: t.howStep1Title, desc: t.howStep1Desc },
+    { num: '۲', icon: '✈️', title: t.howStep2Title, desc: t.howStep2Desc },
+    { num: '۳', icon: '🔒', title: t.howStep3Title, desc: t.howStep3Desc },
+    { num: '۴', icon: '🎉', title: t.howStep4Title, desc: t.howStep4Desc },
+  ];
+
+  const FAQS = [
+    { q: t.howFaq1Q, a: t.howFaq1A },
+    { q: t.howFaq2Q, a: t.howFaq2A },
+    { q: t.howFaq3Q, a: t.howFaq3A },
+    { q: t.howFaq4Q, a: t.howFaq4A },
+    { q: t.howFaq5Q, a: t.howFaq5A },
+    { q: t.howFaq6Q, a: t.howFaq6A },
+  ];
 
   function toggleFaq(idx: number) {
     setOpenFaq(prev => (prev === idx ? null : idx));
   }
 
   return (
-    <div className="min-h-screen bg-gray-50" dir="rtl">
+    <div className="min-h-screen bg-gray-50" dir={isRTL ? 'rtl' : 'ltr'}>
       {/* Header */}
       <div className="bg-white border-b border-gray-200 px-4 py-3 flex items-center gap-3 sticky top-0 z-10 shadow-sm">
-        <button onClick={() => history.back()} className="text-sm text-gray-500 hover:text-gray-800 transition-colors">← بازگشت</button>
-        <span className="text-sm font-bold text-gray-900">چطور کار می‌کند؟</span>
+        <button onClick={() => history.back()} className="text-sm text-gray-500 hover:text-gray-800 transition-colors">{t.howBack}</button>
+        <span className="text-sm font-bold text-gray-900">{t.howTitle}</span>
       </div>
 
       <div className="max-w-lg mx-auto px-4 py-6 pb-20">
         <div className="flex items-center justify-center mb-1">
           <img src="/assets/chapar-logo.png" alt="چاپار" className="h-8 object-contain" />
         </div>
-        <h2 className="text-xl font-bold text-gray-900 text-center mb-1">چطور کار می‌کند؟</h2>
-        <p className="text-sm text-gray-500 text-center mb-6">ارسال کالا با چاپار، ساده و مطمئن</p>
+        <h2 className="text-xl font-bold text-gray-900 text-center mb-1">{t.howTitle}</h2>
+        <p className="text-sm text-gray-500 text-center mb-6">{t.howSubtitle}</p>
 
         {/* Trust badges */}
         <div className="grid grid-cols-3 gap-3 mb-6">
           {[
-            { icon: '🔒', label: 'پرداخت امن امانی' },
-            { icon: '⚡', label: 'تحویل سریع' },
-            { icon: '🛡️', label: 'احراز هویت' },
+            { icon: '🔒', label: t.howBadgeEscrow },
+            { icon: '⚡', label: t.howBadgeFast },
+            { icon: '🛡️', label: t.howBadgeVerified },
           ].map(b => (
             <div key={b.label} className="bg-white border border-gray-100 rounded-2xl p-4 text-center shadow-sm">
               <div className="text-2xl mb-1.5">{b.icon}</div>
@@ -76,7 +60,7 @@ export default function HowtoPage() {
         </div>
 
         {/* Steps */}
-        <div className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">مراحل ارسال</div>
+        <div className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">{t.howStepsTitle}</div>
         <div className="mb-6">
           {STEPS.map((step, idx) => (
             <div key={idx} className="flex gap-4 items-start mb-1">
@@ -96,7 +80,7 @@ export default function HowtoPage() {
         </div>
 
         {/* FAQ */}
-        <div className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">سؤالات متداول</div>
+        <div className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">{t.howFaqTitle}</div>
         <div className="space-y-2 mb-6">
           {FAQS.map((faq, idx) => (
             <div key={idx}
@@ -117,19 +101,19 @@ export default function HowtoPage() {
         <a href="/order"
            className="flex items-center justify-center gap-2 w-full h-12 rounded-2xl bg-blue-600 text-white font-bold text-sm no-underline mb-3 shadow-sm hover:bg-blue-700 transition-colors">
           <span className="text-lg">📦</span>
-          شروع کنید ← ثبت سفارش
+          {t.howCta}
         </a>
         <div className="text-center mb-5">
           <a href="/support"
              className="text-xs font-bold text-gray-400 no-underline hover:text-gray-600 transition-colors">
-            💬 سوال دیگری دارید؟ با پشتیبانی تماس بگیرید
+            {t.howSupportLink}
           </a>
         </div>
 
         {/* Bottom nav */}
         <div className="flex gap-3">
-          <button onClick={() => history.back()} className="flex-1 h-11 rounded-2xl border border-gray-200 bg-white text-sm font-bold text-gray-600">← بازگشت</button>
-          <button onClick={() => { location.href = '/'; }} className="flex-1 h-11 rounded-2xl border border-gray-200 bg-white text-sm font-bold text-gray-600">خانه</button>
+          <button onClick={() => history.back()} className="flex-1 h-11 rounded-2xl border border-gray-200 bg-white text-sm font-bold text-gray-600">{t.howBack}</button>
+          <button onClick={() => { location.href = '/'; }} className="flex-1 h-11 rounded-2xl border border-gray-200 bg-white text-sm font-bold text-gray-600">{t.howHome}</button>
         </div>
       </div>
     </div>

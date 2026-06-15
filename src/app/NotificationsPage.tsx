@@ -1,6 +1,10 @@
 import { useState, useEffect } from 'react';
 import { ArrowLeft, Home } from 'lucide-react';
 import { Store, genId } from '../lib/store';
+import { useLang } from '../lib/LangContext';
+import type { translations } from './i18n';
+
+type T = typeof translations['en'];
 
 // ── Type metadata (exact from notifications.html) ─────────────────────────────
 const TYPE_META: Record<string, { icon: string; cls: string; group: string }> = {
@@ -25,26 +29,26 @@ interface Notif {
   at: number; read: boolean;
 }
 
-function seedDemoNotifs(): Notif[] {
+function seedDemoNotifs(t: T): Notif[] {
   const now = Date.now();
   return [
-    { id: genId('N'), type:'offer_received',     title:'پیشنهاد جدید از مسافر',   body:'یک مسافر برای سفارش CH-12345 پیشنهاد ۵۰۰,۰۰۰ تومان ارسال کرد', orderId:'CH-12345', at:now-3600000,   read:false },
-    { id: genId('N'), type:'offer_accepted',      title:'پیشنهاد شما قبول شد',     body:'صاحب سفارش CH-11111 پیشنهاد شما را قبول کرد',                  orderId:'CH-11111', at:now-7200000,   read:false },
-    { id: genId('N'), type:'delivery_confirmed',  title:'تحویل تأیید شد',          body:'تحویل کالا برای سفارش CH-99999 با موفقیت تأیید گردید',         orderId:'CH-99999', at:now-86400000,  read:true  },
-    { id: genId('N'), type:'counter_offer',       title:'پیشنهاد مقابل',           body:'صاحب کالا پیشنهاد ۶۵۰,۰۰۰ تومان پیشنهاد داد',                 orderId:'CH-77777', at:now-172800000, read:false },
-    { id: genId('N'), type:'dispute_update',      title:'به‌روزرسانی اختلاف',      body:'اختلاف مربوط به سفارش CH-55555 بررسی و نتیجه اعلام شد',        orderId:'CH-55555', at:now-259200000, read:true  },
+    { id: genId('N'), type:'offer_received',     title:t.notifDemoOfferTitle,     body:t.notifDemoOfferBody,     orderId:'CH-12345', at:now-3600000,   read:false },
+    { id: genId('N'), type:'offer_accepted',      title:t.notifDemoAcceptedTitle,  body:t.notifDemoAcceptedBody,  orderId:'CH-11111', at:now-7200000,   read:false },
+    { id: genId('N'), type:'delivery_confirmed',  title:t.notifDemoDeliveredTitle, body:t.notifDemoDeliveredBody, orderId:'CH-99999', at:now-86400000,  read:true  },
+    { id: genId('N'), type:'counter_offer',       title:t.notifDemoCounterTitle,   body:t.notifDemoCounterBody,   orderId:'CH-77777', at:now-172800000, read:false },
+    { id: genId('N'), type:'dispute_update',      title:t.notifDemoDisputeTitle,   body:t.notifDemoDisputeBody,   orderId:'CH-55555', at:now-259200000, read:true  },
   ];
 }
 
-function fmtRelTime(ts: number) {
+function fmtRelTime(ts: number, t: T) {
   const diff = Date.now() - ts;
   const m = Math.floor(diff / 60000);
   const h = Math.floor(m / 60);
   const d = Math.floor(h / 24);
-  if (d > 0)  return d + ' روز پیش';
-  if (h > 0)  return h + ' ساعت پیش';
-  if (m > 0)  return m + ' دقیقه پیش';
-  return 'همین الان';
+  if (d > 0)  return t.notifTimeDaysAgo.replace('{n}', String(d));
+  if (h > 0)  return t.notifTimeHoursAgo.replace('{n}', String(h));
+  if (m > 0)  return t.notifTimeMinsAgo.replace('{n}', String(m));
+  return t.notifTimeNow;
 }
 
 function getNavUrl(n: Notif): string {
@@ -58,6 +62,7 @@ function getNavUrl(n: Notif): string {
 interface Props { onBack: () => void; onHome: () => void; t: Record<string, string>; onNavigate: (page: string) => void; }
 
 export default function NotificationsPage({ onHome, onNavigate }: Props) {
+  const { t, isRTL } = useLang();
   const [notifs, setNotifs]       = useState<Notif[]>([]);
   const [filter, setFilter]       = useState('');
   const [toast, setToast]         = useState('');
@@ -67,10 +72,11 @@ export default function NotificationsPage({ onHome, onNavigate }: Props) {
   useEffect(() => {
     let list = Store.get<Notif[]>('notifications') ?? [];
     if (!list.length) {
-      list = seedDemoNotifs();
+      list = seedDemoNotifs(t);
       Store.set('notifications', list);
     }
     setNotifs(list);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   function markRead(id: string) {
@@ -83,7 +89,7 @@ export default function NotificationsPage({ onHome, onNavigate }: Props) {
     const updated = notifs.map(n => ({ ...n, read: true }));
     setNotifs(updated);
     Store.set('notifications', updated);
-    showToast('همه اعلان‌ها خوانده شد');
+    showToast(t.notifAllRead);
   }
 
   function openNotif(n: Notif) {
@@ -94,11 +100,11 @@ export default function NotificationsPage({ onHome, onNavigate }: Props) {
   }
 
   const FILTER_CHIPS = [
-    { val: '',         label: 'همه'       },
-    { val: 'unread',   label: 'خوانده نشده' },
-    { val: 'offer',    label: 'پیشنهادها'  },
-    { val: 'delivery', label: 'تحویل'     },
-    { val: 'dispute',  label: 'اختلاف'    },
+    { val: '',         label: t.notifFilterAll      },
+    { val: 'unread',   label: t.notifFilterUnread   },
+    { val: 'offer',    label: t.notifFilterOffer    },
+    { val: 'delivery', label: t.notifFilterDelivery },
+    { val: 'dispute',  label: t.notifFilterDispute  },
   ];
 
   const filtered = notifs.filter(n => {
@@ -110,18 +116,18 @@ export default function NotificationsPage({ onHome, onNavigate }: Props) {
   const unreadCount = notifs.filter(n => !n.read).length;
 
   return (
-    <div className="min-h-screen bg-gray-50" dir="rtl">
+    <div className="min-h-screen bg-gray-50" dir={isRTL ? 'rtl' : 'ltr'}>
       {/* Header */}
       <div className="bg-white border-b border-gray-100 px-4 sm:px-6 py-4">
         <div className="max-w-2xl mx-auto flex items-center gap-3">
           <button onClick={() => window.history.back()} className="ds-nav-btn group">
-            <ArrowLeft className="w-4 h-4" /><span>بازگشت</span>
+            <ArrowLeft className="w-4 h-4" /><span>{t.notifBack}</span>
           </button>
           <button onClick={onHome} className="ds-nav-btn ds-nav-btn-home">
-            <Home className="w-4 h-4" /><span>خانه</span>
+            <Home className="w-4 h-4" /><span>{t.notifHome}</span>
           </button>
           <div className="mr-auto flex items-center gap-2">
-            <h1 className="text-lg font-extrabold text-gray-900">اعلان‌ها</h1>
+            <h1 className="text-lg font-extrabold text-gray-900">{t.notifTitle}</h1>
             {unreadCount > 0 && (
               <span className="inline-flex items-center justify-center bg-cyan-500 text-white text-[10px] font-extrabold min-w-[18px] h-[18px] rounded-full px-1">
                 {unreadCount}
@@ -131,7 +137,7 @@ export default function NotificationsPage({ onHome, onNavigate }: Props) {
           {unreadCount > 0 && (
             <button onClick={markAllRead}
               className="text-xs font-bold text-cyan-600 hover:text-cyan-700 bg-transparent border-none cursor-pointer p-0">
-              همه را خوانده‌ام ✓
+              {t.notifMarkAllRead}
             </button>
           )}
         </div>
@@ -140,7 +146,7 @@ export default function NotificationsPage({ onHome, onNavigate }: Props) {
       <div className="max-w-2xl mx-auto px-4 py-5 pb-24">
         {/* Sub-title */}
         <p className="text-sm text-gray-400 mb-4">
-          {notifs.length} اعلان{unreadCount > 0 ? ` · ${unreadCount} خوانده نشده` : ''}
+          {t.notifCount.replace('{n}', String(notifs.length))}{unreadCount > 0 ? ` · ${t.notifUnread.replace('{n}', String(unreadCount))}` : ''}
         </p>
 
         {/* Filter chips */}
@@ -158,8 +164,8 @@ export default function NotificationsPage({ onHome, onNavigate }: Props) {
         {filtered.length === 0 ? (
           <div className="text-center py-16 text-gray-400">
             <div className="text-5xl mb-3">🔔</div>
-            <div className="text-base font-bold text-gray-700 mb-1">اعلانی وجود ندارد</div>
-            <div className="text-sm">اعلان‌های جدید اینجا نمایش داده می‌شوند</div>
+            <div className="text-base font-bold text-gray-700 mb-1">{t.notifEmpty}</div>
+            <div className="text-sm">{t.notifEmptyDesc}</div>
           </div>
         ) : (
           <div className="space-y-2">
@@ -179,7 +185,7 @@ export default function NotificationsPage({ onHome, onNavigate }: Props) {
                     </div>
                     <div className="text-xs text-gray-500 leading-relaxed mb-1">{n.body}</div>
                     <div className="text-[10px] text-gray-400 flex items-center gap-1.5">
-                      <span>{fmtRelTime(n.at)}</span>
+                      <span>{fmtRelTime(n.at, t)}</span>
                       {n.orderId && (
                         <span className="font-bold text-cyan-600 font-mono" style={{ direction:'ltr' }}>{n.orderId}</span>
                       )}

@@ -15,8 +15,8 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { ArrowLeft, Home, CheckCircle } from 'lucide-react';
 import { Store, getSession, getOrder, saveOrder } from '../lib/store';
 import { StatusBadge } from '../app/VerificationModules';
+import { useLang } from '../lib/LangContext';
 
-// ── Doc configs (mirrors verify.html DOC_CONFIGS exactly) ─────────────────────
 type DocType = 'passport' | 'license' | 'national_id';
 
 interface DocConfig {
@@ -33,81 +33,6 @@ interface DocConfig {
   aiChecks: string[];
   extractFields: (name: string) => [string, string][];
 }
-
-const DOC_CONFIGS: Record<DocType, DocConfig> = {
-  passport: {
-    camLabel: 'پاسپورت باز شده را در کادر قرار دهید',
-    frontTitle: '🛂 صفحه مشخصات پاسپورت',
-    frontHint: 'پاسپورت را باز کنید و صفحه عکس‌دار را داخل کادر قرار دهید.',
-    frontIllus: '📖 پاسپورت را مانند کتاب باز کنید\n└ صفحه دارای عکس و مشخصات را نشان دهید\n└ MRZ (خطوط پایینی) باید کاملاً خوانا باشد',
-    needsBack: false,
-    guideSummary: '🛂 پاسپورت — فقط صفحه مشخصات (عکس + MRZ)',
-    guideNote: 'حتماً هر دو خط MRZ پایین صفحه در تصویر دیده شوند.',
-    aiChecks: [
-      'تطابق عکس با چهره — تأیید شد',
-      'شناسایی MRZ — موفق',
-      'کشور صادرکننده و تاریخ انقضا — تأیید',
-      'ریسک جعل — بسیار پایین',
-      'اعتبار مدرک — تأیید شد',
-    ],
-    extractFields: (name) => [
-      ['نام و نام خانوادگی', name || 'شناسایی شد'],
-      ['شماره پاسپورت', 'AB' + Math.floor(1000000 + Math.random() * 9000000)],
-      ['تاریخ انقضا', '2029/' + String(Math.floor(1 + Math.random() * 12)).padStart(2, '0') + '/15'],
-      ['کشور صادرکننده', 'ایران'],
-    ],
-  },
-  license: {
-    camLabel: 'گواهینامه را صاف داخل کادر قرار دهید',
-    frontTitle: '🚗 جلو گواهینامه',
-    frontHint: 'روی گواهینامه (طرف عکس) را در کادر قرار دهید.',
-    frontIllus: '💳 سطح صاف بگیرید\n└ نور مستقیم به کارت نتابد (بازتاب نداشته باشد)\n└ تمام چهار گوشه گواهینامه دیده شوند',
-    backTitle: '🚗 پشت گواهینامه',
-    backHint: 'پشت گواهینامه (طرف بارکد/کدگذاری) را ثبت کنید.',
-    backIllus: '🔲 بارکد یا QR پشت کارت باید خوانا باشد\n└ نور یکنواخت — از خم‌شدن کارت اجتناب کنید',
-    needsBack: true,
-    guideSummary: '🚗 گواهینامه — دو طرف لازم است',
-    guideNote: 'هر دو طرف گواهینامه را عکاسی کنید.',
-    aiChecks: [
-      'تطابق عکس با چهره — تأیید شد',
-      'شماره مجوز و نوع — شناسایی شد',
-      'بارکد پشت کارت — تأیید',
-      'تاریخ صدور و انقضا — در محدوده',
-      'ریسک جعل — پایین',
-    ],
-    extractFields: (name) => [
-      ['نام دارنده', name || 'شناسایی شد'],
-      ['شماره گواهینامه', String(Math.floor(10000000 + Math.random() * 90000000))],
-      ['دسته', 'ب'],
-      ['تاریخ انقضا', '2027/' + String(Math.floor(1 + Math.random() * 12)).padStart(2, '0') + '/01'],
-    ],
-  },
-  national_id: {
-    camLabel: 'کارت ملی را داخل کادر قرار دهید',
-    frontTitle: '🪪 جلو کارت ملی',
-    frontHint: 'روی کارت ملی (طرف عکس و کد ملی) را در کادر قرار دهید.',
-    frontIllus: '💳 کارت را صاف نگه دارید\n└ کد ملی ۱۰ رقمی باید کاملاً خوانا باشد\n└ از عکاسی در نور کم یا با سایه خودداری کنید',
-    backTitle: '🪪 پشت کارت ملی',
-    backHint: 'پشت کارت ملی (طرف بارکد) را ثبت کنید.',
-    backIllus: '🔲 بارکد مرکز کارت باید واضح باشد\n└ از انگشت جلوی بارکد خودداری کنید',
-    needsBack: true,
-    guideSummary: '🪪 کارت ملی — دو طرف لازم است',
-    guideNote: 'کد ملی و بارکد باید در تصویر کاملاً خوانا باشند.',
-    aiChecks: [
-      'تطابق عکس با چهره — تأیید شد',
-      'کد ملی ۱۰ رقمی — تأیید',
-      'بارکد هوشمند — خوانده شد',
-      'اعتبارسنجی دولتی — موفق',
-      'ریسک جعل — بسیار پایین',
-    ],
-    extractFields: (name) => [
-      ['نام و نام خانوادگی', name || 'شناسایی شد'],
-      ['کد ملی', String(Math.floor(1000000000 + Math.random() * 9000000000))],
-      ['تاریخ تولد', '۱۳' + Math.floor(60 + Math.random() * 30) + '/0' + Math.floor(1 + Math.random() * 9) + '/01'],
-      ['محل تولد', 'تهران'],
-    ],
-  },
-};
 
 // ── Toast (simple inline notification) ────────────────────────────────────────
 function Toast({ msg, type, onDone }: { msg: string; type: 'error' | 'success'; onDone: () => void }) {
@@ -130,17 +55,21 @@ interface DocSideCardProps {
   hint: string;
   illus: string;
   dataURL: string | null;
+  capturedLabel: string;
+  notCapturedLabel: string;
+  cameraBtn: string;
+  redoBtn: string;
   onCamera: () => void;
   onRedo: () => void;
 }
-function DocSideCard({ title, hint, illus, dataURL, onCamera, onRedo }: DocSideCardProps) {
+function DocSideCard({ title, hint, illus, dataURL, capturedLabel, notCapturedLabel, cameraBtn, redoBtn, onCamera, onRedo }: DocSideCardProps) {
   const captured = !!dataURL;
   return (
     <div className={`border rounded-xl p-4 mb-3 transition-colors ${captured ? 'border-green-300 bg-green-50/30' : 'border-gray-200 bg-white'}`}>
       <div className="flex items-center justify-between mb-3">
         <div className="text-sm font-bold text-gray-800">{title}</div>
         <div className={`text-xs font-bold ${captured ? 'text-green-600' : 'text-gray-400'}`}>
-          {captured ? '✓ ثبت شد' : '○ ثبت نشده'}
+          {captured ? capturedLabel : notCapturedLabel}
         </div>
       </div>
       <div className="text-xs text-gray-500 mb-2 leading-relaxed">{hint}</div>
@@ -155,7 +84,7 @@ function DocSideCard({ title, hint, illus, dataURL, onCamera, onRedo }: DocSideC
           onClick={onCamera}
           className="inline-flex items-center gap-2 px-4 py-2.5 bg-blue-50 border border-blue-200 text-blue-700 text-xs font-bold rounded-lg hover:bg-blue-100 transition-colors"
         >
-          📷 دوربین
+          {cameraBtn}
         </button>
       ) : (
         <div>
@@ -165,7 +94,7 @@ function DocSideCard({ title, hint, illus, dataURL, onCamera, onRedo }: DocSideC
             onClick={onRedo}
             className="text-xs text-gray-400 underline underline-offset-2 hover:text-gray-600"
           >
-            ضبط مجدد
+            {redoBtn}
           </button>
         </div>
       )}
@@ -176,11 +105,12 @@ function DocSideCard({ title, hint, illus, dataURL, onCamera, onRedo }: DocSideC
 // ── CameraModal ────────────────────────────────────────────────────────────────
 interface CameraModalProps {
   guideLabel: string;
+  captureBtn: string;
   videoRef: React.RefObject<HTMLVideoElement | null>;
   onCapture: () => void;
   onClose: () => void;
 }
-function CameraModal({ guideLabel, videoRef, onCapture, onClose }: CameraModalProps) {
+function CameraModal({ guideLabel, captureBtn, videoRef, onCapture, onClose }: CameraModalProps) {
   return (
     <div className="fixed inset-0 z-[600] bg-black flex flex-col">
       <video
@@ -221,7 +151,7 @@ function CameraModal({ guideLabel, videoRef, onCapture, onClose }: CameraModalPr
           >
             <div className="w-[54px] h-[54px] rounded-full bg-white" />
           </button>
-          <div className="text-xs font-bold text-white/85 mt-2.5">ثبت</div>
+          <div className="text-xs font-bold text-white/85 mt-2.5">{captureBtn}</div>
         </div>
       </div>
     </div>
@@ -230,8 +160,68 @@ function CameraModal({ guideLabel, videoRef, onCapture, onClose }: CameraModalPr
 
 // ── Main VerifyPage ────────────────────────────────────────────────────────────
 export default function VerifyPage() {
+  const { t, isRTL } = useLang();
   const sess = getSession();
   const saved = getOrder() as Record<string, string | boolean | null>;
+
+  function buildDocConfigs(): Record<DocType, DocConfig> {
+    return {
+      passport: {
+        camLabel: t.vfyPassCamLabel,
+        frontTitle: t.vfyPassFrontTitle,
+        frontHint: t.vfyPassFrontHint,
+        frontIllus: t.vfyPassFrontIllus,
+        needsBack: false,
+        guideSummary: t.vfyPassSummary,
+        guideNote: t.vfyPassGuideNote,
+        aiChecks: [t.vfyPassCheck1, t.vfyPassCheck2, t.vfyPassCheck3, t.vfyPassCheck4, t.vfyPassCheck5],
+        extractFields: (name) => [
+          [t.vfyPassExtName, name || t.vfyExtDetected],
+          [t.vfyPassExtNum, 'AB' + Math.floor(1000000 + Math.random() * 9000000)],
+          [t.vfyPassExtExpiry, '2029/' + String(Math.floor(1 + Math.random() * 12)).padStart(2, '0') + '/15'],
+          [t.vfyPassExtCountry, t.vfyPassExtCountryVal],
+        ],
+      },
+      license: {
+        camLabel: t.vfyLicCamLabel,
+        frontTitle: t.vfyLicFrontTitle,
+        frontHint: t.vfyLicFrontHint,
+        frontIllus: t.vfyLicFrontIllus,
+        backTitle: t.vfyLicBackTitle,
+        backHint: t.vfyLicBackHint,
+        backIllus: t.vfyLicBackIllus,
+        needsBack: true,
+        guideSummary: t.vfyLicSummary,
+        guideNote: t.vfyLicGuideNote,
+        aiChecks: [t.vfyLicCheck1, t.vfyLicCheck2, t.vfyLicCheck3, t.vfyLicCheck4, t.vfyLicCheck5],
+        extractFields: (name) => [
+          [t.vfyLicExtName, name || t.vfyExtDetected],
+          [t.vfyLicExtNum, String(Math.floor(10000000 + Math.random() * 90000000))],
+          [t.vfyLicExtCat, t.vfyLicExtCatVal],
+          [t.vfyLicExtExpiry, '2027/' + String(Math.floor(1 + Math.random() * 12)).padStart(2, '0') + '/01'],
+        ],
+      },
+      national_id: {
+        camLabel: t.vfyNatCamLabel,
+        frontTitle: t.vfyNatFrontTitle,
+        frontHint: t.vfyNatFrontHint,
+        frontIllus: t.vfyNatFrontIllus,
+        backTitle: t.vfyNatBackTitle,
+        backHint: t.vfyNatBackHint,
+        backIllus: t.vfyNatBackIllus,
+        needsBack: true,
+        guideSummary: t.vfyNatSummary,
+        guideNote: t.vfyNatGuideNote,
+        aiChecks: [t.vfyNatCheck1, t.vfyNatCheck2, t.vfyNatCheck3, t.vfyNatCheck4, t.vfyNatCheck5],
+        extractFields: (name) => [
+          [t.vfyNatExtName, name || t.vfyExtDetected],
+          [t.vfyNatExtCode, String(Math.floor(1000000000 + Math.random() * 9000000000))],
+          [t.vfyNatExtBirth, '۱۳' + Math.floor(60 + Math.random() * 30) + '/0' + Math.floor(1 + Math.random() * 9) + '/01'],
+          [t.vfyNatExtPlace, t.vfyNatExtPlaceVal],
+        ],
+      },
+    };
+  }
 
   // Personal info
   const [firstName, setFirstName] = useState<string>((sess?.firstName || saved.firstName || '') as string);
@@ -268,6 +258,7 @@ export default function VerifyPage() {
     setToast({ msg, type });
   }, []);
 
+  const DOC_CONFIGS = buildDocConfigs();
   const cfg = docType ? DOC_CONFIGS[docType] : null;
   const needsBack = cfg?.needsBack ?? false;
 
@@ -291,7 +282,7 @@ export default function VerifyPage() {
     return () => {
       aiTimers.current.forEach(clearTimeout);
       if (streamRef.current) {
-        streamRef.current.getTracks().forEach(t => t.stop());
+        streamRef.current.getTracks().forEach(tk => tk.stop());
       }
     };
   }, []);
@@ -299,7 +290,7 @@ export default function VerifyPage() {
   // ── Camera helpers ────────────────────────────────────────────────────────
   const openCamera = useCallback((side: 'front' | 'back') => {
     if (!navigator.mediaDevices?.getUserMedia) {
-      showToast('دسترسی به دوربین پشتیبانی نمی‌شود. از کروم استفاده کنید.', 'error');
+      showToast(t.vfyCamUnsupported, 'error');
       return;
     }
     setCamSide(side);
@@ -311,14 +302,14 @@ export default function VerifyPage() {
         setCamOpen(true);
       })
       .catch(() => {
-        showToast('دسترسی به دوربین امکان‌پذیر نیست. از مرورگر کروم استفاده کنید.', 'error');
+        showToast(t.vfyCamDenied, 'error');
       });
-  }, [showToast]);
+  }, [showToast, t]);
 
   const closeCamera = useCallback(() => {
     setCamOpen(false);
     if (streamRef.current) {
-      streamRef.current.getTracks().forEach(t => t.stop());
+      streamRef.current.getTracks().forEach(tk => tk.stop());
       streamRef.current = null;
     }
     if (videoRef.current) videoRef.current.srcObject = null;
@@ -335,7 +326,6 @@ export default function VerifyPage() {
 
     if (camSide === 'front') {
       setFrontData(dataURL);
-      // reset AI if re-capturing
       setAiIdPassed(false);
       setAiRunning(false);
       setAiDone(false);
@@ -386,14 +376,14 @@ export default function VerifyPage() {
     aiTimers.current = [];
 
     cfg.aiChecks.forEach((_, i) => {
-      const t = setTimeout(() => {
+      const timer = setTimeout(() => {
         setVisibleChecks(prev => Math.max(prev, i + 1));
       }, 900 * (i + 1));
-      aiTimers.current.push(t);
+      aiTimers.current.push(timer);
     });
 
     const totalTime = 900 * cfg.aiChecks.length + 600;
-    const t = setTimeout(() => {
+    const timer = setTimeout(() => {
       const fullName = (firstName + ' ' + lastName).trim();
       const rows = cfg.extractFields(fullName);
       setExtractedRows(rows);
@@ -401,13 +391,12 @@ export default function VerifyPage() {
       setAiIdPassed(true);
       saveOrder({ aiIdPassed: true });
     }, totalTime);
-    aiTimers.current.push(t);
+    aiTimers.current.push(timer);
   }, [cfg, firstName, lastName]);
 
   // ── Select doc type ───────────────────────────────────────────────────────
   const selectDocType = useCallback((dt: DocType) => {
     setDocType(dt);
-    // reset captures and AI when type changes
     setFrontData(null);
     setBackData(null);
     setAiIdPassed(false);
@@ -421,12 +410,12 @@ export default function VerifyPage() {
   // ── Submit (mirrors verify.html submitVerify exactly) ─────────────────────
   const submitVerify = useCallback(() => {
     if (!firstName.trim() || !lastName.trim()) {
-      showToast('نام و نام خانوادگی را وارد کنید', 'error'); return;
+      showToast(t.vfyErrName, 'error'); return;
     }
-    if (!docType) { showToast('نوع مدرک را انتخاب کنید', 'error'); return; }
-    if (!frontData) { showToast('تصویر روی مدرک را از دوربین ثبت کنید', 'error'); return; }
-    if (needsBack && !backData) { showToast('تصویر پشت مدرک را از دوربین ثبت کنید', 'error'); return; }
-    if (!aiIdPassed) { showToast('ابتدا بررسی اسناد را کامل کنید', 'error'); return; }
+    if (!docType) { showToast(t.vfyErrDocType, 'error'); return; }
+    if (!frontData) { showToast(t.vfyErrFront, 'error'); return; }
+    if (needsBack && !backData) { showToast(t.vfyErrBack, 'error'); return; }
+    if (!aiIdPassed) { showToast(t.vfyErrAi, 'error'); return; }
     autosave();
 
     // Face-match audit log — mirrors verify.html (raw localStorage key)
@@ -443,7 +432,7 @@ export default function VerifyPage() {
       const kycIds: Record<string, string> = JSON.parse(localStorage.getItem('cp_kyc_identities') || '{}');
       const existingOwner = kycIds[identKey];
       if (existingOwner && existingOwner !== sess.userId) {
-        showToast('⚠️ این هویت قبلاً برای یک حساب دیگر تأیید شده است', 'error');
+        showToast(t.vfyErrDupId, 'error');
         return;
       }
       kycIds[identKey] = sess.userId;
@@ -461,7 +450,7 @@ export default function VerifyPage() {
     const params = new URLSearchParams(window.location.search);
     const returnTo = params.get('return');
     window.location.href = returnTo || '/payment';
-  }, [firstName, lastName, docType, frontData, backData, needsBack, aiIdPassed, autosave, sess, showToast]);
+  }, [firstName, lastName, docType, frontData, backData, needsBack, aiIdPassed, autosave, sess, showToast, t]);
 
   // ── Inline field save on blur ─────────────────────────────────────────────
   const onFieldBlur = useCallback(() => {
@@ -478,7 +467,7 @@ export default function VerifyPage() {
   const progressPct = Math.round((stepsDone / 4) * 100);
 
   return (
-    <div className="min-h-screen bg-white" dir="rtl">
+    <div className="min-h-screen bg-white" dir={isRTL ? 'rtl' : 'ltr'}>
       {toast && (
         <Toast msg={toast.msg} type={toast.type} onDone={() => setToast(null)} />
       )}
@@ -486,7 +475,8 @@ export default function VerifyPage() {
       {/* Camera modal */}
       {camOpen && (
         <CameraModal
-          guideLabel={cfg?.camLabel ?? 'سند را داخل کادر قرار دهید'}
+          guideLabel={cfg?.camLabel ?? t.vfyCamDefault}
+          captureBtn={t.vfyCaptureBtn}
           videoRef={videoRef}
           onCapture={captureDoc}
           onClose={closeCamera}
@@ -500,21 +490,21 @@ export default function VerifyPage() {
           <div className="flex items-center gap-3 mb-8 flex-wrap">
             <button onClick={() => window.history.back()} className="ds-nav-btn group">
               <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
-              <span>بازگشت</span>
+              <span>{t.vfyBack}</span>
             </button>
             <button onClick={() => { window.location.href = '/'; }} className="ds-nav-btn ds-nav-btn-home">
               <Home className="w-4 h-4" />
-              <span>صفحه اصلی</span>
+              <span>{t.vfyHome}</span>
             </button>
           </div>
 
-          <h1 className="text-3xl font-extrabold text-gray-900 mb-2">احراز هویت</h1>
-          <p className="text-gray-500 text-base">اطلاعات هویتی و مدارک را وارد کنید</p>
+          <h1 className="text-3xl font-extrabold text-gray-900 mb-2">{t.vfyTitle}</h1>
+          <p className="text-gray-500 text-base">{t.vfySubtitle}</p>
 
           {/* Progress bar */}
           <div className="mt-6">
             <div className="flex items-center justify-between text-xs text-gray-400 mb-1.5">
-              <span>پیشرفت</span>
+              <span>{t.vfyProgress}</span>
               <span>{progressPct}٪</span>
             </div>
             <div className="h-2 rounded-full bg-gray-100 overflow-hidden">
@@ -531,14 +521,14 @@ export default function VerifyPage() {
 
         {/* ── A) Personal info ── */}
         <div className="ds-card p-5">
-          <div className="text-sm font-bold text-gray-800 mb-4">👤 اطلاعات شخصی</div>
+          <div className="text-sm font-bold text-gray-800 mb-4">{t.vfyPersonalTitle}</div>
           <div className="grid grid-cols-2 gap-3 mb-3">
             <div>
-              <label className="ds-label block mb-1">نام</label>
+              <label className="ds-label block mb-1">{t.vfyFirstName}</label>
               <input
                 type="text"
                 className="ds-input w-full"
-                placeholder="نام"
+                placeholder={t.vfyFirstName}
                 value={firstName}
                 readOnly={sessLocked.firstName}
                 style={sessLocked.firstName ? { opacity: .7 } : {}}
@@ -547,11 +537,11 @@ export default function VerifyPage() {
               />
             </div>
             <div>
-              <label className="ds-label block mb-1">نام خانوادگی</label>
+              <label className="ds-label block mb-1">{t.vfyLastName}</label>
               <input
                 type="text"
                 className="ds-input w-full"
-                placeholder="نام خانوادگی"
+                placeholder={t.vfyLastName}
                 value={lastName}
                 readOnly={sessLocked.lastName}
                 style={sessLocked.lastName ? { opacity: .7 } : {}}
@@ -561,7 +551,7 @@ export default function VerifyPage() {
             </div>
           </div>
           <div className="mb-3">
-            <label className="ds-label block mb-1">ایمیل</label>
+            <label className="ds-label block mb-1">{t.vfyEmail}</label>
             <input
               type="email"
               className="ds-input w-full"
@@ -574,7 +564,7 @@ export default function VerifyPage() {
             />
           </div>
           <div>
-            <label className="ds-label block mb-1">شماره تماس</label>
+            <label className="ds-label block mb-1">{t.vfyPhone}</label>
             <input
               type="tel"
               className="ds-input w-full"
@@ -589,12 +579,12 @@ export default function VerifyPage() {
 
         {/* ── B) Document type selector ── */}
         <div>
-          <div className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">نوع مدرک هویتی</div>
+          <div className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">{t.vfyDocTypeLabel}</div>
           <div className="grid grid-cols-3 gap-3">
             {([
-              { dtype: 'passport'   as DocType, icon: '🛂', label: 'پاسپورت' },
-              { dtype: 'license'    as DocType, icon: '🚗', label: 'گواهینامه' },
-              { dtype: 'national_id' as DocType, icon: '🪪', label: 'کارت ملی' },
+              { dtype: 'passport'    as DocType, icon: '🛂', label: t.vfyDocPassport  },
+              { dtype: 'license'     as DocType, icon: '🚗', label: t.vfyDocLicense   },
+              { dtype: 'national_id' as DocType, icon: '🪪', label: t.vfyDocNational  },
             ]).map(({ dtype, icon, label }) => (
               <button
                 key={dtype}
@@ -624,13 +614,17 @@ export default function VerifyPage() {
         {/* ── C) Document capture ── */}
         {docType && cfg && (
           <div>
-            <div className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">تصویر مدرک</div>
+            <div className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">{t.vfyDocImageLabel}</div>
 
             <DocSideCard
               title={cfg.frontTitle}
               hint={cfg.frontHint}
               illus={cfg.frontIllus}
               dataURL={frontData}
+              capturedLabel={t.vfyCaptured}
+              notCapturedLabel={t.vfyNotCaptured}
+              cameraBtn={t.vfyCameraBtn}
+              redoBtn={t.vfyRedoBtn}
               onCamera={() => openCamera('front')}
               onRedo={redoFront}
             />
@@ -641,6 +635,10 @@ export default function VerifyPage() {
                 hint={cfg.backHint!}
                 illus={cfg.backIllus!}
                 dataURL={backData}
+                capturedLabel={t.vfyCaptured}
+                notCapturedLabel={t.vfyNotCaptured}
+                cameraBtn={t.vfyCameraBtn}
+                redoBtn={t.vfyRedoBtn}
                 onCamera={() => openCamera('back')}
                 onRedo={redoBack}
               />
@@ -651,7 +649,7 @@ export default function VerifyPage() {
         {/* ── D) AI Document Review ── */}
         {docsReady && (
           <div className="ds-card p-5">
-            <div className="text-sm font-bold text-gray-800 mb-4">📋 بررسی اسناد</div>
+            <div className="text-sm font-bold text-gray-800 mb-4">{t.vfyAiTitle}</div>
 
             {!aiRunning && !aiDone && (
               <div>
@@ -660,9 +658,9 @@ export default function VerifyPage() {
                   onClick={startIdAI}
                   className="ds-btn-primary px-6 py-3 text-sm"
                 >
-                  شروع بررسی اسناد
+                  {t.vfyAiStartBtn}
                 </button>
-                <div className="text-xs text-gray-400 mt-2">پس از ثبت تصویر مدرک در دسترس است</div>
+                <div className="text-xs text-gray-400 mt-2">{t.vfyAiAvailHint}</div>
               </div>
             )}
 
@@ -670,7 +668,7 @@ export default function VerifyPage() {
               <div>
                 {/* Info note */}
                 <div className="bg-amber-50 border border-amber-100 rounded-lg px-3 py-2 mb-3 text-xs text-gray-500">
-                  ℹ️ این بررسی نتیجه اولیه است. تأیید نهایی توسط کارشناس انجام می‌شود.
+                  {t.vfyAiInfoNote}
                 </div>
 
                 {/* Spinner / done indicator */}
@@ -681,7 +679,7 @@ export default function VerifyPage() {
                     <CheckCircle className="w-8 h-8 text-green-500 flex-shrink-0" />
                   )}
                   <span className="text-sm font-semibold text-gray-600">
-                    {aiDone ? 'تأیید کامل شد' : 'در حال بررسی اسناد...'}
+                    {aiDone ? t.vfyAiDone : t.vfyAiRunning}
                   </span>
                   {aiDone && <StatusBadge status="VERIFIED" />}
                 </div>
@@ -706,7 +704,7 @@ export default function VerifyPage() {
                 {/* Extracted fields */}
                 {extractedRows.length > 0 && (
                   <div className="bg-green-50 border border-green-200 rounded-xl p-4 mb-4">
-                    <div className="text-xs font-bold text-green-700 mb-3">📋 اطلاعات شناسایی‌شده:</div>
+                    <div className="text-xs font-bold text-green-700 mb-3">{t.vfyExtractedTitle}</div>
                     <div className="space-y-2">
                       {extractedRows.map(([label, value], i) => (
                         <div key={i} className="flex items-center justify-between text-xs border-b border-green-100 pb-1.5 last:border-0 last:pb-0">
@@ -722,8 +720,8 @@ export default function VerifyPage() {
                 {aiDone && (
                   <div className="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-xl p-4 text-center">
                     <div className="text-xl mb-1.5">✅</div>
-                    <div className="text-sm font-extrabold text-green-700">بررسی اولیه اسناد تکمیل شد</div>
-                    <div className="text-xs text-gray-500 mt-1">تأیید نهایی توسط کارشناس چاپار انجام می‌شود</div>
+                    <div className="text-sm font-extrabold text-green-700">{t.vfyAiPassTitle}</div>
+                    <div className="text-xs text-gray-500 mt-1">{t.vfyAiPassDesc}</div>
                   </div>
                 )}
               </div>
@@ -739,10 +737,10 @@ export default function VerifyPage() {
             disabled={!canSubmit}
             className="ds-btn-primary w-full py-4 text-base disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            ادامه به پرداخت ←
+            {t.vfySubmitBtn}
           </button>
           {docsReady && !aiIdPassed && (
-            <div className="text-xs text-gray-400 text-center mt-2">ابتدا بررسی اسناد را کامل کنید</div>
+            <div className="text-xs text-gray-400 text-center mt-2">{t.vfyNeedAiHint}</div>
           )}
         </div>
 

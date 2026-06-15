@@ -1,8 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
 import { ArrowLeft, Home } from 'lucide-react';
-import { Store, getLiveRate } from '../lib/store';
+import { Store } from '../lib/store';
 import { useSession } from '../lib/SessionContext';
 import { setSession as storeSetSession } from '../lib/store';
+import { useLang } from '../lib/LangContext';
+import type { translations } from './i18n';
+
+type T = typeof translations['en'];
 
 // ── Avatar gradient (mirrors profile.html) ────────────────────────────────────
 const GRAD_PAIRS = [
@@ -15,13 +19,13 @@ function avatarGrad(name?: string) {
   return `linear-gradient(135deg,${p[0]},${p[1]})`;
 }
 
-function pwStrength(pw: string): { score: number; label: string; color: string } {
+function pwStrength(pw: string, t: T): { score: number; label: string; color: string } {
   let s = 0;
   if (pw.length >= 8)  s++;
   if (/[A-Z]/.test(pw)) s++;
   if (/[0-9]/.test(pw)) s++;
   if (/[^A-Za-z0-9]/.test(pw)) s++;
-  const labels = ['خیلی ضعیف','ضعیف','متوسط','قوی','خیلی قوی'];
+  const labels = [t.pwVeryWeak, t.pwWeak, t.pwMedium, t.pwStrong, t.pwVeryStrong];
   const colors = ['bg-red-400','bg-orange-400','bg-yellow-400','bg-green-400','bg-emerald-500'];
   return { score: s, label: labels[s] || '—', color: colors[s] || 'bg-gray-200' };
 }
@@ -31,6 +35,7 @@ interface Props { onBack: () => void; onHome: () => void; t: Record<string, stri
 
 export default function ProfilePage({ onHome, onOpenWallet, onOpenOrders }: Props) {
   const { session, clearSession } = useSession();
+  const { t, isRTL } = useLang();
   const [user, setUser]         = useState<UserRecord | null>(null);
   const [toast, setToast]       = useState('');
   const [activeTab, setActiveTab] = useState<'info'|'security'>('info');
@@ -97,30 +102,20 @@ export default function ProfilePage({ onHome, onOpenWallet, onOpenOrders }: Prop
 
   useEffect(() => { loadProfile(); }, [loadProfile]);
 
-  if (!session) {
-    return (
-      <div className="min-h-screen bg-white flex items-center justify-center px-4" dir="rtl">
-        <div className="max-w-sm w-full text-center">
-          <div className="text-5xl mb-4">👤</div>
-          <h2 className="text-lg font-extrabold text-gray-900 mb-2">ورود لازم است</h2>
-          <button onClick={onHome} className="ds-btn-primary w-full py-3 mt-4">ورود / ثبت‌نام</button>
-        </div>
-      </div>
-    );
-  }
+  if (!session) return null; // App.tsx redirects to auth
 
   function saveInfo() {
     const errs: Record<string,string> = {};
-    if (!eFirst.trim()) errs.first = 'نام الزامی است';
-    if (!eLast.trim())  errs.last  = 'نام خانوادگی الزامی است';
-    if (!eEmail.trim() || !/\S+@\S+\.\S+/.test(eEmail)) errs.email = 'ایمیل معتبر نیست';
-    if (!ePhone.trim() || ePhone.replace(/\D/g,'').length < 10) errs.phone = 'شماره موبایل معتبر نیست';
+    if (!eFirst.trim()) errs.first = t.profErrFirst;
+    if (!eLast.trim())  errs.last  = t.profErrLast;
+    if (!eEmail.trim() || !/\S+@\S+\.\S+/.test(eEmail)) errs.email = t.profErrEmail;
+    if (!ePhone.trim() || ePhone.replace(/\D/g,'').length < 10) errs.phone = t.profErrPhone;
     if (Object.keys(errs).length) { setInfoErr(errs); return; }
     setInfoErr({});
 
     const users = Store.get<UserRecord[]>('users') ?? [];
-    if (users.find(u => u.email === eEmail.toLowerCase() && u.id !== session.userId)) { setInfoErr({ email:'این ایمیل قبلاً ثبت شده است' }); return; }
-    if (users.find(u => (u.phone||'').replace(/\D/g,'') === ePhone.replace(/\D/g,'') && u.id !== session.userId)) { setInfoErr({ phone:'این شماره قبلاً ثبت شده است' }); return; }
+    if (users.find(u => u.email === eEmail.toLowerCase() && u.id !== session.userId)) { setInfoErr({ email:t.profErrEmailDup }); return; }
+    if (users.find(u => (u.phone||'').replace(/\D/g,'') === ePhone.replace(/\D/g,'') && u.id !== session.userId)) { setInfoErr({ phone:t.profErrPhoneDup }); return; }
 
     setSaving(true);
     setTimeout(() => {
@@ -133,21 +128,21 @@ export default function ProfilePage({ onHome, onOpenWallet, onOpenOrders }: Prop
       storeSetSession(newSession);
       setSaving(false);
       loadProfile();
-      showToast('✅ اطلاعات با موفقیت ذخیره شد');
+      showToast(t.profInfoSaved);
     }, 500);
   }
 
   function changePassword() {
     const errs: Record<string,string> = {};
-    if (!pOld) errs.old = 'رمز عبور فعلی الزامی است';
-    if (!pNew || pNew.length < 8) errs.new = 'رمز عبور جدید باید حداقل ۸ کاراکتر باشد';
-    if (pNew && pNew2 && pNew !== pNew2) errs.new2 = 'رمز عبور و تکرار آن یکسان نیستند';
+    if (!pOld) errs.old = t.profErrOldPw;
+    if (!pNew || pNew.length < 8) errs.new = t.profErrNewPw;
+    if (pNew && pNew2 && pNew !== pNew2) errs.new2 = t.profErrPwMatch;
     if (Object.keys(errs).length) { setPwErr(errs); return; }
 
     const users = Store.get<UserRecord[]>('users') ?? [];
     const u = users.find(u => u.id === session.userId);
-    if (!u || u.password !== pOld) { setPwErr({ old:'رمز عبور فعلی اشتباه است' }); return; }
-    if (pNew === pOld) { setPwErr({ new:'رمز عبور جدید باید با رمز فعلی متفاوت باشد' }); return; }
+    if (!u || u.password !== pOld) { setPwErr({ old:t.profErrOldPwWrong }); return; }
+    if (pNew === pOld) { setPwErr({ new:t.profErrPwSame }); return; }
 
     setPwSaving(true);
     setTimeout(() => {
@@ -156,27 +151,27 @@ export default function ProfilePage({ onHome, onOpenWallet, onOpenOrders }: Prop
       setPOld(''); setPNew(''); setPNew2('');
       setPwErr({});
       setPwSaving(false);
-      showToast('✅ رمز عبور با موفقیت تغییر یافت');
+      showToast(t.profPwChanged);
     }, 500);
   }
 
-  const str = pwStrength(pNew);
+  const str = pwStrength(pNew, t);
   const joinedDate = user?.createdAt
-    ? 'عضو از ' + new Date(user.createdAt).toLocaleDateString('fa-IR', { year:'numeric', month:'long', day:'numeric' })
-    : 'کاربر چاپار';
+    ? t.profMemberSince.replace('{date}', new Date(user.createdAt).toLocaleDateString('fa-IR', { year:'numeric', month:'long', day:'numeric' }))
+    : t.profDefaultUser;
 
   return (
-    <div className="min-h-screen bg-gray-50" dir="rtl">
+    <div className="min-h-screen bg-gray-50" dir={isRTL ? 'rtl' : 'ltr'}>
       {/* Header */}
       <div className="bg-white border-b border-gray-100 px-4 sm:px-6 py-4">
         <div className="max-w-2xl mx-auto flex items-center gap-3">
           <button onClick={() => window.history.back()} className="ds-nav-btn group">
-            <ArrowLeft className="w-4 h-4" /><span>بازگشت</span>
+            <ArrowLeft className="w-4 h-4" /><span>{t.profBack}</span>
           </button>
           <button onClick={onHome} className="ds-nav-btn ds-nav-btn-home">
-            <Home className="w-4 h-4" /><span>خانه</span>
+            <Home className="w-4 h-4" /><span>{t.profHome}</span>
           </button>
-          <h1 className="mr-auto text-lg font-extrabold text-gray-900">پروفایل</h1>
+          <h1 className="mr-auto text-lg font-extrabold text-gray-900">{t.profTitle}</h1>
         </div>
       </div>
 
@@ -200,14 +195,14 @@ export default function ProfilePage({ onHome, onOpenWallet, onOpenOrders }: Prop
           {/* Quick-links */}
           <div className="flex gap-2 flex-wrap">
             <button onClick={onOpenOrders} className="text-xs font-bold px-3 py-1.5 rounded-lg bg-blue-50 border border-blue-200 text-blue-700 hover:bg-blue-100 transition-colors">
-              📦 سفارش‌های من
+              {t.profMyOrders}
             </button>
             <button onClick={onOpenWallet} className="text-xs font-bold px-3 py-1.5 rounded-lg bg-green-50 border border-green-200 text-green-700 hover:bg-green-100 transition-colors">
-              💳 کیف پول · {Math.round(stats.walletBal).toLocaleString('fa-IR')} ت
+              {t.profWallet} · {Math.round(stats.walletBal).toLocaleString('fa-IR')} ت
             </button>
             <button onClick={() => { clearSession(); window.location.href = '/'; }}
               className="text-xs font-bold px-3 py-1.5 rounded-lg bg-red-50 border border-red-200 text-red-600 hover:bg-red-100 transition-colors">
-              خروج
+              {t.profLogout}
             </button>
           </div>
         </div>
@@ -215,9 +210,9 @@ export default function ProfilePage({ onHome, onOpenWallet, onOpenOrders }: Prop
         {/* Stats */}
         <div className="grid grid-cols-3 gap-3">
           {[
-            { val: stats.total.toLocaleString('fa-IR'),   lbl: 'کل سفارش‌ها',  color:'text-gray-900'   },
-            { val: stats.transit.toLocaleString('fa-IR'), lbl: 'در مسیر',       color:'text-purple-600' },
-            { val: stats.done.toLocaleString('fa-IR'),    lbl: 'تحویل موفق',    color:'text-green-600'  },
+            { val: stats.total.toLocaleString('fa-IR'),   lbl: t.profStatTotal,   color:'text-gray-900'   },
+            { val: stats.transit.toLocaleString('fa-IR'), lbl: t.profStatTransit, color:'text-purple-600' },
+            { val: stats.done.toLocaleString('fa-IR'),    lbl: t.profStatDone,    color:'text-green-600'  },
           ].map(s => (
             <div key={s.lbl} className="ds-card p-3 text-center">
               <div className={`text-lg font-extrabold ${s.color}`}>{s.val}</div>
@@ -228,7 +223,7 @@ export default function ProfilePage({ onHome, onOpenWallet, onOpenOrders }: Prop
         {stats.rating !== '—' && (
           <div className="ds-card p-3 text-center">
             <div className="text-sm font-extrabold text-yellow-600">{stats.rating}</div>
-            <div className="text-[10px] text-gray-400 mt-0.5">امتیاز مسافر</div>
+            <div className="text-[10px] text-gray-400 mt-0.5">{t.profRating}</div>
           </div>
         )}
 
@@ -238,7 +233,7 @@ export default function ProfilePage({ onHome, onOpenWallet, onOpenOrders }: Prop
             <button key={tab} onClick={() => setActiveTab(tab)}
               className={`flex-1 py-2 text-sm font-bold rounded-lg transition-colors
                 ${activeTab === tab ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
-              {tab === 'info' ? 'اطلاعات شخصی' : 'امنیت'}
+              {tab === 'info' ? t.profTabInfo : t.profTabSecurity}
             </button>
           ))}
         </div>
@@ -246,32 +241,32 @@ export default function ProfilePage({ onHome, onOpenWallet, onOpenOrders }: Prop
         {/* Edit info tab */}
         {activeTab === 'info' && (
           <div className="ds-card p-6 space-y-4">
-            <h3 className="text-sm font-extrabold text-gray-900 mb-2">ویرایش اطلاعات</h3>
+            <h3 className="text-sm font-extrabold text-gray-900 mb-2">{t.profEditInfo}</h3>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="ds-label">نام</label>
+                <label className="ds-label">{t.profFirstName}</label>
                 <input className={`ds-input ${infoErr.first ? 'border-red-400' : ''}`} value={eFirst} onChange={e => setEFirst(e.target.value)} />
                 {infoErr.first && <div className="text-xs text-red-500 mt-1">{infoErr.first}</div>}
               </div>
               <div>
-                <label className="ds-label">نام خانوادگی</label>
+                <label className="ds-label">{t.profLastName}</label>
                 <input className={`ds-input ${infoErr.last ? 'border-red-400' : ''}`} value={eLast} onChange={e => setELast(e.target.value)} />
                 {infoErr.last && <div className="text-xs text-red-500 mt-1">{infoErr.last}</div>}
               </div>
             </div>
             <div>
-              <label className="ds-label">ایمیل</label>
+              <label className="ds-label">{t.profEmail}</label>
               <input type="email" className={`ds-input ${infoErr.email ? 'border-red-400' : ''}`} value={eEmail} onChange={e => setEEmail(e.target.value)} style={{ direction:'ltr' }} />
               {infoErr.email && <div className="text-xs text-red-500 mt-1">{infoErr.email}</div>}
             </div>
             <div>
-              <label className="ds-label">شماره موبایل</label>
+              <label className="ds-label">{t.profPhone}</label>
               <input type="tel" className={`ds-input ${infoErr.phone ? 'border-red-400' : ''}`} value={ePhone} onChange={e => setEPhone(e.target.value)} style={{ direction:'ltr' }} />
               {infoErr.phone && <div className="text-xs text-red-500 mt-1">{infoErr.phone}</div>}
             </div>
             <button onClick={saveInfo} disabled={saving}
               className="ds-btn-primary w-full py-3 disabled:opacity-60">
-              {saving ? 'در حال ذخیره...' : 'ذخیره تغییرات'}
+              {saving ? t.profSaving : t.profSaveChanges}
             </button>
           </div>
         )}
@@ -279,14 +274,14 @@ export default function ProfilePage({ onHome, onOpenWallet, onOpenOrders }: Prop
         {/* Security tab */}
         {activeTab === 'security' && (
           <div className="ds-card p-6 space-y-4">
-            <h3 className="text-sm font-extrabold text-gray-900 mb-2">تغییر رمز عبور</h3>
+            <h3 className="text-sm font-extrabold text-gray-900 mb-2">{t.profChangePw}</h3>
             <div>
-              <label className="ds-label">رمز عبور فعلی</label>
+              <label className="ds-label">{t.profCurrentPw}</label>
               <input type="password" className={`ds-input ${pwErr.old ? 'border-red-400' : ''}`} value={pOld} onChange={e => setPOld(e.target.value)} style={{ direction:'ltr' }} />
               {pwErr.old && <div className="text-xs text-red-500 mt-1">{pwErr.old}</div>}
             </div>
             <div>
-              <label className="ds-label">رمز عبور جدید</label>
+              <label className="ds-label">{t.profNewPw}</label>
               <input type="password" className={`ds-input ${pwErr.new ? 'border-red-400' : ''}`} value={pNew} onChange={e => setPNew(e.target.value)} style={{ direction:'ltr' }} />
               {pNew && (
                 <div className="mt-1.5 flex items-center gap-2">
@@ -299,13 +294,13 @@ export default function ProfilePage({ onHome, onOpenWallet, onOpenOrders }: Prop
               {pwErr.new && <div className="text-xs text-red-500 mt-1">{pwErr.new}</div>}
             </div>
             <div>
-              <label className="ds-label">تکرار رمز عبور جدید</label>
+              <label className="ds-label">{t.profConfirmPw}</label>
               <input type="password" className={`ds-input ${pwErr.new2 ? 'border-red-400' : ''}`} value={pNew2} onChange={e => setPNew2(e.target.value)} style={{ direction:'ltr' }} />
               {pwErr.new2 && <div className="text-xs text-red-500 mt-1">{pwErr.new2}</div>}
             </div>
             <button onClick={changePassword} disabled={pwSaving}
               className="ds-btn-primary w-full py-3 disabled:opacity-60">
-              {pwSaving ? 'در حال ذخیره...' : 'تغییر رمز عبور'}
+              {pwSaving ? t.profSaving : t.profChangePwBtn}
             </button>
           </div>
         )}

@@ -5,31 +5,30 @@ import AirportCityAutocomplete, { type AirportOption } from './AirportCityAutoco
 import { getAirportByIata } from './airports';
 import { IdentityVerification, CargoVerification } from './VerificationModules';
 import { useSession } from '../lib/SessionContext';
+import { useLang } from '../lib/LangContext';
 import { Store, genId, getLiveRate } from '../lib/store';
 import SecuritySelector from './ProtectionSelector';
 import { defaultSecurityLevel, type SecurityLevel } from './shipmentTypes';
 
-// ── Constants (exact from cargo.html) ─────────────────────────────────────────
-
-const PILL_LABELS = ['مسیر', 'کالا', 'ویدیو', 'بررسی', 'ارزش', 'گیرنده', 'سند', 'پرداخت'];
+// ── Constants ─────────────────────────────────────────────────────────────────
 
 const CURRENCIES = [
-  { code: 'USD',  flag: '🇺🇸', label: 'دلار آمریکا',     rate: 1       },
-  { code: 'EUR',  flag: '🇪🇺', label: 'یورو',             rate: 1.09    },
-  { code: 'CAD',  flag: '🇨🇦', label: 'دلار کانادا',      rate: 0.74    },
-  { code: 'GBP',  flag: '🇬🇧', label: 'پوند انگلیس',      rate: 1.27    },
-  { code: 'AED',  flag: '🇦🇪', label: 'درهم امارات',      rate: 0.272   },
-  { code: 'TRY',  flag: '🇹🇷', label: 'لیر ترکیه',        rate: 0.031   },
-  { code: 'SAR',  flag: '🇸🇦', label: 'ریال عربستان',     rate: 0.267   },
-  { code: 'QAR',  flag: '🇶🇦', label: 'ریال قطر',         rate: 0.274   },
-  { code: 'IQD',  flag: '🇮🇶', label: 'دینار عراق',       rate: 0.00076 },
-  { code: 'CNY',  flag: '🇨🇳', label: 'یوان چین',         rate: 0.138   },
-  { code: 'INR',  flag: '🇮🇳', label: 'روپیه هند',        rate: 0.012   },
-  { code: 'AMD',  flag: '🇦🇲', label: 'درام ارمنستان',    rate: 0.0026  },
-  { code: 'AZN',  flag: '🇦🇿', label: 'منات آذربایجان',   rate: 0.588   },
-  { code: 'USDT', flag: '💵', label: 'تتر (برابر دلار)',  rate: 1       },
-  { code: 'USDC', flag: '🔵', label: 'یو‌اس‌دی کوین',    rate: 1       },
-  { code: 'IRR',  flag: '🇮🇷', label: 'ریال ایران',       rate: null    },
+  { code: 'USD',  flag: '🇺🇸', rate: 1       },
+  { code: 'EUR',  flag: '🇪🇺', rate: 1.09    },
+  { code: 'CAD',  flag: '🇨🇦', rate: 0.74    },
+  { code: 'GBP',  flag: '🇬🇧', rate: 1.27    },
+  { code: 'AED',  flag: '🇦🇪', rate: 0.272   },
+  { code: 'TRY',  flag: '🇹🇷', rate: 0.031   },
+  { code: 'SAR',  flag: '🇸🇦', rate: 0.267   },
+  { code: 'QAR',  flag: '🇶🇦', rate: 0.274   },
+  { code: 'IQD',  flag: '🇮🇶', rate: 0.00076 },
+  { code: 'CNY',  flag: '🇨🇳', rate: 0.138   },
+  { code: 'INR',  flag: '🇮🇳', rate: 0.012   },
+  { code: 'AMD',  flag: '🇦🇲', rate: 0.0026  },
+  { code: 'AZN',  flag: '🇦🇿', rate: 0.588   },
+  { code: 'USDT', flag: '💵',  rate: 1       },
+  { code: 'USDC', flag: '🔵',  rate: 1       },
+  { code: 'IRR',  flag: '🇮🇷', rate: null    },
 ] as const;
 type CurrencyCode = typeof CURRENCIES[number]['code'];
 
@@ -42,19 +41,13 @@ const PAY_METHODS = [
   { id: 'usdc',   icon: '🔵',  label: 'USDC'           },
 ];
 
-const CARGO_ITEMS = [
-  { cat: 'الکترونیک',      items: ['گوشی موبایل','لپ‌تاپ','تبلت','هدفون','اسپیکر','کامپیوتر','ساعت هوشمند','دوربین','قطعات الکترونیکی','شارژر و کابل','کنسول بازی','هارد اکسترنال'] },
-  { cat: 'پوشاک و کیف',    items: ['لباس','کت و شلوار','کفش','کیف','عینک','کمربند','شال و روسری','لباس ورزشی','جواهرات'] },
-  { cat: 'دارو و بهداشت',  items: ['دارو و مکمل','لوازم آرایشی و بهداشتی','عطر و ادکلن','ویتامین و مکمل غذایی','لوازم پزشکی'] },
-  { cat: 'مدارک و کتاب',   items: ['کتاب و مجله','مدارک و اسناد','اوراق رسمی','پاسپورت و ویزا','آلبوم عکس'] },
-  { cat: 'خوراکی',          items: ['مواد غذایی خشک','شیرینی و شکلات','چای و قهوه','آجیل و خشکبار','ادویه و چاشنی'] },
-  { cat: 'هدیه و متفرقه',  items: ['هدیه و سوغاتی','اسباب‌بازی','لوازم خانه','لوازم ورزشی','محصولات دیجیتال'] },
-];
-
-const DOC_TYPES = [
-  { key: 'passport', icon: '🛂', name: 'پاسپورت',   req: 'جلو + سلفی',        needBack: false },
-  { key: 'driver',   icon: '🪪', name: 'گواهینامه', req: 'جلو + پشت + سلفی', needBack: true  },
-  { key: 'national', icon: '🆔', name: 'کارت ملی',  req: 'جلو + پشت + سلفی', needBack: true  },
+const CARGO_ITEMS_BASE = [
+  { catKey: 'spCatElectronics', items: ['گوشی موبایل','لپ‌تاپ','تبلت','هدفون','اسپیکر','کامپیوتر','ساعت هوشمند','دوربین','قطعات الکترونیکی','شارژر و کابل','کنسول بازی','هارد اکسترنال'] },
+  { catKey: 'spCatClothing',    items: ['لباس','کت و شلوار','کفش','کیف','عینک','کمربند','شال و روسری','لباس ورزشی','جواهرات'] },
+  { catKey: 'spCatHealth',      items: ['دارو و مکمل','لوازم آرایشی و بهداشتی','عطر و ادکلن','ویتامین و مکمل غذایی','لوازم پزشکی'] },
+  { catKey: 'spCatDocuments',   items: ['کتاب و مجله','مدارک و اسناد','اوراق رسمی','پاسپورت و ویزا','آلبوم عکس'] },
+  { catKey: 'spCatFood',        items: ['مواد غذایی خشک','شیرینی و شکلات','چای و قهوه','آجیل و خشکبار','ادویه و چاشنی'] },
+  { catKey: 'spCatGifts',       items: ['هدیه و سوغاتی','اسباب‌بازی','لوازم خانه','لوازم ورزشی','محصولات دیجیتال'] },
 ];
 
 const PROHIBITED_KEYWORDS = [
@@ -82,6 +75,8 @@ function Err({ msg }: { msg: string }) {
 }
 
 function StepPills({ step }: { step: number }) {
+  const { t } = useLang();
+  const PILL_LABELS = [t.spPill1, t.spPill2, t.spPill3, t.spPill4, t.spPill5, t.spPill6, t.spPill7, t.spPill8];
   return (
     <div className="flex items-center gap-0 mb-8 overflow-x-auto pb-1 -mx-1 px-1">
       {PILL_LABELS.map((label, i) => {
@@ -113,6 +108,7 @@ function StepPills({ step }: { step: number }) {
 }
 
 function PageHeader({ onHome, title, desc }: { onHome: () => void; title: string; desc: string }) {
+  const { t } = useLang();
   return (
     <div className="ds-page-header px-4 sm:px-6 lg:px-8">
       <div className="max-w-2xl mx-auto relative z-10">
@@ -120,10 +116,10 @@ function PageHeader({ onHome, title, desc }: { onHome: () => void; title: string
           className="flex items-center gap-3 mb-10 flex-wrap">
           <button onClick={() => window.history.back()} className="ds-nav-btn group">
             <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
-            <span>بازگشت</span>
+            <span>{t.navBack}</span>
           </button>
           <button onClick={onHome} className="ds-nav-btn ds-nav-btn-home">
-            <Home className="w-4 h-4" /><span>صفحه اصلی</span>
+            <Home className="w-4 h-4" /><span>{t.navHome}</span>
           </button>
         </motion.div>
         <motion.h1 initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }}
@@ -135,7 +131,7 @@ function PageHeader({ onHome, title, desc }: { onHome: () => void; title: string
   );
 }
 
-// ── Draft shape (mirrors cargo.html saveDraft) ────────────────────────────────
+// ── Draft shape ────────────────────────────────────────────────────────────────
 interface CargoDraft {
   step: number;
   origin: string | null;
@@ -166,21 +162,41 @@ interface CargoDraft {
 interface Props { onBack: () => void; onHome: () => void; t: Record<string, string>; cargoType?: 'personal' | 'chapar'; onNavigate?: (page: string) => void; }
 
 export default function SendPackagePage({ onHome, cargoType = 'personal', onNavigate }: Props) {
-  const pageTitle = cargoType === 'chapar' ? 'خرید توسط چاپار' : 'ثبت سفارش کالا';
-  const pageDesc  = cargoType === 'chapar' ? 'خرید و ارسال کالا از طریق چاپار' : 'ارسال کالا از طریق مسافر تأیید‌شده';
+  const { t, isRTL } = useLang();
+
+  const pageTitle = cargoType === 'chapar' ? t.spTitleChapar : t.spTitlePersonal;
+  const pageDesc  = cargoType === 'chapar' ? t.spDescChapar  : t.spDescPersonal;
+
+  // Currency label lookup (computed from t)
+  const CURR_LABELS: Record<string, string> = {
+    USD: t.spCurrUSD, EUR: t.spCurrEUR, CAD: t.spCurrCAD, GBP: t.spCurrGBP,
+    AED: t.spCurrAED, TRY: t.spCurrTRY, SAR: t.spCurrSAR, QAR: t.spCurrQAR,
+    IQD: t.spCurrIQD, CNY: t.spCurrCNY, INR: t.spCurrINR, AMD: t.spCurrAMD,
+    AZN: t.spCurrAZN, USDT: t.spCurrUSDT, USDC: t.spCurrUSDC, IRR: t.spCurrIRR,
+  };
+
+  // Cargo categories with translated names
+  const CARGO_ITEMS = CARGO_ITEMS_BASE.map(c => ({
+    cat: (t as Record<string, string>)[c.catKey] ?? c.catKey,
+    items: c.items,
+  }));
+
+  // Doc types with translated names/reqs
+  const DOC_TYPES = [
+    { key: 'passport', icon: '🛂', name: t.docPassportName, req: t.docFrontSelfieReq,     needBack: false },
+    { key: 'driver',   icon: '🪪', name: t.docDriverName,   req: t.docFrontBackSelfieReq, needBack: true  },
+    { key: 'national', icon: '🆔', name: t.docNationalName, req: t.docFrontBackSelfieReq, needBack: true  },
+  ];
 
   const { session } = useSession();
 
-  // Step
   const [step, setStep] = useState(1);
 
-  // Step 1
   const [origin, setOrigin] = useState<AirportOption | null>(null);
   const [dest,   setDest]   = useState<AirportOption | null>(null);
   const [date,   setDate]   = useState('');
   const [showAllTrips, setShowAllTrips] = useState(false);
 
-  // Step 2 — photos
   const [photos, setPhotos]           = useState<string[]>([]);
   const [shots, setShots]             = useState({ jolo: false, posht: false, chap: false, rast: false });
   const jRef  = useRef<HTMLInputElement>(null);
@@ -189,12 +205,10 @@ export default function SendPackagePage({ onHome, cargoType = 'personal', onNavi
   const rRef  = useRef<HTMLInputElement>(null);
   const exRef = useRef<HTMLInputElement>(null);
 
-  // Step 3 — video
   const [videoReady, setVideoReady] = useState(false);
   const [videoDur,   setVideoDur]   = useState(0);
   const videoRef = useRef<HTMLInputElement>(null);
 
-  // Step 4 — inspection
   const [inspecting,    setInspecting]    = useState(false);
   const [inspDone,      setInspDone]      = useState(false);
   const [detectedItem,  setDetectedItem]  = useState('');
@@ -215,19 +229,16 @@ export default function SendPackagePage({ onHome, cargoType = 'personal', onNavi
   const [itemSearch,    setItemSearch]    = useState('');
   const [cargoEnabled,  setCargoEnabled]  = useState(true);
 
-  // Step 5 — value
   const [selectedCurr,   setSelectedCurr]   = useState<CurrencyCode>('USD');
   const [valueAmount,    setValueAmount]    = useState('');
   const [showCurrModal,  setShowCurrModal]  = useState(false);
 
-  // Step 6 — receiver
   const [recFirst,      setRecFirst]      = useState('');
   const [recLast,       setRecLast]       = useState('');
   const [recPhone,      setRecPhone]      = useState('');
   const [recAddress,    setRecAddress]    = useState('');
   const [recDocCapture, setRecDocCapture] = useState(false);
 
-  // Step 7 — identity
   const [docType,       setDocType]       = useState<string|null>(null);
   const [docCaptures,   setDocCaptures]   = useState({ front: false, back: false, selfie: false });
   const [idEnabled,     setIdEnabled]     = useState(true);
@@ -235,42 +246,35 @@ export default function SendPackagePage({ onHome, cargoType = 'personal', onNavi
   const [idVerifyItems, setIdVerifyItems] = useState<string[]>([]);
   const [docVerified,   setDocVerified]   = useState(false);
 
-  // Step 8 — payment
   const [selectedPay,    setSelectedPay]    = useState<string|null>(null);
   const [payAccountName, setPayAccountName] = useState('');
   const [payVerifying,   setPayVerifying]   = useState(false);
   const [payVerified,    setPayVerified]    = useState(false);
   const [payVerifyItems, setPayVerifyItems] = useState<string[]>([]);
 
-  // Security settings (step 5)
   const [securityLevel,       setSecurityLevel]       = useState<SecurityLevel>('GUARANTEED');
   const [identityVerReq,      setIdentityVerReq]      = useState(false);
   const [cargoVerReq,         setCargoVerReq]         = useState(false);
   const [otpDeliveryReq,      setOtpDeliveryReq]      = useState(false);
   const [deliveryPhotoReq,    setDeliveryPhotoReq]    = useState(false);
 
-  // Publish
   const [publishing, setPublishing] = useState(false);
   const [trackId,    setTrackId]    = useState<string|null>(null);
 
-  // Errors
   const [err, setErr] = useState('');
 
   const today = new Date().toISOString().split('T')[0];
 
-  // ── Write cargo_type to store on mount ────────────────────────────────────
   useEffect(() => {
     Store.set('cargo_type', cargoType);
   }, [cargoType]);
 
-  // ── Pre-fill from session ─────────────────────────────────────────────────
   useEffect(() => {
     if (!session) return;
     const full = [session.firstName, session.lastName].filter(Boolean).join(' ').trim();
     if (full) setPayAccountName(full);
   }, [session?.userId]);
 
-  // ── Restore draft ─────────────────────────────────────────────────────────
   useEffect(() => {
     const d = Store.get<CargoDraft>('cargo_draft');
     if (!d) return;
@@ -299,7 +303,6 @@ export default function SendPackagePage({ onHome, cargoType = 'personal', onNavi
     if (d.step && d.step >= 1 && d.step <= 8) setStep(d.step);
   }, []);
 
-  // ── Save draft ────────────────────────────────────────────────────────────
   const draftRef = useRef(false);
   useEffect(() => {
     if (!draftRef.current) { draftRef.current = true; return; }
@@ -315,25 +318,22 @@ export default function SendPackagePage({ onHome, cargoType = 'personal', onNavi
       nameConfirmed, dims, dimsConfirmed, inspDone, selectedCurr, valueAmount,
       recFirst, recLast, recPhone, recAddress, docType, docVerified, selectedPay, payVerified]);
 
-  // Apply smart security default when detected category changes
   useEffect(() => {
     if (detectedCat) setSecurityLevel(defaultSecurityLevel(detectedCat));
   }, [detectedCat]);
 
-  // ── Smart match box (reads cp_trips) ─────────────────────────────────────
   const matchData = useMemo(() => {
     if (!origin || !dest) return null;
     const trips = Store.get<Array<{origin:string;destination?:string;dest?:string;date?:string;status:string}>>('trips') ?? [];
-    const all = trips.filter(t =>
-      t.origin === origin.iata &&
-      (t.destination === dest.iata || t.dest === dest.iata) &&
-      t.status !== 'cancelled'
+    const all = trips.filter(tr =>
+      tr.origin === origin.iata &&
+      (tr.destination === dest.iata || tr.dest === dest.iata) &&
+      tr.status !== 'cancelled'
     );
-    const forDate = date ? all.filter(t => !t.date || t.date === date) : all;
+    const forDate = date ? all.filter(tr => !tr.date || tr.date === date) : all;
     return { all: all.length, forDate: forDate.length };
   }, [origin, dest, date]);
 
-  // ── Value in USD ─────────────────────────────────────────────────────────
   const getValueUSD = useCallback(() => {
     const amt = parseFloat(valueAmount) || 0;
     const curr = CURRENCIES.find(c => c.code === selectedCurr);
@@ -344,41 +344,40 @@ export default function SendPackagePage({ onHome, cargoType = 'personal', onNavi
 
   const highValue = getValueUSD() > 500;
 
-  // ── Validations (mirrors cargo.html validateStep) ────────────────────────
   function validate(n: number): string | null {
     switch (n) {
       case 1:
-        if (!origin) return 'برای ادامه باید مبدا را انتخاب کنید.';
-        if (!dest)   return 'برای ادامه باید مقصد را انتخاب کنید.';
-        if (!date)   return 'برای ادامه باید تاریخ ارسال را انتخاب کنید.';
+        if (!origin) return t.spErrNoOrigin;
+        if (!dest)   return t.spErrNoDest;
+        if (!date)   return t.spErrNoDate;
         return null;
       case 2:
-        if (photos.length < 4) return 'برای ادامه باید حداقل ۴ عکس از کالا بگیرید.';
+        if (photos.length < 4) return t.spErrNeedPhotos;
         return null;
       case 3:
-        if (!videoReady) return 'برای ادامه باید ویدیوی کالا را ضبط کنید (حداقل ۱۰ ثانیه).';
+        if (!videoReady) return t.spErrNeedVideo;
         return null;
       case 4:
-        if (!nameConfirmed) return 'برای ادامه باید نام کالا را تأیید یا اصلاح کنید.';
-        if (!dimsConfirmed) return 'برای ادامه باید ابعاد کالا را تأیید یا اصلاح کنید.';
+        if (!nameConfirmed) return t.spErrNeedItemName;
+        if (!dimsConfirmed) return t.spErrNeedDims;
         return null;
       case 5: {
         const v = parseFloat(valueAmount);
-        if (!v || v <= 0) return 'برای ادامه باید ارزش کالا را وارد کنید.';
+        if (!v || v <= 0) return t.spErrNeedValue;
         return null;
       }
       case 6:
-        if (!recFirst.trim())   return 'برای ادامه باید نام گیرنده را وارد کنید.';
-        if (!recLast.trim())    return 'برای ادامه باید نام خانوادگی گیرنده را وارد کنید.';
-        if (!recPhone.trim())   return 'برای ادامه باید تلفن گیرنده را وارد کنید.';
-        if (!recAddress.trim()) return 'برای ادامه باید شهر/منطقه تحویل را وارد کنید.';
-        if (highValue && !recDocCapture) return 'به دلیل ارزش بالای کالا، تصویر مدرک هویتی گیرنده لازم است.';
+        if (!recFirst.trim())   return t.spErrNeedRecFirst;
+        if (!recLast.trim())    return t.spErrNeedRecLast;
+        if (!recPhone.trim())   return t.spErrNeedRecPhone;
+        if (!recAddress.trim()) return t.spErrNeedRecAddress;
+        if (highValue && !recDocCapture) return t.spErrNeedRecDoc;
         return null;
       case 7:
-        if (!docVerified) return 'برای ادامه باید احراز هویت را کامل کنید.';
+        if (!docVerified) return t.spErrNeedDocVerified;
         return null;
       case 8:
-        if (!payVerified) return 'برای ادامه باید تأیید حساب را کامل کنید.';
+        if (!payVerified) return t.spErrNeedPayVerified;
         return null;
       default: return null;
     }
@@ -395,7 +394,6 @@ export default function SendPackagePage({ onHome, cargoType = 'personal', onNavi
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
-  // ── Step 2 — photo helpers ────────────────────────────────────────────────
   function addPhoto(file: File, shotKey?: keyof typeof shots) {
     if (photos.length >= 8) return;
     const reader = new FileReader();
@@ -411,7 +409,6 @@ export default function SendPackagePage({ onHome, cargoType = 'personal', onNavi
     setPhotos(prev => prev.filter((_, i) => i !== idx));
   }
 
-  // ── Step 3 — video ────────────────────────────────────────────────────────
   function onVideoFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -421,7 +418,7 @@ export default function SendPackagePage({ onHome, cargoType = 'personal', onNavi
     vid.onloadedmetadata = () => {
       URL.revokeObjectURL(url);
       const dur = vid.duration;
-      if (dur < 10) { setErr('ویدیو باید حداقل ۱۰ ثانیه باشد'); return; }
+      if (dur < 10) { setErr(t.spVideoErrShort); return; }
       setVideoReady(true);
       setVideoDur(Math.round(dur));
     };
@@ -429,7 +426,6 @@ export default function SendPackagePage({ onHome, cargoType = 'personal', onNavi
     if (e.target) e.target.value = '';
   }
 
-  // ── Step 4 — inspection (mirrors cargo.html runInspection) ───────────────
   function runInspection() {
     setInspecting(true);
     setInspDone(false);
@@ -456,18 +452,17 @@ export default function SendPackagePage({ onHome, cargoType = 'personal', onNavi
       setRiskLevel(risk);
       setDims({ l, w, h });
 
-      const confLabels = { high: 'سطح اطمینان: بالا', medium: 'سطح اطمینان: متوسط', low: 'سطح اطمینان: پایین' };
-      const riskLabels = { low: 'کم‌ریسک', review: 'نیازمند بررسی', high: 'پرریسک' };
+      const confLabels = { high: `${t.spConfLabel} ${t.spConfHigh}`, medium: `${t.spConfLabel} ${t.spConfMedium}`, low: `${t.spConfLabel} ${t.spConfLow}` };
+      const riskLabels = { low: t.spRiskLow, review: t.spRiskReview, high: t.spRiskHigh };
       const checkTexts = [
-        'تطابق کالا با محتوای رسانه: ✅ تأیید شد',
-        'ریسک تقلب: ' + riskLabels[risk] + (risk === 'low' ? ' ✅' : ' ⚠️'),
-        'سطح اطمینان: ' + confLabels[conf].replace('سطح اطمینان: ', ''),
+        t.spCheckMediaMatch,
+        `${t.spFraudRiskLabel} ${riskLabels[risk]}${risk === 'low' ? ' ✅' : ' ⚠️'}`,
+        confLabels[conf],
       ];
       checkTexts.forEach((txt, i) => {
         setTimeout(() => setInspChecks(prev => [...prev, txt]), i * 200 + 80);
       });
 
-      // HR-12/13: safety check
       const lower = item.toLowerCase();
       const isProhibited = PROHIBITED_KEYWORDS.some(kw => lower.includes(kw.toLowerCase()));
       const isCash = CASH_KEYWORDS.some(kw => lower.includes(kw.toLowerCase()));
@@ -491,7 +486,6 @@ export default function SendPackagePage({ onHome, cargoType = 'personal', onNavi
     setNameConfirmed(true);
     setShowItemModal(false);
     checkInspDone(true, dimsConfirmed);
-    // re-check safety
     const lower = item.toLowerCase();
     setIllegalBlocked(PROHIBITED_KEYWORDS.some(kw => lower.includes(kw.toLowerCase())));
     setCashFlagged(CASH_KEYWORDS.some(kw => lower.includes(kw.toLowerCase())));
@@ -505,14 +499,13 @@ export default function SendPackagePage({ onHome, cargoType = 'personal', onNavi
 
   function saveDims() {
     const l = parseFloat(dimL), w = parseFloat(dimW), h = parseFloat(dimH);
-    if (!l || !w || !h || l <= 0 || w <= 0 || h <= 0) { setErr('طول، عرض و ارتفاع را به درستی وارد کنید'); return; }
+    if (!l || !w || !h || l <= 0 || w <= 0 || h <= 0) { setErr(t.spErrDimsInvalid); return; }
     setDims({ l, w, h });
     setDimsConfirmed(true);
     setDimManual(false);
     checkInspDone(nameConfirmed, true);
   }
 
-  // ── Step 7 — doc verification ─────────────────────────────────────────────
   function onDocCapture(which: 'front'|'back'|'selfie') {
     const newCaps = { ...docCaptures, [which]: true };
     setDocCaptures(newCaps);
@@ -535,7 +528,7 @@ export default function SendPackagePage({ onHome, cargoType = 'personal', onNavi
   function startDocVerify() {
     setIdVerifying(true);
     setIdVerifyItems([]);
-    const checks = ['تطابق چهره با مدرک: ✅','اعتبار سند: ✅','تطابق نوع سند: ✅','تطابق کشور/زبان: ✅','ریسک جعلی بودن: پایین ✅'];
+    const checks = [t.spDocCheckFace, t.spDocCheckValid, t.spDocCheckType, t.spDocCheckCountry, t.spDocCheckFraud];
     setTimeout(() => {
       setIdVerifying(false);
       checks.forEach((c, i) => {
@@ -545,12 +538,11 @@ export default function SendPackagePage({ onHome, cargoType = 'personal', onNavi
     }, 2000);
   }
 
-  // ── Step 8 — payment ──────────────────────────────────────────────────────
   function confirmPayment() {
-    if (!payAccountName.trim()) { setErr('نام صاحب حساب را وارد کنید.'); return; }
+    if (!payAccountName.trim()) { setErr(t.spErrPayAccountName); return; }
     setErr('');
     setPayVerifying(true);
-    const items = ['نام با هویت تأیید‌شده تطابق دارد: ✅', 'روش پرداخت تأیید شد: ✅'];
+    const items = [t.spPayCheckName, t.spPayCheckMethod];
     setTimeout(() => {
       setPayVerifying(false);
       items.forEach((txt, i) => {
@@ -560,11 +552,10 @@ export default function SendPackagePage({ onHome, cargoType = 'personal', onNavi
     }, 1500);
   }
 
-  // ── Publish (mirrors cargo.html publishOrder) ─────────────────────────────
   async function publishOrder() {
-    if (!session) { setErr('برای ثبت سفارش ابتدا باید ورود کنید.'); return; }
-    if (illegalBlocked) { setErr('🚫 انتشار آگهی به دلیل شناسایی کالای ممنوعه مسدود است.'); return; }
-    if (!docVerified || !payVerified) { setErr('🔐 برای انتشار ابتدا باید احراز هویت و تأیید حساب را کامل کنید.'); return; }
+    if (!session) { setErr(t.spErrNeedLogin); return; }
+    if (illegalBlocked) { setErr(t.spErrIllegal); return; }
+    if (!docVerified || !payVerified) { setErr(t.spErrNeedKyc); return; }
     if (!origin || !dest) return;
 
     const amt = parseFloat(valueAmount) || 0;
@@ -616,12 +607,10 @@ export default function SendPackagePage({ onHome, cargoType = 'personal', onNavi
       deliveryPhotoRequired:        deliveryPhotoReq,
     };
 
-    // Write to cp_history (mirrors cargo.html publishOrder)
     const hist = Store.get<typeof order[]>('history') ?? [];
     hist.unshift(order);
     Store.set('history', hist);
 
-    // ── POST /api/approvals/create — listing goes PENDING until admin approves
     try {
       await fetch('/api/approvals/create', {
         method: 'POST',
@@ -630,12 +619,10 @@ export default function SendPackagePage({ onHome, cargoType = 'personal', onNavi
       });
     } catch { /* non-fatal */ }
 
-    // Mark KYC in users + session
     const users = Store.get<Array<Record<string,unknown>>>('users') ?? [];
     const idx = users.findIndex(u => u.userId === session.userId);
     if (idx !== -1) { users[idx].kycVerified = true; Store.set('users', users); }
 
-    // Clear draft
     Store.del('cargo_draft');
     Store.del('cargo_trip');
     Store.del('cargo_type');
@@ -646,54 +633,37 @@ export default function SendPackagePage({ onHome, cargoType = 'personal', onNavi
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
-  // ── Auth guard ────────────────────────────────────────────────────────────
-  if (!session) {
-    return (
-      <div className="min-h-screen bg-white flex items-center justify-center px-4">
-        <div className="max-w-sm w-full text-center">
-          <div className="text-6xl mb-4">🔐</div>
-          <h2 className="text-xl font-extrabold text-gray-900 mb-2">ورود لازم است</h2>
-          <p className="text-gray-500 text-sm mb-6 leading-relaxed">برای ثبت سفارش باید ابتدا ثبت‌نام یا ورود انجام دهید.</p>
-          <button onClick={onHome} className="ds-btn-primary w-full py-3">ورود / ثبت‌نام</button>
-          <button onClick={onHome} className="mt-3 text-sm text-gray-400 hover:text-gray-600 underline block w-full">
-            بازگشت به صفحه اصلی
-          </button>
-        </div>
-      </div>
-    );
-  }
+  if (!session) return null;
 
   // ── Step 9 — Success ──────────────────────────────────────────────────────
   if (step === 9 && trackId) {
     return (
-      <div className="min-h-screen bg-white" dir="rtl">
+      <div className="min-h-screen bg-white" dir={isRTL ? 'rtl' : 'ltr'}>
         <PageHeader onHome={onHome} title={pageTitle} desc={pageDesc} />
         <div className="max-w-2xl mx-auto px-4 py-10 pb-24">
           <div className="ds-card p-8 text-center">
             <div className="text-6xl mb-4">⏳</div>
-            <h2 className="text-2xl font-extrabold text-gray-900 mb-2">سفارش ثبت شد!</h2>
+            <h2 className="text-2xl font-extrabold text-gray-900 mb-2">{t.spSuccessTitle}</h2>
             <div className="inline-flex items-center gap-2 bg-amber-50 border border-amber-200 text-amber-700 text-sm font-bold rounded-xl px-4 py-2 mb-4">
-              <span>⏳</span><span>در انتظار تأیید ادمین</span>
+              <span>⏳</span><span>{t.spSuccessPending}</span>
             </div>
-            <p className="text-gray-500 text-sm leading-relaxed mb-6">
-              سفارش شما ثبت شد و پس از بررسی و تأیید توسط تیم چاپار در مارکت‌پلیس نمایش داده می‌شود.
-            </p>
+            <p className="text-gray-500 text-sm leading-relaxed mb-6">{t.spSuccessDesc}</p>
             <div className="bg-cyan-50 border border-cyan-200 rounded-xl px-6 py-4 mb-6">
-              <div className="text-xs font-bold text-cyan-600 uppercase tracking-wider mb-1">کد پیگیری</div>
+              <div className="text-xs font-bold text-cyan-600 uppercase tracking-wider mb-1">{t.spTrackingCode}</div>
               <div className="text-xl font-extrabold text-gray-900 tracking-wider font-mono">{trackId}</div>
             </div>
             <div className="flex flex-col gap-3">
               <button onClick={() => onNavigate ? onNavigate('marketplace') : window.location.href = '/'}
                  className="ds-btn-primary py-3 w-full"
                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 48 }}>
-                مشاهده مسافران مناسب این مسیر ✈️
+                {t.spViewTravelers}
               </button>
               <a href={`/track?id=${trackId}`}
                  className="ds-btn-secondary py-2.5 no-underline"
                  style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                پیگیری سفارش
+                {t.spTrackOrder}
               </a>
-              <button onClick={onHome} className="ds-btn-secondary py-2.5">بازگشت به خانه</button>
+              <button onClick={onHome} className="ds-btn-secondary py-2.5">{t.navBack}</button>
             </div>
           </div>
         </div>
@@ -701,88 +671,85 @@ export default function SendPackagePage({ onHome, cargoType = 'personal', onNavi
     );
   }
 
-  // ── Wizard ────────────────────────────────────────────────────────────────
   const currObj = CURRENCIES.find(c => c.code === selectedCurr) ?? CURRENCIES[0];
   const valueUSD = getValueUSD();
 
   return (
-    <div className="min-h-screen bg-white" dir="rtl">
+    <div className="min-h-screen bg-white" dir={isRTL ? 'rtl' : 'ltr'}>
       <PageHeader onHome={onHome} title={pageTitle} desc={pageDesc} />
       <div className="max-w-2xl mx-auto px-4 py-10 pb-24">
         <StepPills step={step} />
 
-        {/* ════════════ STEP 1 — مسیر ════════════ */}
+        {/* ════════════ STEP 1 ════════════ */}
         {step === 1 && (
           <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="ds-card p-6 sm:p-8">
-            <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">مرحله ۱ از ۸</div>
-            <h2 className="text-xl font-extrabold text-gray-900 mb-1">مسیر ارسال</h2>
-            <p className="text-sm text-gray-400 mb-6">مبدا، مقصد و تاریخ ارسال را انتخاب کنید</p>
+            <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">{t.wizardStep.replace('{n}', '1').replace('{m}', '8')}</div>
+            <h2 className="text-xl font-extrabold text-gray-900 mb-1">{t.spPill1}</h2>
+            <p className="text-sm text-gray-400 mb-6">{t.spOrigin}, {t.spDest}</p>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
-              <AirportCityAutocomplete label="مبدا" value={origin} onChange={v => { setOrigin(v); setErr(''); }} placeholder="تهران، استانبول..." />
-              <AirportCityAutocomplete label="مقصد" value={dest}   onChange={v => { setDest(v);   setErr(''); }} placeholder="تورنتو، لندن..." />
+              <AirportCityAutocomplete label={t.spOrigin} value={origin} onChange={v => { setOrigin(v); setErr(''); }} placeholder={t.spOriginPlaceholder} />
+              <AirportCityAutocomplete label={t.spDest}   value={dest}   onChange={v => { setDest(v);   setErr(''); }} placeholder={t.spDestPlaceholder} />
             </div>
             <div className="mb-5">
-              <label className="ds-label">تاریخ ارسال</label>
+              <label className="ds-label">{t.spShipDate}</label>
               <input type="date" className="ds-input" min={today} value={date}
                 onChange={e => { setDate(e.target.value); setErr(''); setShowAllTrips(false); }} />
             </div>
 
-            {/* Smart match box (reads cp_trips) */}
             {matchData !== null && (
               <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-4">
                 {(showAllTrips ? matchData.all : matchData.forDate) > 0 ? (
                   <>
                     <div className="text-sm font-bold text-blue-700 mb-1">
-                      ✈️ <strong>{showAllTrips ? matchData.all : matchData.forDate} مسافر</strong> برای این مسیر آماده حمل هستند
+                      ✈️ {t.spMatchReady.replace('{n}', String(showAllTrips ? matchData.all : matchData.forDate))}
                     </div>
-                    <p className="text-xs text-blue-500 mb-3">مسافران تأیید‌شده که آمادگی حمل کالا دارند</p>
+                    <p className="text-xs text-blue-500 mb-3">{t.spMatchTravelersReady}</p>
                     <button onClick={() => onNavigate ? onNavigate('marketplace') : window.location.href = '/'}
                        className="text-xs font-bold text-cyan-600 hover:underline bg-transparent border-none cursor-pointer p-0">
-                      مشاهده مسافران مناسب این مسیر →
+                      {t.spMatchViewTravelers}
                     </button>
                   </>
                 ) : (
-                  <p className="text-xs text-gray-400 italic">هنوز مسافری برای این مسیر ثبت نشده. پس از ثبت سفارش اطلاع داده می‌شود.</p>
+                  <p className="text-xs text-gray-400 italic">{t.spMatchNoTravelers}</p>
                 )}
                 {date && (
                   <button onClick={() => setShowAllTrips(m => !m)}
                     className="mt-2 text-xs font-bold text-cyan-600 hover:underline bg-transparent border-none cursor-pointer p-0 block">
-                    {showAllTrips ? 'نمایش فقط تاریخ انتخابی' : `نمایش همه تاریخ‌ها (${matchData.all})`}
+                    {showAllTrips ? t.spMatchShowDate : t.spMatchShowAllDates.replace('{n}', String(matchData.all))}
                   </button>
                 )}
               </div>
             )}
 
             <Err msg={err} />
-            <button onClick={() => goStep(2)} className="ds-btn-primary w-full mt-4 py-3">ادامه ←</button>
+            <button onClick={() => goStep(2)} className="ds-btn-primary w-full mt-4 py-3">{t.wizardContinue}</button>
           </motion.div>
         )}
 
-        {/* ════════════ STEP 2 — عکاسی ════════════ */}
+        {/* ════════════ STEP 2 ════════════ */}
         {step === 2 && (
           <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="ds-card p-6 sm:p-8">
-            <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">مرحله ۲ از ۸</div>
-            <h2 className="text-xl font-extrabold text-gray-900 mb-1">عکاسی از کالا</h2>
-            <p className="text-sm text-gray-400 mb-4">حداقل ۴ عکس از زوایای مختلف بگیرید</p>
+            <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">{t.wizardStep.replace('{n}', '2').replace('{m}', '8')}</div>
+            <h2 className="text-xl font-extrabold text-gray-900 mb-1">{t.spStep2Title}</h2>
+            <p className="text-sm text-gray-400 mb-4">{t.spStep2Desc}</p>
 
             <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 mb-4 text-xs text-amber-700 flex gap-2">
               <span>📋</span>
-              <span>از جلو، پشت، چپ، راست و زاویه بالا عکس بگیرید</span>
+              <span>{t.spPhotoHint}</span>
             </div>
 
             <div className="flex items-center justify-between mb-3">
-              <span className="text-sm font-bold text-gray-700">{photos.length} از ۴ عکس گرفته شده</span>
-              <span className="bg-gray-100 rounded-full px-3 py-1 text-xs font-bold text-cyan-600">{photos.length} عکس</span>
+              <span className="text-sm font-bold text-gray-700">{t.spPhotoProgress.replace('{n}', String(photos.length))}</span>
+              <span className="bg-gray-100 rounded-full px-3 py-1 text-xs font-bold text-cyan-600">{t.spPhotoCount.replace('{n}', String(photos.length))}</span>
             </div>
 
-            {/* 4 main shot buttons */}
             <div className="grid grid-cols-2 gap-3 mb-3">
               {([
-                { key: 'jolo'  as const, label: 'جلو',  ref: jRef },
-                { key: 'posht' as const, label: 'پشت',  ref: pRef },
-                { key: 'chap'  as const, label: 'چپ',   ref: cRef },
-                { key: 'rast'  as const, label: 'راست', ref: rRef },
+                { key: 'jolo'  as const, label: t.spShotFront, ref: jRef },
+                { key: 'posht' as const, label: t.spShotBack,  ref: pRef },
+                { key: 'chap'  as const, label: t.spShotLeft,  ref: cRef },
+                { key: 'rast'  as const, label: t.spShotRight, ref: rRef },
               ]).map(btn => (
                 <button key={btn.key} type="button"
                   onClick={() => btn.ref.current?.click()}
@@ -798,16 +765,14 @@ export default function SendPackagePage({ onHome, cargoType = 'personal', onNavi
               ))}
             </div>
 
-            {/* Extra photo */}
             <button type="button" onClick={() => exRef.current?.click()}
               className="mb-4 inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold text-gray-500
                 border border-dashed border-gray-300 bg-gray-50 hover:bg-gray-100 transition-colors">
-              ➕ عکس اضافه
+              {t.spPhotoAdd}
               <input ref={exRef} type="file" accept="image/*" capture="environment" className="hidden"
                 onChange={e => { const f = e.target.files?.[0]; if (f) addPhoto(f); e.target.value = ''; }} />
             </button>
 
-            {/* Photo thumbnails */}
             {photos.length > 0 && (
               <div className="grid grid-cols-3 gap-2 mb-4">
                 {photos.map((src, i) => (
@@ -824,30 +789,30 @@ export default function SendPackagePage({ onHome, cargoType = 'personal', onNavi
 
             <Err msg={err} />
             <div className="flex gap-3 mt-4">
-              <button onClick={() => goStep(1)} className="ds-btn-secondary flex-shrink-0 px-5 py-3">← قبل</button>
-              <button onClick={() => goStep(3)} className="ds-btn-primary flex-1 py-3">ادامه ←</button>
+              <button onClick={() => goStep(1)} className="ds-btn-secondary flex-shrink-0 px-5 py-3">{t.wizardPrev}</button>
+              <button onClick={() => goStep(3)} className="ds-btn-primary flex-1 py-3">{t.wizardContinue}</button>
             </div>
           </motion.div>
         )}
 
-        {/* ════════════ STEP 3 — ویدیو ════════════ */}
+        {/* ════════════ STEP 3 ════════════ */}
         {step === 3 && (
           <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="ds-card p-6 sm:p-8">
-            <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">مرحله ۳ از ۸</div>
-            <h2 className="text-xl font-extrabold text-gray-900 mb-1">ویدیو کالا</h2>
-            <p className="text-sm text-gray-400 mb-4">حداقل ۱۰ ثانیه ویدیو از کالا ضبط کنید</p>
+            <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">{t.wizardStep.replace('{n}', '3').replace('{m}', '8')}</div>
+            <h2 className="text-xl font-extrabold text-gray-900 mb-1">{t.spStep3Title}</h2>
+            <p className="text-sm text-gray-400 mb-4">{t.spStep3Desc}</p>
 
             <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 mb-4 text-xs text-amber-700 flex gap-2">
               <span>🎥</span>
-              <span>از همه اطراف کالا فیلم بگیرید — حداقل ۱۰ ثانیه</span>
+              <span>{t.spVideoHint}</span>
             </div>
 
             {!videoReady ? (
               <button type="button" onClick={() => videoRef.current?.click()}
                 className="w-full border-2 border-dashed border-gray-300 rounded-xl py-10 flex flex-col items-center gap-3 hover:border-cyan-400 hover:bg-cyan-50/30 transition-all">
                 <span className="text-4xl">🎥</span>
-                <span className="text-sm font-bold text-gray-600">ضبط ویدیو</span>
-                <span className="text-xs text-gray-400">برای ضبط کلیک کنید</span>
+                <span className="text-sm font-bold text-gray-600">{t.spVideoRecord}</span>
+                <span className="text-xs text-gray-400">{t.spVideoClickToRecord}</span>
                 <input ref={videoRef} type="file" accept="video/*" capture="environment" className="hidden"
                   onChange={onVideoFile} />
               </button>
@@ -855,11 +820,11 @@ export default function SendPackagePage({ onHome, cargoType = 'personal', onNavi
               <div className="bg-green-50 border border-green-200 rounded-xl p-4">
                 <div className="flex items-center gap-3 mb-3">
                   <span className="bg-green-100 border border-green-300 rounded-full px-3 py-1 text-xs font-bold text-green-700">
-                    ✅ {videoDur} ثانیه ضبط شد
+                    ✅ {videoDur} {t.spVideoSecs}
                   </span>
                   <button onClick={() => { setVideoReady(false); setVideoDur(0); }}
                     className="text-xs text-cyan-600 font-bold underline bg-transparent border-none cursor-pointer">
-                    ضبط مجدد
+                    {t.spVideoReRecord}
                   </button>
                 </div>
               </div>
@@ -867,20 +832,19 @@ export default function SendPackagePage({ onHome, cargoType = 'personal', onNavi
 
             <Err msg={err} />
             <div className="flex gap-3 mt-5">
-              <button onClick={() => goStep(2)} className="ds-btn-secondary flex-shrink-0 px-5 py-3">← قبل</button>
-              <button onClick={() => goStep(4)} className="ds-btn-primary flex-1 py-3">ادامه ←</button>
+              <button onClick={() => goStep(2)} className="ds-btn-secondary flex-shrink-0 px-5 py-3">{t.wizardPrev}</button>
+              <button onClick={() => goStep(4)} className="ds-btn-primary flex-1 py-3">{t.wizardContinue}</button>
             </div>
           </motion.div>
         )}
 
-        {/* ════════════ STEP 4 — بررسی کالا ════════════ */}
+        {/* ════════════ STEP 4 ════════════ */}
         {step === 4 && (
           <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="ds-card p-6 sm:p-8">
-            <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">مرحله ۴ از ۸</div>
-            <h2 className="text-xl font-extrabold text-gray-900 mb-1">بررسی کالا</h2>
-            <p className="text-sm text-gray-400 mb-5">سیستم کالای شما را بررسی می‌کند</p>
+            <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">{t.wizardStep.replace('{n}', '4').replace('{m}', '8')}</div>
+            <h2 className="text-xl font-extrabold text-gray-900 mb-1">{t.spStep4Title}</h2>
+            <p className="text-sm text-gray-400 mb-5">{t.spStep4Desc}</p>
 
-            {/* CargoVerification reused for status display */}
             <div className="mb-5">
               <CargoVerification enabled={cargoEnabled} onToggle={setCargoEnabled}
                 status={inspDone ? 'VERIFIED' : inspecting ? 'PENDING' : 'PENDING'} />
@@ -889,45 +853,42 @@ export default function SendPackagePage({ onHome, cargoType = 'personal', onNavi
             {inspecting && (
               <div className="flex flex-col items-center gap-4 py-8">
                 <div className="w-12 h-12 rounded-full border-4 border-cyan-200 border-t-cyan-500 animate-spin" />
-                <span className="text-sm font-bold text-gray-500">در حال بررسی کالا...</span>
+                <span className="text-sm font-bold text-gray-500">{t.spInspecting}</span>
               </div>
             )}
 
             {!inspecting && detectedItem && (
               <div className="space-y-4">
-                {/* Detected item card */}
                 <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
-                  <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">کالای تشخیص‌داده‌شده</div>
+                  <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">{t.spDetectedItem}</div>
                   <div className="text-lg font-extrabold text-gray-900 mb-2">{detectedItem}</div>
                   <div className="flex gap-2 flex-wrap">
                     <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full border
                       ${confidence === 'high' ? 'bg-green-50 text-green-700 border-green-200' :
                         confidence === 'medium' ? 'bg-amber-50 text-amber-700 border-amber-200' :
                         'bg-red-50 text-red-700 border-red-200'}`}>
-                      🔍 سطح اطمینان: {confidence === 'high' ? 'بالا' : confidence === 'medium' ? 'متوسط' : 'پایین'}
+                      🔍 {t.spConfLabel} {confidence === 'high' ? t.spConfHigh : confidence === 'medium' ? t.spConfMedium : t.spConfLow}
                     </span>
                     <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full border
                       ${riskLevel === 'low' ? 'bg-green-50 text-green-700 border-green-200' :
                         riskLevel === 'review' ? 'bg-amber-50 text-amber-700 border-amber-200' :
                         'bg-red-50 text-red-700 border-red-200'}`}>
-                      🛡️ {riskLevel === 'low' ? 'کم‌ریسک' : riskLevel === 'review' ? 'نیازمند بررسی' : 'پرریسک'}
+                      🛡️ {riskLevel === 'low' ? t.spRiskLow : riskLevel === 'review' ? t.spRiskReview : t.spRiskHigh}
                     </span>
                   </div>
                 </div>
 
-                {/* HR-12 illegal item alert */}
                 {illegalBlocked && (
                   <div className="bg-red-50 border border-red-300 rounded-xl p-4 text-sm text-red-700 font-bold">
-                    🚫 <strong>کالای ممنوعه شناسایی شد</strong> — این نوع کالا قابل ارسال نیست.
+                    🚫 <strong>{t.spIllegalAlert}</strong>
                   </div>
                 )}
                 {cashFlagged && !illegalBlocked && (
                   <div className="bg-amber-50 border border-amber-300 rounded-xl p-4 text-sm text-amber-700 font-bold">
-                    ⚠️ <strong>حمل پول نقد</strong> — نیاز به تأیید ادمین دارد.
+                    ⚠️ <strong>{t.spCashAlert}</strong>
                   </div>
                 )}
 
-                {/* Check items */}
                 {inspChecks.length > 0 && (
                   <div className="space-y-2">
                     {inspChecks.map((c, i) => (
@@ -939,31 +900,29 @@ export default function SendPackagePage({ onHome, cargoType = 'personal', onNavi
                   </div>
                 )}
 
-                {/* Name confirm/correct */}
                 {!nameConfirmed ? (
                   <div className="flex gap-3">
                     <button onClick={confirmName}
                       className="flex-1 py-2.5 bg-green-500 hover:bg-green-600 text-white text-sm font-bold rounded-xl transition-colors">
-                      ✅ تایید نام کالا
+                      {t.spConfirmItemName}
                     </button>
                     <button onClick={() => setShowItemModal(true)}
                       className="flex-1 py-2.5 bg-amber-50 border border-amber-300 text-amber-700 text-sm font-bold rounded-xl hover:bg-amber-100 transition-colors">
-                      ✏️ اصلاح نام کالا
+                      {t.spCorrectItemName}
                     </button>
                   </div>
                 ) : (
                   <div className="bg-green-50 border border-green-200 rounded-xl px-4 py-2.5 text-sm font-bold text-green-700">
-                    ✅ نام کالا تأیید شد
+                    {t.spItemNameConfirmed}
                   </div>
                 )}
 
-                {/* Dimensions */}
                 {dims && (
                   <div>
-                    <div className="text-xs font-bold text-gray-500 mb-2">📐 ابعاد تخمینی (cm):</div>
+                    <div className="text-xs font-bold text-gray-500 mb-2">{t.spDimsEstimated}</div>
                     <div className="grid grid-cols-3 gap-2 mb-3">
-                      {[['طول', dims.l],['عرض', dims.w],['ارتفاع', dims.h]].map(([lbl, val]) => (
-                        <div key={lbl as string} className="bg-blue-50 border border-blue-200 rounded-xl p-2.5 text-center">
+                      {([[t.spDimLength, dims.l],[t.spDimWidth, dims.w],[t.spDimHeight, dims.h]] as [string, number][]).map(([lbl, val]) => (
+                        <div key={lbl} className="bg-blue-50 border border-blue-200 rounded-xl p-2.5 text-center">
                           <div className="text-base font-extrabold text-cyan-600">{val}</div>
                           <div className="text-[10px] text-gray-400 mt-0.5">{lbl} (cm)</div>
                         </div>
@@ -972,15 +931,15 @@ export default function SendPackagePage({ onHome, cargoType = 'personal', onNavi
 
                     {!dimsConfirmed && !dimManual && (
                       <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
-                        <div className="text-sm font-bold text-gray-700 mb-3">آیا ابعاد تشخیص‌داده‌شده درست است؟</div>
+                        <div className="text-sm font-bold text-gray-700 mb-3">{t.spDimsCorrect}</div>
                         <div className="flex gap-3">
                           <button onClick={confirmDims}
                             className="flex-1 py-2.5 bg-cyan-600 hover:bg-cyan-700 text-white text-sm font-bold rounded-xl transition-colors">
-                            ✅ تایید ابعاد
+                            {t.spConfirmDims}
                           </button>
                           <button onClick={() => setDimManual(true)}
                             className="flex-1 py-2.5 border border-gray-300 text-gray-600 text-sm font-bold rounded-xl hover:bg-gray-50 transition-colors">
-                            ✏️ اصلاح دستی
+                            {t.spManualDims}
                           </button>
                         </div>
                       </div>
@@ -988,9 +947,9 @@ export default function SendPackagePage({ onHome, cargoType = 'personal', onNavi
 
                     {dimManual && (
                       <div className="space-y-3">
-                        <div className="text-xs font-bold text-gray-500 mb-1">ابعاد دقیق کالا (سانتی‌متر):</div>
+                        <div className="text-xs font-bold text-gray-500 mb-1">{t.spManualDimsTitle}</div>
                         <div className="grid grid-cols-3 gap-3">
-                          {([['طول', dimL, setDimL],['عرض', dimW, setDimW],['ارتفاع', dimH, setDimH]] as [string,string,(v:string)=>void][]).map(([l,v,s]) => (
+                          {([[t.spDimLength, dimL, setDimL],[t.spDimWidth, dimW, setDimW],[t.spDimHeight, dimH, setDimH]] as [string,string,(v:string)=>void][]).map(([l,v,s]) => (
                             <div key={l}>
                               <label className="ds-label text-[11px]">{l}</label>
                               <input type="number" className="ds-input text-sm" placeholder="cm" min="1" max="300"
@@ -998,13 +957,13 @@ export default function SendPackagePage({ onHome, cargoType = 'personal', onNavi
                             </div>
                           ))}
                         </div>
-                        <button onClick={saveDims} className="ds-btn-primary w-full py-2.5">✅ تأیید ابعاد</button>
+                        <button onClick={saveDims} className="ds-btn-primary w-full py-2.5">{t.spConfirmDims}</button>
                       </div>
                     )}
 
                     {dimsConfirmed && (
                       <div className="bg-green-50 border border-green-200 rounded-xl px-4 py-2.5 text-sm font-bold text-green-700">
-                        ✅ ابعاد تأیید شد
+                        {t.spDimsConfirmed}
                       </div>
                     )}
                   </div>
@@ -1013,8 +972,8 @@ export default function SendPackagePage({ onHome, cargoType = 'personal', onNavi
                 {inspDone && (
                   <div className="bg-green-50 border border-green-200 rounded-2xl p-5 text-center">
                     <div className="text-2xl mb-2">✅</div>
-                    <div className="text-sm font-extrabold text-green-700">بررسی کالا تکمیل شد</div>
-                    <div className="text-xs text-gray-500 mt-1">کالا بررسی شد و آماده ادامه ثبت سفارش است</div>
+                    <div className="text-sm font-extrabold text-green-700">{t.spInspectionDone}</div>
+                    <div className="text-xs text-gray-500 mt-1">{t.spInspectionDoneDesc}</div>
                   </div>
                 )}
               </div>
@@ -1022,49 +981,48 @@ export default function SendPackagePage({ onHome, cargoType = 'personal', onNavi
 
             <Err msg={err} />
             <div className="flex gap-3 mt-5">
-              <button onClick={() => goStep(3)} className="ds-btn-secondary flex-shrink-0 px-5 py-3">← قبل</button>
+              <button onClick={() => goStep(3)} className="ds-btn-secondary flex-shrink-0 px-5 py-3">{t.wizardPrev}</button>
               <button onClick={() => goStep(5)} disabled={!inspDone || illegalBlocked}
-                className="ds-btn-primary flex-1 py-3 disabled:opacity-40">ادامه ←</button>
+                className="ds-btn-primary flex-1 py-3 disabled:opacity-40">{t.wizardContinue}</button>
             </div>
           </motion.div>
         )}
 
-        {/* ════════════ STEP 5 — ارزش کالا ════════════ */}
+        {/* ════════════ STEP 5 ════════════ */}
         {step === 5 && (
           <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="ds-card p-6 sm:p-8">
-            <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">مرحله ۵ از ۸</div>
-            <h2 className="text-xl font-extrabold text-gray-900 mb-1">ارزش کالا</h2>
-            <p className="text-sm text-gray-400 mb-5">ارزش تقریبی کالا را وارد کنید</p>
+            <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">{t.wizardStep.replace('{n}', '5').replace('{m}', '8')}</div>
+            <h2 className="text-xl font-extrabold text-gray-900 mb-1">{t.spStep5Title}</h2>
+            <p className="text-sm text-gray-400 mb-5">{t.spStep5Desc}</p>
 
             <div className="mb-4">
-              <label className="ds-label">ارز</label>
+              <label className="ds-label">{t.spCurrency}</label>
               <button type="button" onClick={() => setShowCurrModal(true)}
                 className="w-full flex items-center gap-3 px-4 py-3 border-2 border-gray-200 rounded-xl hover:border-cyan-400 transition-colors bg-white">
                 <span className="text-xl">{currObj.flag}</span>
                 <span className="text-base font-extrabold text-cyan-600">{currObj.code}</span>
-                <span className="text-sm text-gray-500 flex-1 text-right">{currObj.label}</span>
+                <span className="text-sm text-gray-500 flex-1 text-right">{CURR_LABELS[currObj.code] ?? currObj.code}</span>
                 <span className="text-gray-400 text-sm">▼</span>
               </button>
               {selectedCurr === 'IRR' && (
                 <div className="mt-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 text-xs text-amber-700 font-semibold">
-                  ⚠️ نرخ لحظه‌ای در دسترس نیست — از نرخ تقریبی استفاده می‌شود
+                  {t.spIrrWarning}
                 </div>
               )}
             </div>
 
             <div className="mb-4">
-              <label className="ds-label">مبلغ</label>
-              <input type="number" className="ds-input" placeholder="مبلغ را وارد کنید" min="0" step="0.01"
+              <label className="ds-label">{t.spAmount}</label>
+              <input type="number" className="ds-input" placeholder={t.spAmountPlaceholder} min="0" step="0.01"
                 value={valueAmount} onChange={e => { setValueAmount(e.target.value); setErr(''); }}
                 style={{ direction: 'ltr' }} />
               {parseFloat(valueAmount) > 0 && (
                 <div className="text-xs text-gray-400 mt-1">
-                  معادل تقریبی: <strong className="text-cyan-600">${valueUSD.toFixed(2)}</strong>
+                  {t.spUsdEquiv} <strong className="text-cyan-600">${valueUSD.toFixed(2)}</strong>
                 </div>
               )}
             </div>
 
-            {/* Security settings */}
             <div className="mt-6 pt-5 border-t border-gray-100">
               <SecuritySelector
                 securityLevel={securityLevel}
@@ -1082,60 +1040,59 @@ export default function SendPackagePage({ onHome, cargoType = 'personal', onNavi
 
             <Err msg={err} />
             <div className="flex gap-3 mt-5">
-              <button onClick={() => goStep(4)} className="ds-btn-secondary flex-shrink-0 px-5 py-3">← قبل</button>
-              <button onClick={() => goStep(6)} className="ds-btn-primary flex-1 py-3">ادامه ←</button>
+              <button onClick={() => goStep(4)} className="ds-btn-secondary flex-shrink-0 px-5 py-3">{t.wizardPrev}</button>
+              <button onClick={() => goStep(6)} className="ds-btn-primary flex-1 py-3">{t.wizardContinue}</button>
             </div>
           </motion.div>
         )}
 
-        {/* ════════════ STEP 6 — اطلاعات گیرنده ════════════ */}
+        {/* ════════════ STEP 6 ════════════ */}
         {step === 6 && (
           <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="ds-card p-6 sm:p-8">
-            <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">مرحله ۶ از ۸</div>
-            <h2 className="text-xl font-extrabold text-gray-900 mb-1">اطلاعات گیرنده</h2>
-            <p className="text-sm text-gray-400 mb-5">اطلاعات شخصی که کالا را دریافت می‌کند</p>
+            <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">{t.wizardStep.replace('{n}', '6').replace('{m}', '8')}</div>
+            <h2 className="text-xl font-extrabold text-gray-900 mb-1">{t.spStep6Title}</h2>
+            <p className="text-sm text-gray-400 mb-5">{t.spStep6Desc}</p>
 
             {highValue && (
               <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-5">
                 <div className="text-xl mb-1">🔒</div>
-                <div className="text-sm font-extrabold text-amber-700 mb-1">تأیید هویت گیرنده لازم است</div>
-                <div className="text-xs text-amber-600">به دلیل ارزش بالای کالا، تصویر مدرک هویتی گیرنده لازم است.</div>
+                <div className="text-sm font-extrabold text-amber-700 mb-1">{t.spHighValueTitle}</div>
+                <div className="text-xs text-amber-600">{t.spHighValueDesc}</div>
               </div>
             )}
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
               <div>
-                <label className="ds-label">نام گیرنده</label>
-                <input type="text" className="ds-input" placeholder="نام" value={recFirst}
+                <label className="ds-label">{t.spRecFirstName}</label>
+                <input type="text" className="ds-input" placeholder={t.spRecFirstName} value={recFirst}
                   onChange={e => { setRecFirst(e.target.value); setErr(''); }} />
               </div>
               <div>
-                <label className="ds-label">نام خانوادگی گیرنده</label>
-                <input type="text" className="ds-input" placeholder="نام خانوادگی" value={recLast}
+                <label className="ds-label">{t.spRecLastName}</label>
+                <input type="text" className="ds-input" placeholder={t.spRecLastName} value={recLast}
                   onChange={e => { setRecLast(e.target.value); setErr(''); }} />
               </div>
             </div>
             <div className="mb-4">
-              <label className="ds-label">تلفن گیرنده</label>
+              <label className="ds-label">{t.spRecPhone}</label>
               <input type="tel" className="ds-input" placeholder="+1 416..." value={recPhone}
                 onChange={e => { setRecPhone(e.target.value); setErr(''); }} style={{ direction: 'ltr' }} />
             </div>
             <div className="mb-4">
-              <label className="ds-label">شهر/منطقه تحویل</label>
-              <input type="text" className="ds-input" placeholder="مثال: تورنتو، انتاریو" value={recAddress}
+              <label className="ds-label">{t.spRecAddress}</label>
+              <input type="text" className="ds-input" placeholder={t.spRecAddressPlaceholder} value={recAddress}
                 onChange={e => { setRecAddress(e.target.value); setErr(''); }} />
             </div>
 
-            {/* High-value receiver ID capture */}
             {highValue && (
               <div className="mb-4">
-                <div className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">مدرک هویتی گیرنده</div>
+                <div className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">{t.spRecDocTitle}</div>
                 <label className={`flex items-center gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all
                   ${recDocCapture ? 'border-green-400 bg-green-50' : 'border-dashed border-gray-300 bg-gray-50 hover:border-cyan-400'}`}>
                   <span className="text-2xl">{recDocCapture ? '✅' : '🪪'}</span>
                   <div className="flex-1">
-                    <div className="text-sm font-bold text-gray-700">عکس مدرک هویتی گیرنده</div>
-                    <div className="text-xs text-gray-400">پاسپورت، گواهینامه یا کارت ملی</div>
+                    <div className="text-sm font-bold text-gray-700">{t.spRecDocCapture}</div>
+                    <div className="text-xs text-gray-400">{t.spRecDocSubtitle}</div>
                   </div>
                   <input type="file" accept="image/*" capture="environment" className="hidden"
                     onChange={e => { if (e.target.files?.[0]) setRecDocCapture(true); }} />
@@ -1145,21 +1102,20 @@ export default function SendPackagePage({ onHome, cargoType = 'personal', onNavi
 
             <Err msg={err} />
             <div className="flex gap-3 mt-4">
-              <button onClick={() => goStep(5)} className="ds-btn-secondary flex-shrink-0 px-5 py-3">← قبل</button>
-              <button onClick={() => goStep(7)} className="ds-btn-primary flex-1 py-3">ادامه ←</button>
+              <button onClick={() => goStep(5)} className="ds-btn-secondary flex-shrink-0 px-5 py-3">{t.wizardPrev}</button>
+              <button onClick={() => goStep(7)} className="ds-btn-primary flex-1 py-3">{t.wizardContinue}</button>
             </div>
           </motion.div>
         )}
 
-        {/* ════════════ STEP 7 — بررسی اسناد ════════════ */}
+        {/* ════════════ STEP 7 ════════════ */}
         {step === 7 && (
           <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="ds-card p-6 sm:p-8">
-            <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">مرحله ۷ از ۸</div>
-            <h2 className="text-xl font-extrabold text-gray-900 mb-1">بررسی اسناد هویتی</h2>
-            <p className="text-sm text-gray-400 mb-5">نوع سند هویتی را انتخاب و عکس‌ها را ارسال کنید</p>
+            <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">{t.wizardStep.replace('{n}', '7').replace('{m}', '8')}</div>
+            <h2 className="text-xl font-extrabold text-gray-900 mb-1">{t.spStep7Title}</h2>
+            <p className="text-sm text-gray-400 mb-5">{t.spStep7Desc}</p>
 
-            {/* Doc type picker */}
-            <div className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">نوع سند</div>
+            <div className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">{t.spDocTypeLabel}</div>
             <div className="grid grid-cols-3 gap-3 mb-5">
               {DOC_TYPES.map(d => (
                 <button key={d.key} onClick={() => selectDocType(d.key)}
@@ -1172,7 +1128,6 @@ export default function SendPackagePage({ onHome, cargoType = 'personal', onNavi
               ))}
             </div>
 
-            {/* Reuse IdentityVerification for doc upload + status */}
             {docType && (
               <div className="mb-5">
                 <IdentityVerification enabled={idEnabled} onToggle={setIdEnabled}
@@ -1180,18 +1135,17 @@ export default function SendPackagePage({ onHome, cargoType = 'personal', onNavi
               </div>
             )}
 
-            {/* Simulated captures (triggers verification) */}
             {docType && !docVerified && !idVerifying && (
               <div className="space-y-3 mb-4">
                 <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-xs text-amber-700 flex gap-2">
-                  <span>💡</span><span>لبه‌های مدرک در قاب باشند — نور کافی داشته باشید</span>
+                  <span>💡</span><span>{t.spDocEdgeHint}</span>
                 </div>
                 {[
-                  { key: 'front' as const, icon: '📄', label: 'عکس جلو مدرک', capture: 'environment' as const },
+                  { key: 'front' as const, icon: '📄', label: t.spDocFrontLabel, hint: t.spDocFrontHint, capture: 'environment' as const },
                   ...(DOC_TYPES.find(d => d.key === docType)?.needBack
-                    ? [{ key: 'back' as const, icon: '📄', label: 'عکس پشت مدرک', capture: 'environment' as const }]
+                    ? [{ key: 'back' as const, icon: '📄', label: t.spDocBackLabel, hint: t.spDocFrontHint, capture: 'environment' as const }]
                     : []),
-                  { key: 'selfie' as const, icon: '🤳', label: 'سلفی', capture: 'user' as const },
+                  { key: 'selfie' as const, icon: '🤳', label: t.spDocSelfieLabel, hint: t.spDocSelfieHint, capture: 'user' as const },
                 ].map(slot => (
                   <label key={slot.key}
                     className={`flex items-center gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all
@@ -1199,7 +1153,7 @@ export default function SendPackagePage({ onHome, cargoType = 'personal', onNavi
                     <span className="text-2xl">{docCaptures[slot.key] ? '✅' : slot.icon}</span>
                     <div className="flex-1">
                       <div className="text-sm font-bold text-gray-700">{slot.label}</div>
-                      <div className="text-xs text-gray-400">{slot.key === 'selfie' ? 'صورت واضح در نور کافی' : 'لبه‌های مدرک در قاب باشند'}</div>
+                      <div className="text-xs text-gray-400">{slot.hint}</div>
                     </div>
                     <input type="file" accept="image/*" capture={slot.capture} className="hidden"
                       onChange={e => { if (e.target.files?.[0]) onDocCapture(slot.key); }} />
@@ -1211,7 +1165,7 @@ export default function SendPackagePage({ onHome, cargoType = 'personal', onNavi
             {idVerifying && (
               <div className="flex items-center justify-center gap-3 py-4 text-gray-500 text-sm">
                 <div className="w-5 h-5 border-2 border-cyan-500 border-t-transparent rounded-full animate-spin" />
-                در حال بررسی اسناد...
+                {t.spDocVerifying}
               </div>
             )}
 
@@ -1227,25 +1181,25 @@ export default function SendPackagePage({ onHome, cargoType = 'personal', onNavi
 
             {docVerified && (
               <div className="bg-green-50 border border-green-200 rounded-xl px-4 py-3 text-sm text-green-700 font-medium mb-4">
-                بررسی اسناد تکمیل شد ✅
+                {t.spDocVerified}
               </div>
             )}
 
             <Err msg={err} />
             <div className="flex gap-3 mt-2">
-              <button onClick={() => goStep(6)} className="ds-btn-secondary flex-shrink-0 px-5 py-3">← قبل</button>
+              <button onClick={() => goStep(6)} className="ds-btn-secondary flex-shrink-0 px-5 py-3">{t.wizardPrev}</button>
               <button onClick={() => goStep(8)} disabled={!docVerified}
-                className="ds-btn-primary flex-1 py-3 disabled:opacity-40">ادامه ←</button>
+                className="ds-btn-primary flex-1 py-3 disabled:opacity-40">{t.wizardContinue}</button>
             </div>
           </motion.div>
         )}
 
-        {/* ════════════ STEP 8 — تأیید روش پرداخت ════════════ */}
+        {/* ════════════ STEP 8 ════════════ */}
         {step === 8 && (
           <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="ds-card p-6 sm:p-8">
-            <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">مرحله ۸ از ۸</div>
-            <h2 className="text-xl font-extrabold text-gray-900 mb-1">تأیید روش پرداخت</h2>
-            <p className="text-sm text-gray-400 mb-5">روش پرداخت خود را انتخاب کنید</p>
+            <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">{t.wizardStep.replace('{n}', '8').replace('{m}', '8')}</div>
+            <h2 className="text-xl font-extrabold text-gray-900 mb-1">{t.spStep8Title}</h2>
+            <p className="text-sm text-gray-400 mb-5">{t.spStep8Desc}</p>
 
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-5">
               {PAY_METHODS.map(m => (
@@ -1261,15 +1215,15 @@ export default function SendPackagePage({ onHome, cargoType = 'personal', onNavi
             {selectedPay && !payVerified && (
               <>
                 <div className="mb-4">
-                  <label className="ds-label">نام صاحب حساب</label>
-                  <input type="text" className="ds-input" placeholder="نام و نام خانوادگی"
+                  <label className="ds-label">{t.spPayAccountName}</label>
+                  <input type="text" className="ds-input" placeholder={t.spPayAccountPlaceholder}
                     value={payAccountName} onChange={e => { setPayAccountName(e.target.value); setErr(''); }} />
                 </div>
                 <button onClick={confirmPayment} disabled={payVerifying}
                   className="ds-btn-primary w-full py-3 mb-4 disabled:opacity-60">
                   {payVerifying
-                    ? <span className="flex items-center justify-center gap-2"><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"/>در حال تأیید...</span>
-                    : 'تأیید حساب'}
+                    ? <span className="flex items-center justify-center gap-2"><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"/>{t.spPayVerifying}</span>
+                    : t.spPayVerifyBtn}
                 </button>
               </>
             )}
@@ -1287,34 +1241,34 @@ export default function SendPackagePage({ onHome, cargoType = 'personal', onNavi
             {payVerified && (
               <>
                 <div className="bg-green-50 border border-green-200 rounded-xl px-4 py-3 text-sm text-green-700 font-medium mb-2">
-                  حساب تأیید شد ✅
+                  {t.spPayVerified}
                 </div>
                 <div className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-xs text-gray-500 mb-4">
-                  💳 پرداخت فقط پس از تأیید پیشنهاد مسافر انجام می‌شود
+                  {t.spPayNote}
                 </div>
               </>
             )}
 
             <Err msg={err} />
             <div className="flex gap-3 mt-2">
-              <button onClick={() => goStep(7)} className="ds-btn-secondary flex-shrink-0 px-5 py-3">← قبل</button>
+              <button onClick={() => goStep(7)} className="ds-btn-secondary flex-shrink-0 px-5 py-3">{t.wizardPrev}</button>
               <button onClick={publishOrder} disabled={publishing || !payVerified}
                 className="ds-btn-primary flex-1 py-3 disabled:opacity-40">
                 {publishing
-                  ? <span className="flex items-center justify-center gap-2"><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"/>در حال ثبت...</span>
-                  : 'ثبت سفارش ✈️'}
+                  ? <span className="flex items-center justify-center gap-2"><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"/>{t.spPublishing}</span>
+                  : t.spPublish}
               </button>
             </div>
           </motion.div>
         )}
       </div>
 
-      {/* ── Currency modal ─────────────────────────────────────────────────────── */}
+      {/* ── Currency modal ──────────────────────────────────────────────────────── */}
       {showCurrModal && (
         <div className="fixed inset-0 z-50 bg-black/60 flex items-end justify-center" onClick={() => setShowCurrModal(false)}>
           <div className="w-full max-w-lg bg-white rounded-t-3xl max-h-[72vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="sticky top-0 bg-white border-b border-gray-100 px-5 py-4 flex items-center justify-between">
-              <span className="text-base font-extrabold text-gray-900">انتخاب ارز</span>
+              <span className="text-base font-extrabold text-gray-900">{t.spCurrencyModal}</span>
               <button onClick={() => setShowCurrModal(false)} className="text-gray-400 text-xl leading-none">✕</button>
             </div>
             <div className="pb-6">
@@ -1324,7 +1278,7 @@ export default function SendPackagePage({ onHome, cargoType = 'personal', onNavi
                     ${selectedCurr === c.code ? 'bg-cyan-50' : ''}`}>
                   <span className="text-xl">{c.flag}</span>
                   <span className="text-sm font-extrabold text-cyan-600 w-14 text-left">{c.code}</span>
-                  <span className="flex-1 text-sm font-bold text-gray-700 text-right">{c.label}</span>
+                  <span className="flex-1 text-sm font-bold text-gray-700 text-right">{CURR_LABELS[c.code] ?? c.code}</span>
                   {selectedCurr === c.code && <CheckCircle className="w-4 h-4 text-cyan-500 flex-shrink-0" />}
                 </button>
               ))}
@@ -1333,16 +1287,16 @@ export default function SendPackagePage({ onHome, cargoType = 'personal', onNavi
         </div>
       )}
 
-      {/* ── Item correction modal ──────────────────────────────────────────────── */}
+      {/* ── Item correction modal ─────────────────────────────────────────────── */}
       {showItemModal && (
         <div className="fixed inset-0 z-50 bg-black/60 flex items-end justify-center" onClick={() => setShowItemModal(false)}>
           <div className="w-full max-w-lg bg-white rounded-t-3xl max-h-[78vh] flex flex-col" onClick={e => e.stopPropagation()}>
             <div className="sticky top-0 bg-white border-b border-gray-100 px-5 py-4">
               <div className="flex items-center justify-between mb-3">
-                <span className="text-base font-extrabold text-gray-900">اصلاح نام کالا</span>
+                <span className="text-base font-extrabold text-gray-900">{t.spCorrectItemModal}</span>
                 <button onClick={() => setShowItemModal(false)} className="text-gray-400 text-xl leading-none">✕</button>
               </div>
-              <input type="search" className="ds-input text-sm" placeholder="جستجو در کالاها..."
+              <input type="search" className="ds-input text-sm" placeholder={t.spItemSearch}
                 value={itemSearch} onChange={e => setItemSearch(e.target.value)} />
             </div>
             <div className="overflow-y-auto pb-6">

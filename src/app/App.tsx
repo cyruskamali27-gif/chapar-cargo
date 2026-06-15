@@ -54,6 +54,7 @@ import { useState, useEffect, useRef } from 'react';
 import { motion, useInView, AnimatePresence } from 'motion/react';
 import Map3DGlobe from './Map3DGlobe';
 import { LangCode, RTL_LANGS, langMeta, translations } from './i18n';
+import { useLang } from '../lib/LangContext';
 
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -266,6 +267,7 @@ function LanguageSelector({ lang, setLang }: { lang: LangCode; setLang: (l: Lang
 // ─── Sub-pages ────────────────────────────────────────────────────────────────
 
 function PageHeader({ title, desc, onHome }: { title: string; desc: string; onBack?: () => void; onHome: () => void; backLabel?: string }) {
+  const { t } = useLang();
   return (
     <div className="ds-page-header px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto relative z-10">
@@ -276,11 +278,11 @@ function PageHeader({ title, desc, onHome }: { title: string; desc: string; onBa
         >
           <button onClick={() => window.history.back()} className="ds-nav-btn group">
             <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
-            <span>بازگشت</span>
+            <span>{t.appBack}</span>
           </button>
           <button onClick={onHome} className="ds-nav-btn ds-nav-btn-home">
             <Home className="w-4 h-4" />
-            <span>بازگشت به صفحه اصلی</span>
+            <span>{t.appMainPage}</span>
           </button>
         </motion.div>
         <motion.h1
@@ -300,14 +302,15 @@ function PageHeader({ title, desc, onHome }: { title: string; desc: string; onBa
   );
 }
 
-function BuyForMePage({ onBack, onHome, t }: { onBack: () => void; onHome: () => void; t: typeof translations['en'] }) {
-  return <SendPackagePage onBack={onBack} onHome={onHome} t={t} cargoType="chapar" />;
+function BuyForMePage({ onBack, onHome, t, onNavigate }: { onBack: () => void; onHome: () => void; t: typeof translations['en']; onNavigate?: (page: string) => void }) {
+  return <SendPackagePage onBack={onBack} onHome={onHome} t={t} cargoType="chapar" onNavigate={onNavigate} />;
 }
 
 // ─── Traveler Acceptance Preview ─────────────────────────────────────────────
 // Shows traveler what an incoming sender request looks like (security terms)
 // before they click Accept, so they understand their commitments.
 function TravelerAcceptancePreview({ securityLevel }: { securityLevel: SecurityLevel }) {
+  const { t } = useLang();
   const [accepted, setAccepted] = useState<boolean | null>(null);
 
   const mockRequest = {
@@ -315,7 +318,7 @@ function TravelerAcceptancePreview({ securityLevel }: { securityLevel: SecurityL
     origin: 'Toronto 🇨🇦',
     dest: 'Tehran 🇮🇷',
     weight: '2.5 kg',
-    category: 'الکترونیک',
+    category: t.appAcceptCategoryElectronics,
     value: '$320',
     date: '2026-06-18',
   };
@@ -326,10 +329,10 @@ function TravelerAcceptancePreview({ securityLevel }: { securityLevel: SecurityL
     <div className="ds-card p-5 space-y-4">
       <div className="flex items-center gap-2 mb-1">
         <div className="w-1.5 h-5 bg-amber-400 rounded-full" />
-        <h3 className="text-sm font-bold text-gray-900">نمونه درخواست دریافتی</h3>
+        <h3 className="text-sm font-bold text-gray-900">{t.appAcceptTitle}</h3>
       </div>
       <p className="text-xs text-gray-400 leading-relaxed -mt-1">
-        این پیش‌نمایش نشان می‌دهد هنگام قبول درخواست فرستنده چه شرایطی خواهید داشت.
+        {t.appAcceptDesc}
       </p>
 
       {/* Mock request card */}
@@ -345,10 +348,10 @@ function TravelerAcceptancePreview({ securityLevel }: { securityLevel: SecurityL
         </div>
         <div className="grid grid-cols-2 gap-2 text-xs">
           {[
-            ['وزن', mockRequest.weight],
-            ['دسته‌بندی', mockRequest.category],
-            ['ارزش اعلام', mockRequest.value],
-            ['تاریخ', mockRequest.date],
+            [t.appAcceptWeight, mockRequest.weight],
+            [t.appAcceptCategory, mockRequest.category],
+            [t.appAcceptValue, mockRequest.value],
+            [t.appAcceptDate, mockRequest.date],
           ].map(([k, v]) => (
             <div key={k}>
               <div className="text-gray-400">{k}</div>
@@ -360,10 +363,9 @@ function TravelerAcceptancePreview({ securityLevel }: { securityLevel: SecurityL
         {/* Commitment box */}
         {depositRequired && (
           <div className="bg-amber-50 border border-amber-200 rounded-lg px-3 py-2.5">
-            <div className="text-xs font-semibold text-amber-700 mb-1">تعهد مسافر</div>
+            <div className="text-xs font-semibold text-amber-700 mb-1">{t.appAcceptCommitment}</div>
             <p className="text-xs text-amber-600 leading-relaxed">
-              با قبول این درخواست، مبلغ ودیعه <span className="font-bold">~$32</span> از حساب شما قفل می‌شود.
-              در صورت تحویل موفق، مبلغ آزاد خواهد شد.
+              {t.appAcceptCommitmentDesc1} <span className="font-bold">~$32</span> {t.appAcceptCommitmentDesc2}
             </p>
           </div>
         )}
@@ -376,14 +378,14 @@ function TravelerAcceptancePreview({ securityLevel }: { securityLevel: SecurityL
               onClick={() => setAccepted(false)}
               className="py-2 rounded-lg border border-gray-200 text-xs font-semibold text-gray-600 hover:bg-gray-50 transition-colors"
             >
-              رد درخواست
+              {t.appAcceptReject}
             </motion.button>
             <motion.button
               whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
               onClick={() => setAccepted(true)}
               className="py-2 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 text-white text-xs font-semibold hover:opacity-90 transition-opacity"
             >
-              قبول درخواست
+              {t.appAcceptAccept}
             </motion.button>
           </div>
         ) : (
@@ -392,9 +394,9 @@ function TravelerAcceptancePreview({ securityLevel }: { securityLevel: SecurityL
               ? 'bg-green-50 text-green-700 border-green-200'
               : 'bg-gray-50 text-gray-500 border-gray-200'
           }`}>
-            {accepted ? '✓ درخواست قبول شد — امانی قفل می‌شود' : '✗ درخواست رد شد'}
+            {accepted ? t.appAcceptAccepted : t.appAcceptRejected}
             <button onClick={() => setAccepted(null)} className="block mx-auto mt-1 text-[10px] text-gray-400 hover:text-gray-600 underline">
-              بازنشانی
+              {t.appAcceptReset}
             </button>
           </div>
         )}
@@ -408,6 +410,7 @@ function TravelerPage({ onBack, onHome, t, onNavigate }: { onBack: () => void; o
 }
 
 function MarketplacePage({ onBack, onHome, t, onBook }: { onBack: () => void; onHome: () => void; t: typeof translations['en']; onBook: () => void }) {
+  const { isRTL } = useLang();
   const [from, setFrom] = useState('');
   const [to,   setTo]   = useState('');
   const [date, setDate] = useState('');
@@ -433,7 +436,7 @@ function MarketplacePage({ onBack, onHome, t, onBook }: { onBack: () => void; on
     fetch('/api/listings?type=traveler_listing')
       .then(r => r.ok ? r.json() : Promise.reject(r.statusText))
       .then(d => { setApiTrips(d.listings ?? []); setMktLoading(false); })
-      .catch(() => { setMktError('خطا در بارگذاری مسافران — لطفاً صفحه را رفرش کنید'); setMktLoading(false); });
+      .catch(() => { setMktError(t.mktErrorLoad); setMktLoading(false); });
   }, []);
 
   const activeTrips = apiTrips.filter(t => t.date >= TODAY);
@@ -477,30 +480,30 @@ function MarketplacePage({ onBack, onHome, t, onBook }: { onBack: () => void; on
     <div className="min-h-screen bg-white">
       <PageHeader title={t.marketplaceTitle} desc={t.mktBrowseDesc} onBack={onBack} onHome={onHome} backLabel={t.backHome} />
 
-      <div className="max-w-2xl mx-auto px-4 pb-24" dir="rtl">
+      <div className="max-w-2xl mx-auto px-4 pb-24" dir={isRTL ? 'rtl' : 'ltr'}>
 
         {/* Search filters */}
         <div className="bg-gray-50 border border-gray-200 rounded-2xl p-5 mb-5">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="ds-label block mb-1">مبدا</label>
+              <label className="ds-label block mb-1">{t.mktFromLabel}</label>
               <input value={from} onChange={e => setFrom(e.target.value)}
-                placeholder="مثال: Tehran یا IKA" className="ds-input w-full text-sm" style={{ direction: 'ltr' }} />
+                placeholder={t.appOriginPlaceholder} className="ds-input w-full text-sm" style={{ direction: 'ltr' }} />
             </div>
             <div>
-              <label className="ds-label block mb-1">مقصد</label>
+              <label className="ds-label block mb-1">{t.mktToLabel}</label>
               <input value={to} onChange={e => setTo(e.target.value)}
-                placeholder="مثال: Dubai یا DXB" className="ds-input w-full text-sm" style={{ direction: 'ltr' }} />
+                placeholder={t.appDestPlaceholder} className="ds-input w-full text-sm" style={{ direction: 'ltr' }} />
             </div>
             <div>
-              <label className="ds-label block mb-1">تاریخ (از)</label>
+              <label className="ds-label block mb-1">{t.mktDateLabel}</label>
               <input type="date" value={date} onChange={e => setDate(e.target.value)}
                 min={TODAY} className="ds-input w-full text-sm" style={{ direction: 'ltr' }} />
             </div>
             <div>
-              <label className="ds-label block mb-1">ظرفیت مورد نیاز (kg)</label>
+              <label className="ds-label block mb-1">{t.mktCapLabel}</label>
               <input type="number" value={cap} onChange={e => setCap(e.target.value)}
-                placeholder="مثال: 5" min="0" className="ds-input w-full text-sm" style={{ direction: 'ltr' }} />
+                placeholder={t.appWeightPlaceholder} min="0" className="ds-input w-full text-sm" style={{ direction: 'ltr' }} />
             </div>
           </div>
         </div>
@@ -509,7 +512,7 @@ function MarketplacePage({ onBack, onHome, t, onBook }: { onBack: () => void; on
         {mktLoading && (
           <div className="text-center py-10 text-gray-400">
             <div className="text-3xl mb-2 animate-pulse">✈️</div>
-            <div className="text-sm">در حال بارگذاری مسافران…</div>
+            <div className="text-sm">{t.mktLoading}</div>
           </div>
         )}
         {!mktLoading && mktError && (
@@ -522,13 +525,13 @@ function MarketplacePage({ onBack, onHome, t, onBook }: { onBack: () => void; on
         {!mktLoading && !mktError && (<>
         <div className="flex items-center justify-between gap-3 mb-5 flex-wrap">
           <div className="text-xs font-bold text-gray-400">
-            {filtered.length ? `${filtered.length.toLocaleString('fa-IR')} مسافر یافت شد` : 'مسافری یافت نشد'}
+            {filtered.length ? t.mktTravelerFound.replace('{n}', filtered.length.toLocaleString('fa-IR')) : t.mktNoTraveler}
           </div>
           <div className="flex gap-2">
             {([
-              { key: 'date',     label: 'تاریخ' },
-              { key: 'capacity', label: 'ظرفیت' },
-              { key: 'newest',   label: 'جدیدترین' },
+              { key: 'date',     label: t.mktSortDate },
+              { key: 'capacity', label: t.mktSortCapacity },
+              { key: 'newest',   label: t.mktSortNewest },
             ] as const).map(s => (
               <button key={s.key} onClick={() => setSort(s.key)}
                 className={`px-3 py-1.5 rounded-full text-[11px] font-bold border transition-colors
@@ -543,8 +546,8 @@ function MarketplacePage({ onBack, onHome, t, onBook }: { onBack: () => void; on
         {filtered.length === 0 ? (
           <div className="text-center py-16 text-gray-400">
             <div className="text-5xl mb-3">✈️</div>
-            <div className="text-base font-bold text-gray-700 mb-1">مسافری یافت نشد</div>
-            <p className="text-sm">فیلترها را تغییر دهید یا بعداً دوباره بررسی کنید.</p>
+            <div className="text-base font-bold text-gray-700 mb-1">{t.mktNoTraveler}</div>
+            <p className="text-sm">{t.mktNoTravelerDesc}</p>
           </div>
         ) : (
           <div className="space-y-4">
@@ -578,7 +581,7 @@ function MarketplacePage({ onBack, onHome, t, onBook }: { onBack: () => void; on
                     </div>
                     <div className="mb-3">
                       <div className="flex items-center justify-between mb-1.5">
-                        <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wide">ظرفیت قابل حمل</span>
+                        <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wide">{t.mktCapacityLabel}</span>
                         <span className="text-sm font-extrabold" style={{ color: clr }}>
                           {trip.capacity} kg{meetsCap ? ' ✓' : ''}
                         </span>
@@ -597,14 +600,14 @@ function MarketplacePage({ onBack, onHome, t, onBook }: { onBack: () => void; on
                       <div className="text-sm text-amber-500 mb-3">
                         {'⭐'.repeat(Math.round(avgRating))}{'☆'.repeat(5 - Math.round(avgRating))}
                         <span className="font-bold text-amber-600 mr-1">{avgRating.toFixed(1)}</span>
-                        <span className="text-xs text-gray-400">({tripRatings.length} نظر)</span>
+                        <span className="text-xs text-gray-400">({tripRatings.length} {t.mktReviewSuffix})</span>
                       </div>
                     )}
                   </div>
                   <div className="px-4 pb-4">
                     <button onClick={onBook}
                       className="flex items-center justify-center gap-2 w-full py-2.5 bg-gradient-to-r from-cyan-500 to-blue-600 text-white text-sm font-bold rounded-xl hover:opacity-90 transition-opacity">
-                      📦 ارسال کالا با این مسافر
+                      {t.mktBookBtn}
                     </button>
                   </div>
                 </div>
@@ -843,9 +846,9 @@ function FAQPage({ onBack, onHome, t }: { onBack: () => void; onHome: () => void
 
         {/* Still have questions CTA */}
         <div className="mt-10 text-center p-8 bg-white border border-gray-200 rounded-2xl shadow-sm">
-          <p className="text-gray-500 text-sm mb-4">سؤال دیگری دارید؟ تیم پشتیبانی ما آماده کمک است.</p>
+          <p className="text-gray-500 text-sm mb-4">{t.appFaqMoreQ}</p>
           <button className="ds-btn-primary px-6 py-3 rounded-xl text-sm">
-            تماس با پشتیبانی
+            {t.appFaqContactSupport}
           </button>
         </div>
       </div>
@@ -854,28 +857,29 @@ function FAQPage({ onBack, onHome, t }: { onBack: () => void; onHome: () => void
 }
 
 // ─── RouteTicker ─────────────────────────────────────────────────────────────
-const TICKER_ROUTES = [
-  { route: 'تورنتو → تهران',      status: 'مسافر تأیید شد',       color: '#00d4ff' },
-  { route: 'دبی → شیراز',          status: 'پرداخت امانی فعال',    color: '#22c55e' },
-  { route: 'فرانکفورت → اصفهان',  status: 'بسته در حال تطبیق',   color: '#f59e0b' },
-  { route: 'لندن → مشهد',          status: 'تحویل تأیید شد',       color: '#a855f7' },
-  { route: 'استانبول → تبریز',    status: 'مسیر فعال',            color: '#f97316' },
-  { route: 'ونکوور → تهران',      status: 'سفارش جدید',           color: '#ec4899' },
-  { route: 'سنگاپور → تهران',     status: 'مسافر تأیید شد',       color: '#22c55e' },
-  { route: 'سیدنی → مشهد',        status: 'در راه',               color: '#3b82f6' },
-  { route: 'مسکو → تهران',        status: 'پرداخت امانی فعال',    color: '#84cc16' },
-  { route: 'تهران → دبی',         status: 'تحویل تأیید شد',       color: '#14b8a6' },
-  { route: 'پاریس → تهران',       status: 'سفارش جدید',           color: '#f43f5e' },
-  { route: 'ابوظبی → تهران',      status: 'مسیر فعال',            color: '#f59e0b' },
-  { route: 'توکیو → تهران',       status: 'بسته در حال تطبیق',   color: '#d97706' },
-  { route: 'دوحه → مشهد',         status: 'مسافر تأیید شد',       color: '#6366f1' },
-  { route: 'ملبورن → تهران',      status: 'سفارش جدید',           color: '#ec4899' },
-  { route: 'نیویورک → تهران',     status: 'پرداخت امانی فعال',    color: '#22c55e' },
-  { route: 'لس‌آنجلس → مشهد',    status: 'مسافر تأیید شد',       color: '#a855f7' },
-  { route: 'تهران → استانبول',    status: 'در راه',               color: '#00d4ff' },
+const TICKER_ROUTES: { route: string; statusKey: keyof typeof translations['en']; color: string }[] = [
+  { route: 'تورنتو → تهران',      statusKey: 'homeRouteMatched',   color: '#00d4ff' },
+  { route: 'دبی → شیراز',          statusKey: 'homeRouteEscrow',    color: '#22c55e' },
+  { route: 'فرانکفورت → اصفهان',  statusKey: 'homeRouteMatching',  color: '#f59e0b' },
+  { route: 'لندن → مشهد',          statusKey: 'homeRouteDelivered', color: '#a855f7' },
+  { route: 'استانبول → تبریز',    statusKey: 'homeRouteActive',    color: '#f97316' },
+  { route: 'ونکوور → تهران',      statusKey: 'homeRouteNew',       color: '#ec4899' },
+  { route: 'سنگاپور → تهران',     statusKey: 'homeRouteMatched',   color: '#22c55e' },
+  { route: 'سیدنی → مشهد',        statusKey: 'homeRouteEnRoute',   color: '#3b82f6' },
+  { route: 'مسکو → تهران',        statusKey: 'homeRouteEscrow',    color: '#84cc16' },
+  { route: 'تهران → دبی',         statusKey: 'homeRouteDelivered', color: '#14b8a6' },
+  { route: 'پاریس → تهران',       statusKey: 'homeRouteNew',       color: '#f43f5e' },
+  { route: 'ابوظبی → تهران',      statusKey: 'homeRouteActive',    color: '#f59e0b' },
+  { route: 'توکیو → تهران',       statusKey: 'homeRouteMatching',  color: '#d97706' },
+  { route: 'دوحه → مشهد',         statusKey: 'homeRouteMatched',   color: '#6366f1' },
+  { route: 'ملبورن → تهران',      statusKey: 'homeRouteNew',       color: '#ec4899' },
+  { route: 'نیویورک → تهران',     statusKey: 'homeRouteEscrow',    color: '#22c55e' },
+  { route: 'لس‌آنجلس → مشهد',    statusKey: 'homeRouteMatched',   color: '#a855f7' },
+  { route: 'تهران → استانبول',    statusKey: 'homeRouteEnRoute',   color: '#00d4ff' },
 ];
 
 function RouteTicker() {
+  const { t } = useLang();
   const items = [...TICKER_ROUTES, ...TICKER_ROUTES];
   return (
     <div className="overflow-hidden rounded-xl" style={{ background: 'rgba(4,7,15,0.75)', backdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.08)' }}>
@@ -891,7 +895,7 @@ function RouteTicker() {
               <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: item.color }} />
               <span className="text-white text-sm font-medium">{item.route}</span>
               <span className="text-gray-600 text-xs">·</span>
-              <span className="text-gray-400 text-xs">{item.status}</span>
+              <span className="text-gray-400 text-xs">{t[item.statusKey]}</span>
               <span className="text-white/10 mx-2 select-none">|</span>
             </div>
           ))}
@@ -1062,10 +1066,11 @@ function HeroSection({ t, setPage, isRTL }: { t: typeof translations['en']; setP
 
 // ─── VideoSection ─────────────────────────────────────────────────────────────
 function VideoSection() {
+  const { t } = useLang();
   const cards = [
-    { title: 'مسافر کیست؟',    desc: 'ویدیو آینده برای توضیح اینکه مسافر کیست، چگونه مسیر خود را ثبت می‌کند، چگونه درآمد کسب می‌کند و فرآیند تأیید هویت چگونه انجام می‌شود.' },
-    { title: 'خرید برای شما',  desc: 'ویدیو آینده برای توضیح اینکه چاپار چگونه می‌تواند کالا را از کشور دیگر برای کاربر خریداری کند و از طریق مسافران تأییدشده تحویل دهد.' },
-    { title: 'ارسال کالا',     desc: 'ویدیو آینده برای توضیح اینکه کاربران چگونه می‌توانند کالای خود را با پرداخت امانی، تأیید تحویل و امنیت کامل از طریق چاپار ارسال کنند.' },
+    { title: t.homeWhatVid1Title, desc: t.homeWhatVid1Desc },
+    { title: t.homeWhatVid2Title, desc: t.homeWhatVid2Desc },
+    { title: t.homeWhatVid3Title, desc: t.homeWhatVid3Desc },
   ];
   return (
     <section className="py-24 px-4 sm:px-6 lg:px-8 bg-white relative overflow-hidden">
@@ -1073,9 +1078,9 @@ function VideoSection() {
         <motion.div className="text-center mb-16" initial={{ opacity: 0, y: 40 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
           <div className="inline-flex items-center gap-2 px-4 py-2 bg-cyan-50 rounded-full mb-6 border border-cyan-200">
             <div className="w-1.5 h-1.5 bg-cyan-600 rounded-full animate-pulse" />
-            <span className="text-sm text-cyan-700 font-medium">چاپار</span>
+            <span className="text-sm text-cyan-700 font-medium">{t.homeWhatBadge}</span>
           </div>
-          <h2 className="text-4xl lg:text-5xl font-bold text-gray-900">ما چه کاری انجام می‌دهیم</h2>
+          <h2 className="text-4xl lg:text-5xl font-bold text-gray-900">{t.homeWhatTitle}</h2>
         </motion.div>
 
         {/* Main featured video placeholder */}
@@ -1090,7 +1095,7 @@ function VideoSection() {
             >
               <div className="w-0 h-0 border-t-[10px] border-t-transparent border-l-[18px] border-l-gray-600 border-b-[10px] border-b-transparent ml-1" />
             </motion.div>
-            <p className="text-gray-500 text-sm relative z-10">ویدیو معرفی چاپار به‌زودی اضافه می‌شود</p>
+            <p className="text-gray-500 text-sm relative z-10">{t.homeWhatVideoSoon}</p>
           </div>
         </motion.div>
 
@@ -1115,7 +1120,7 @@ function VideoSection() {
                 <p className="text-gray-500 text-sm leading-relaxed">{card.desc}</p>
                 <div className="mt-4 inline-flex items-center gap-1.5 text-xs text-cyan-600 font-medium">
                   <div className="w-1.5 h-1.5 bg-cyan-600 rounded-full" />
-                  به‌زودی
+                  {t.homeWhatComingSoon}
                 </div>
               </div>
             </motion.div>
@@ -1132,23 +1137,23 @@ function ServiceCardsSection({ t, setPage }: { t: typeof translations['en']; set
     {
       photo: '/assets/photo-1.jpg',
       title: t.heroCta1,
-      desc: 'کالا را از هر فروشگاهی در جهان سفارش دهید. مسافران تأییدشده آن را مستقیماً به دستتان می‌رسانند.',
+      desc: t.homeFeat1Desc,
       page: 'buy-for-me' as Page,
-      tag: 'خرید جهانی',
+      tag: t.homeFeat1Tag,
     },
     {
       photo: '/assets/photo-2.png',
       title: t.heroCta2,
-      desc: 'در سفرهای خود درآمد کسب کنید. بسته‌ها را با حفاظت کامل امانی تحویل دهید.',
+      desc: t.homeFeat2Desc,
       page: 'traveler' as Page,
-      tag: 'کسب درآمد از سفر',
+      tag: t.homeFeat2Tag,
     },
     {
       photo: '/assets/photo-3.png',
       title: t.heroCta3,
-      desc: 'کالای شخصی را با سیستم پرداخت امانی و تأیید تحویل به هر نقطه‌ای از دنیا ارسال کنید.',
+      desc: t.homeFeat3Desc,
       page: 'send-package' as Page,
-      tag: 'ارسال مطمئن',
+      tag: t.homeFeat3Tag,
     },
   ];
   return (
@@ -1175,7 +1180,7 @@ function ServiceCardsSection({ t, setPage }: { t: typeof translations['en']; set
                 <h3 className="text-2xl font-bold text-white mb-3">{card.title}</h3>
                 <p className="text-gray-300 text-sm leading-relaxed mb-6">{card.desc}</p>
                 <div className="flex items-center gap-2 text-cyan-400 text-sm font-semibold group-hover:gap-3 transition-all">
-                  <span>شروع کنید</span>
+                  <span>{t.homeGetStarted}</span>
                   <ArrowRight className="w-4 h-4" />
                 </div>
               </div>
@@ -1202,11 +1207,12 @@ function ServiceCardsSection({ t, setPage }: { t: typeof translations['en']; set
 
 // ─── StatsSection ─────────────────────────────────────────────────────────────
 function StatsSection() {
+  const { t } = useLang();
   const stats = [
-    { end: 190,   suffix: '+',  prefix: '',  label: 'کشور تحت پوشش',        icon: Globe,        accent: 'text-cyan-600'   },
-    { end: 50000, suffix: '+',  prefix: '',  label: 'مسافر تأییدشده',        icon: Users,        accent: 'text-purple-600' },
-    { end: 99.9,  suffix: '%',  prefix: '',  label: 'نرخ موفقیت تحویل',      icon: CheckCircle,  accent: 'text-green-600'  },
-    { end: 10,    suffix: 'K$', prefix: '',  label: 'پوشش بیمه هر مرسوله',   icon: Shield,       accent: 'text-blue-600'   },
+    { end: 190,   suffix: '+',  prefix: '',  label: t.homeStatCountries, icon: Globe,        accent: 'text-cyan-600'   },
+    { end: 50000, suffix: '+',  prefix: '',  label: t.homeStatTravelers, icon: Users,        accent: 'text-purple-600' },
+    { end: 99.9,  suffix: '%',  prefix: '',  label: t.homeStatSuccess,   icon: CheckCircle,  accent: 'text-green-600'  },
+    { end: 10,    suffix: 'K$', prefix: '',  label: t.homeStatInsurance, icon: Shield,       accent: 'text-blue-600'   },
   ];
   return (
     <section className="py-16 px-4 sm:px-6 lg:px-8 border-t border-b border-gray-100 bg-white">
@@ -1236,9 +1242,9 @@ function TrustSectionNew({ t, setPage }: { t: typeof translations['en']; setPage
   const features = [
     {
       icon: Lock,
-      title: 'پرداخت امانی رمزنگاری‌شده',
-      desc: 'وجوه شما تا تأیید تحویل موفق در سیستم امانی رمزنگاری‌شده محافظت می‌شود.',
-      tags: ['رمزنگاری AES-256', 'استرداد خودکار', 'ثبت بلاکچین'],
+      title: t.homeSecF1Title,
+      desc: t.homeSecF1Desc,
+      tags: [t.homeSecF1Tag1, t.homeSecF1Tag2, t.homeSecF1Tag3],
       gradient: 'bg-blue-50',
       border: 'border-blue-200',
       hoverBorder: 'hover:border-blue-300',
@@ -1246,9 +1252,9 @@ function TrustSectionNew({ t, setPage }: { t: typeof translations['en']; setPage
     },
     {
       icon: BadgeCheck,
-      title: 'تأیید هویت با هوش مصنوعی',
-      desc: 'هر مسافر از فرآیند تأیید جامع هوش مصنوعی شامل بررسی چهره و پاسپورت عبور می‌کند.',
-      tags: ['تشخیص چهره', 'تأیید پاسپورت', 'بررسی سابقه'],
+      title: t.homeSecF2Title,
+      desc: t.homeSecF2Desc,
+      tags: [t.homeSecF2Tag1, t.homeSecF2Tag2, t.homeSecF2Tag3],
       gradient: 'bg-purple-50',
       border: 'border-purple-200',
       hoverBorder: 'hover:border-purple-300',
@@ -1256,8 +1262,8 @@ function TrustSectionNew({ t, setPage }: { t: typeof translations['en']; setPage
     },
     {
       icon: Shield,
-      title: 'گواهینامه‌های امنیتی بین‌المللی',
-      desc: 'انطباق کامل با بالاترین استانداردهای امنیت اطلاعات جهانی.',
+      title: t.homeSecF3Title,
+      desc: t.homeSecF3Desc,
       tags: ['SOC 2 Type II', 'ISO 27001', 'PCI DSS L1'],
       gradient: 'bg-green-50',
       border: 'border-green-200',
@@ -1266,9 +1272,9 @@ function TrustSectionNew({ t, setPage }: { t: typeof translations['en']; setPage
     },
     {
       icon: Eye,
-      title: 'نظارت بلادرنگ ۲۴/۷',
-      desc: 'هوش مصنوعی تمام تراکنش‌ها را برای شناسایی ناهنجاری‌ها بررسی می‌کند.',
-      tags: ['تشخیص تقلب آنی', 'هشدار فوری', 'GDPR'],
+      title: t.homeSecF4Title,
+      desc: t.homeSecF4Desc,
+      tags: [t.homeSecF4Tag1, t.homeSecF4Tag2, t.homeSecF4Tag3],
       gradient: 'bg-cyan-50',
       border: 'border-cyan-200',
       hoverBorder: 'hover:border-cyan-300',
@@ -1276,9 +1282,9 @@ function TrustSectionNew({ t, setPage }: { t: typeof translations['en']; setPage
     },
     {
       icon: CheckCircle,
-      title: 'تأیید تحویل هوشمند',
-      desc: 'تحویل کالا فقط با تأیید دیجیتال گیرنده نهایی می‌شود. سیستم هوشمند ما اطمینان می‌دهد که بسته به دست صحیح رسیده است.',
-      tags: ['تأیید دیجیتال', 'امضای الکترونیک', 'عکس تحویل'],
+      title: t.homeSecF5Title,
+      desc: t.homeSecF5Desc,
+      tags: [t.homeSecF5Tag1, t.homeSecF5Tag2, t.homeSecF5Tag3],
       gradient: 'bg-orange-50',
       border: 'border-orange-200',
       hoverBorder: 'hover:border-orange-300',
@@ -1286,9 +1292,9 @@ function TrustSectionNew({ t, setPage }: { t: typeof translations['en']; setPage
     },
     {
       icon: FileCheck,
-      title: 'حل اختلاف شفاف',
-      desc: 'در صورت هرگونه مشکل، تیم داوری ما ظرف ۴۸ ساعت با بررسی مدارک دیجیتال موضوع را حل می‌کند و بازگشت کامل وجه تضمین می‌شود.',
-      tags: ['داوری ۴۸ ساعته', 'بازگشت تضمینی', 'مدارک دیجیتال'],
+      title: t.homeSecF6Title,
+      desc: t.homeSecF6Desc,
+      tags: [t.homeSecF6Tag1, t.homeSecF6Tag2, t.homeSecF6Tag3],
       gradient: 'bg-rose-50',
       border: 'border-rose-200',
       hoverBorder: 'hover:border-rose-300',
@@ -1302,19 +1308,19 @@ function TrustSectionNew({ t, setPage }: { t: typeof translations['en']; setPage
         <motion.div className="text-center mb-20" initial={{ opacity: 0, y: 40 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
           <div className="inline-flex items-center gap-2 px-4 py-2 bg-green-50 rounded-full mb-6 border border-green-200">
             <Shield className="w-4 h-4 text-green-600" />
-            <span className="text-sm text-green-700 font-medium">امنیت سازمانی</span>
+            <span className="text-sm text-green-700 font-medium">{t.homeSecBadge}</span>
           </div>
           <h2 className="text-4xl lg:text-5xl font-bold text-gray-900 mb-5">{t.trustSafety}</h2>
-          <p className="text-xl text-gray-500 max-w-2xl mx-auto">زیرساخت سطح بانکی برای حفاظت از هر تراکنش</p>
+          <p className="text-xl text-gray-500 max-w-2xl mx-auto">{t.homeSecDesc}</p>
         </motion.div>
 
         {/* Stats row */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-14">
           {[
-            { value: '99.9%', label: 'نرخ موفقیت',      icon: Activity, accent: 'text-green-600' },
-            { value: '$10K',  label: 'پوشش بیمه',        icon: Shield,   accent: 'text-blue-600' },
-            { value: '24/7',  label: 'نظارت امنیتی',    icon: Eye,      accent: 'text-purple-600' },
-            { value: '190+',  label: 'کشور تحت پوشش',   icon: Globe,    accent: 'text-cyan-600' },
+            { value: '99.9%', label: t.homeSecStat1, icon: Activity, accent: 'text-green-600' },
+            { value: '$10K',  label: t.homeSecStat2, icon: Shield,   accent: 'text-blue-600' },
+            { value: '24/7',  label: t.homeSecStat3, icon: Eye,      accent: 'text-purple-600' },
+            { value: '190+',  label: t.homeSecStat4, icon: Globe,    accent: 'text-cyan-600' },
           ].map((stat, i) => (
             <motion.div
               key={i}
@@ -1386,6 +1392,7 @@ function TrustSectionNew({ t, setPage }: { t: typeof translations['en']; setPage
 
 // ─── SocialSection ────────────────────────────────────────────────────────────
 function SocialSection() {
+  const { t } = useLang();
   const socials = [
     {
       name: 'Instagram', handle: '@chaparcargo',
@@ -1415,13 +1422,13 @@ function SocialSection() {
       followers: '۲۱K',
     },
     {
-      name: 'WhatsApp', handle: 'چاپار',
+      name: 'WhatsApp', handle: t.homeSocialWhatsapp,
       href: 'https://wa.me/message/chaparcargo',
       Icon: WhatsAppIcon,
       gradient: 'bg-green-50',
       border: 'border-green-200 hover:border-green-300',
       accent: 'text-green-600',
-      followers: 'پشتیبانی',
+      followers: t.homeSocialSupport,
     },
   ];
 
@@ -1429,8 +1436,8 @@ function SocialSection() {
     <section className="py-24 px-4 sm:px-6 lg:px-8 bg-white">
       <div className="max-w-5xl mx-auto">
         <motion.div className="text-center mb-14" initial={{ opacity: 0, y: 40 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
-          <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">ما را در شبکه‌های اجتماعی دنبال کنید</h2>
-          <p className="text-gray-500">آخرین اخبار، داستان‌های موفقیت و به‌روزرسانی‌های چاپار</p>
+          <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">{t.homeSocialTitle}</h2>
+          <p className="text-gray-500">{t.homeSocialDesc}</p>
         </motion.div>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {socials.map((s, i) => (
@@ -1482,12 +1489,12 @@ function HomePage({ t, setPage, isRTL }: { t: typeof translations['en']; setPage
               <span className="text-sm text-purple-700 font-medium">{t.liveActivity}</span>
             </div>
             <h2 className="text-4xl lg:text-5xl font-bold text-gray-900 mb-4">{t.marketplaceTitle}</h2>
-            <p className="text-xl text-gray-500 max-w-2xl mx-auto">مسیرهای فعال با مسافران آماده برای تحویل</p>
+            <p className="text-xl text-gray-500 max-w-2xl mx-auto">{t.homeRoutesDesc}</p>
           </motion.div>
           <MarketplaceRouteBoard />
           <div className="text-center mt-8">
             <button onClick={() => setPage('marketplace')} className="ds-btn-secondary">
-              مشاهده همه مسیرها
+              {t.homeRoutesViewAll}
             </button>
           </div>
         </div>
@@ -1503,14 +1510,14 @@ function HomePage({ t, setPage, isRTL }: { t: typeof translations['en']; setPage
       <section className="py-24 px-4 sm:px-6 lg:px-8 bg-white">
         <div className="max-w-7xl mx-auto">
           <motion.div className="text-center mb-16" initial={{ opacity: 0, y: 40 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
-            <h2 className="text-4xl lg:text-5xl font-bold text-gray-900 mb-4">تجربه‌های واقعی کاربران ما</h2>
-            <p className="text-xl text-gray-500">داستان‌های واقعی از جامعه جهانی چاپار</p>
+            <h2 className="text-4xl lg:text-5xl font-bold text-gray-900 mb-4">{t.homeTestimTitle}</h2>
+            <p className="text-xl text-gray-500">{t.homeTestimDesc}</p>
           </motion.div>
           <div className="grid md:grid-cols-3 gap-8">
             {[
-              { quote: 'چاپار کاملاً نحوه ارسال بسته‌هایم به ایران را تغییر داد. سیستم پرداخت امانی فوق‌العاده است — با خیال راحت وسایل گران‌قیمت را می‌فرستم.', name: 'نیلوفر رستمی', role: 'کارآفرین تجارت الکترونیک', company: 'استارتاپ تورنتو', location: 'تورنتو، کانادا', image: 'https://images.unsplash.com/photo-1610631066894-62452ccb927c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxoYXBweSUyMGN1c3RvbWVyJTIwdGVzdGltb25pYWwlMjBwcm9mZXNzaW9uYWwlMjBwb3J0cmFpdHxlbnwxfHx8fDE3ODA1OTUxOTV8MA&ixlib=rb-4.1.0&q=80&w=1080' },
-              { quote: 'در سفرهای تجاری‌ام بیش از ۱۵,۰۰۰ دلار از طریق تحویل بسته کسب کرده‌ام. پلتفرم بی‌نقص، پرداخت‌ها فوری و جامعه کاربران کاملاً قابل اعتماد است.', name: 'محمد احمدی', role: 'مشاور کسب‌وکار و مسافر', company: 'شرکت راه‌حل‌های جهانی', location: 'دبی، امارات', image: 'https://images.unsplash.com/photo-1733231291455-3c4de1c24e20?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwyfHxoYXBweSUyMGN1c3RvbWVyJTIwdGVzdGltb25pYWwlMjBwcm9mZXNzaW9uYWwlMjBwb3J0cmFpdHxlbnwxfHx8fDE3ODA1OTUxOTV8MA&ixlib=rb-4.1.0&q=80&w=1080' },
-              { quote: 'بیش از ۳۰ ارسال بین‌المللی از طریق چاپار داشته‌ام. هوش مصنوعی تطبیق فوق‌العاده عمل می‌کند و پشتیبانی کاملاً حرفه‌ای است. دیگر نمی‌توانم از حمل‌ونقل سنتی استفاده کنم.', name: 'آناهیتا علیزاده', role: 'مدیر زنجیره تأمین', company: 'شرکت تجارت جهانی', location: 'سنگاپور', image: 'https://images.unsplash.com/photo-1651684215020-f7a5b6610f23?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHw0fHxoYXBweSUyMGN1c3RvbWVyJTIwdGVzdGltb25pYWwlMjBwcm9mZXNzaW9uYWwlMjBwb3J0cmFpdHxlbnwxfHx8fDE3ODA1OTUxOTV8MA&ixlib=rb-4.1.0&q=80&w=1080' },
+              { quote: t.homeTestim1Quote, name: t.homeTestim1Name, role: t.homeTestim1Role, company: t.homeTestim1Company, location: t.homeTestim1Location, image: 'https://images.unsplash.com/photo-1610631066894-62452ccb927c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxoYXBweSUyMGN1c3RvbWVyJTIwdGVzdGltb25pYWwlMjBwcm9mZXNzaW9uYWwlMjBwb3J0cmFpdHxlbnwxfHx8fDE3ODA1OTUxOTV8MA&ixlib=rb-4.1.0&q=80&w=1080' },
+              { quote: t.homeTestim2Quote, name: t.homeTestim2Name, role: t.homeTestim2Role, company: t.homeTestim2Company, location: t.homeTestim2Location, image: 'https://images.unsplash.com/photo-1733231291455-3c4de1c24e20?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwyfHxoYXBweSUyMGN1c3RvbWVyJTIwdGVzdGltb25pYWwlMjBwcm9mZXNzaW9uYWwlMjBwb3J0cmFpdHxlbnwxfHx8fDE3ODA1OTUxOTV8MA&ixlib=rb-4.1.0&q=80&w=1080' },
+              { quote: t.homeTestim3Quote, name: t.homeTestim3Name, role: t.homeTestim3Role, company: t.homeTestim3Company, location: t.homeTestim3Location, image: 'https://images.unsplash.com/photo-1651684215020-f7a5b6610f23?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHw0fHxoYXBweSUyMGN1c3RvbWVyJTIwdGVzdGltb25pYWwlMjBwcm9mZXNzaW9uYWwlMjBwb3J0cmFpdHxlbnwxfHx8fDE3ODA1OTUxOTV8MA&ixlib=rb-4.1.0&q=80&w=1080' },
             ].map((testimonial, i) => (
               <motion.div key={i} className="ds-card ds-card-hover p-8"
                 initial={{ opacity: 0, y: 40 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.15 }} whileHover={{ y: -5 }}>
@@ -1544,12 +1551,12 @@ function HomePage({ t, setPage, isRTL }: { t: typeof translations['en']; setPage
             <motion.div initial={{ opacity: 0, x: -40 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }}>
               <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/80 backdrop-blur-sm rounded-full mb-6 border border-blue-200">
                 <Sparkles className="w-4 h-4 text-blue-600" />
-                <span className="text-sm font-medium text-blue-700">به‌زودی</span>
+                <span className="text-sm font-medium text-blue-700">{t.homeAppComingSoon}</span>
               </div>
-              <h2 className="text-4xl lg:text-5xl font-bold text-gray-900 mb-6">مدیریت مرسولات در هر مکان</h2>
-              <p className="text-xl text-gray-600 mb-8 leading-relaxed">اپلیکیشن موبایل چاپار را برای iOS و Android دانلود کنید. بسته‌ها را ردیابی کنید، با مسافران پیام بفرستید و تحویل‌ها را از هر جای دنیا مدیریت کنید.</p>
+              <h2 className="text-4xl lg:text-5xl font-bold text-gray-900 mb-6">{t.homeAppTitle}</h2>
+              <p className="text-xl text-gray-600 mb-8 leading-relaxed">{t.homeAppDesc}</p>
               <div className="space-y-4 mb-8">
-                {['اعلان‌های فوری بلادرنگ', 'پیام‌رسانی داخلی با مسافران', 'ردیابی GPS زنده', 'پرداخت تک‌لمسی', 'پشتیبانی از حالت آفلاین'].map((feature, i) => (
+                {[t.homeAppFeat1, t.homeAppFeat2, t.homeAppFeat3, t.homeAppFeat4, t.homeAppFeat5].map((feature, i) => (
                   <motion.div key={i} className="flex items-center gap-3" initial={{ opacity: 0, x: -20 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }}>
                     <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center">
                       <CheckCircle className="w-4 h-4 text-blue-600" />
@@ -1559,7 +1566,7 @@ function HomePage({ t, setPage, isRTL }: { t: typeof translations['en']; setPage
                 ))}
               </div>
               <div className="flex flex-col sm:flex-row gap-4">
-                {[{ store: 'App Store', sub: 'دانلود از' }, { store: 'Google Play', sub: 'دریافت از' }].map(b => (
+                {[{ store: 'App Store', sub: t.homeAppStoreSubDownload }, { store: 'Google Play', sub: t.homeAppStoreSubGet }].map(b => (
                   <motion.button key={b.store} className="px-6 py-3 bg-black border border-white/10 text-white rounded-xl flex items-center justify-center gap-3 hover:bg-gray-900 transition-colors"
                     whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                     <div className="text-left">
@@ -1614,16 +1621,16 @@ function HomePage({ t, setPage, isRTL }: { t: typeof translations['en']; setPage
         <div className="max-w-3xl mx-auto">
           <motion.div className="text-center mb-16" initial={{ opacity: 0, y: 40 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
             <h2 className="text-4xl lg:text-5xl font-bold text-gray-900 mb-4">{t.faqTitle}</h2>
-            <p className="text-xl text-gray-500">همه چیزی که باید درباره چاپار بدانید</p>
+            <p className="text-xl text-gray-500">{t.homeFaqDesc}</p>
           </motion.div>
           <div className="space-y-3">
             {[
-              { q: 'سیستم پرداخت امانی چگونه کار می‌کند؟', a: 'هنگام ثبت سفارش، وجه شما به‌صورت امن در حساب امانی رمزنگاری‌شده نگهداری می‌شود. پول فقط پس از تأیید تحویل موفق توسط شما به مسافر منتقل می‌شود. در صورت هرگونه اختلاف، تیم حل اختلاف ما بررسی می‌کند و با پوشش کامل استرداد، نتیجه عادلانه‌ای برای هر دو طرف تضمین می‌شود.' },
-              { q: 'مسافران چگونه تأیید هویت می‌شوند؟', a: 'هر مسافر از فرآیند جامع تأیید هویت شامل کارت ملی، تأیید پاسپورت، بررسی سوابق و تشخیص چهره عبور می‌کند. آن‌ها باید حداقل امتیاز ۴.۵ ستاره را حفظ کنند و ما از سیستم تشخیص تقلب مبتنی بر هوش مصنوعی با نظارت مستمر استفاده می‌کنیم.' },
-              { q: 'چه اقلامی را می‌توان از طریق چاپار ارسال کرد؟', a: 'می‌توانید اکثر اقلام شخصی، اسناد، لوازم الکترونیکی، هدایا و محصولات تجاری کوچک زیر ۱۵ کیلوگرم را ارسال کنید. اقلام ممنوعه شامل مواد خطرناک، مواد مخدر، سلاح، حیوانات زنده، محصولات فاسدشدنی و اقلام نیازمند مجوز خاص می‌باشد.' },
-              { q: 'اگر بسته‌ام تحویل داده نشود چه اتفاقی می‌افتد؟', a: 'هر مرسوله به‌طور خودکار تا سقف ۱۰,۰۰۰ دلار بیمه دارد، بدون هزینه اضافه. اگر تحویل در بازه زمانی توافق‌شده تأیید نشود، استرداد کامل وجه به‌علاوه خسارت بیمه‌ای برای ارزش اعلام‌شده دریافت می‌کنید.' },
-              { q: 'به‌عنوان مسافر چقدر می‌توانم درآمد داشته باشم؟', a: 'اکثر مسافران برای هر تحویل ۵۰ تا ۳۰۰ دلار درآمد دارند و برترین‌ها سالانه بیش از ۱۵,۰۰۰ دلار کسب می‌کنند. شما نرخ خود را تعیین می‌کنید و انتخاب می‌کنید کدام بسته‌ها را بپذیرید.' },
-              { q: 'آیا چاپار در کشور من فعال است؟', a: 'بله! چاپار در بیش از ۱۹۰ کشور در تمام قاره‌ها فعالیت می‌کند و مسیرهای فعال آن ۹۵٪ از جمعیت جهان را پوشش می‌دهد.' },
+              { q: t.homeFaq1Q, a: t.homeFaq1A },
+              { q: t.homeFaq2Q, a: t.homeFaq2A },
+              { q: t.homeFaq3Q, a: t.homeFaq3A },
+              { q: t.homeFaq4Q, a: t.homeFaq4A },
+              { q: t.homeFaq5Q, a: t.homeFaq5A },
+              { q: t.homeFaq6Q, a: t.homeFaq6A },
             ].map((faq, index) => (
               <motion.div key={index} className={`bg-white rounded-xl border overflow-hidden shadow-sm ${openFaq === index ? 'border-cyan-200' : 'border-gray-200'}`}
                 initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: index * 0.05 }}>
@@ -1643,7 +1650,7 @@ function HomePage({ t, setPage, isRTL }: { t: typeof translations['en']; setPage
           </div>
           <div className="text-center mt-8">
             <button onClick={() => setPage('faq')} className="ds-btn-secondary">
-              مشاهده همه سؤالات
+              {t.homeFaqViewAll}
             </button>
           </div>
         </div>
@@ -1716,6 +1723,7 @@ function HomePage({ t, setPage, isRTL }: { t: typeof translations['en']; setPage
 import { findDemoRoute } from '../data/demoTrackingRoutes';
 
 function NavTrackingPanel({ onClose }: { onClose: () => void }) {
+  const { t } = useLang();
   const [input, setInput] = useState('');
   const [result, setResult] = useState<import('../types/tracking').ShipmentRoute | null>(null);
   const [notFound, setNotFound] = useState(false);
@@ -1733,7 +1741,7 @@ function NavTrackingPanel({ onClose }: { onClose: () => void }) {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
         <div className="flex items-start gap-6">
           <div className="flex-1 max-w-lg">
-            <div className="text-xs text-cyan-400 font-semibold uppercase tracking-widest mb-3">رهگیری مرسوله</div>
+            <div className="text-xs text-cyan-400 font-semibold uppercase tracking-widest mb-3">{t.homeTrkSection}</div>
             <div className="flex gap-2">
               <input
                 className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500/60 font-mono transition-all"
@@ -1748,11 +1756,11 @@ function NavTrackingPanel({ onClose }: { onClose: () => void }) {
                 onClick={doSearch}
                 className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-sm font-bold text-white hover:from-cyan-400 hover:to-blue-500 transition-all"
               >
-                جستجو
+                {t.homeTrkSearch}
               </button>
             </div>
             {notFound && !result && (
-              <p className="mt-2 text-xs text-red-400">کد رهگیری پیدا نشد. لطفاً کد را بررسی کنید.</p>
+              <p className="mt-2 text-xs text-red-400">{t.homeTrkNotFound}</p>
             )}
           </div>
 
@@ -1761,7 +1769,7 @@ function NavTrackingPanel({ onClose }: { onClose: () => void }) {
               {/* Header */}
               <div className="flex items-center justify-between">
                 <span className="font-mono text-xs text-cyan-400">{result.trackingCode}</span>
-                <a href={`/track/${result.trackingCode}`} className="text-xs text-cyan-400 hover:text-cyan-300 transition-colors">مشاهده کامل ←</a>
+                <a href={`/track/${result.trackingCode}`} className="text-xs text-cyan-400 hover:text-cyan-300 transition-colors">{t.homeTrkViewFull}</a>
               </div>
 
               {/* Route */}
@@ -1787,7 +1795,7 @@ function NavTrackingPanel({ onClose }: { onClose: () => void }) {
                     result.escrowStatus === 'released' ? 'bg-green-500/10 text-green-400 border-green-500/30' :
                                                          'bg-gray-500/10 text-gray-400 border-gray-500/30'
                   }`}>
-                    🔒 {result.escrowStatus === 'locked' ? 'امانی قفل' : result.escrowStatus === 'released' ? 'آزاد شده' : 'بازگشت داده'}
+                    🔒 {result.escrowStatus === 'locked' ? t.homeTrkEscrowLocked : result.escrowStatus === 'released' ? t.homeTrkEscrowReleased : t.homeTrkEscrowRefunded}
                   </span>
                 )}
               </div>
@@ -1797,31 +1805,31 @@ function NavTrackingPanel({ onClose }: { onClose: () => void }) {
                 <div className="flex flex-wrap gap-2 border-t border-white/5 pt-2">
                   {result.identityVerificationStatus && (
                     <div className="flex items-center gap-1.5">
-                      <span className="text-[10px] text-gray-500">هویت:</span>
+                      <span className="text-[10px] text-gray-500">{t.homeTrkIdentity}</span>
                       <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${
                         result.identityVerificationStatus === 'VERIFIED'      ? 'bg-green-500/15 text-green-400' :
                         result.identityVerificationStatus === 'REJECTED'      ? 'bg-red-500/15 text-red-400'   :
                         result.identityVerificationStatus === 'MANUAL_REVIEW' ? 'bg-blue-500/15 text-blue-400'  :
                                                                                  'bg-yellow-500/15 text-yellow-400'
                       }`}>
-                        {result.identityVerificationStatus === 'VERIFIED' ? 'تأیید' :
-                         result.identityVerificationStatus === 'REJECTED' ? 'رد' :
-                         result.identityVerificationStatus === 'MANUAL_REVIEW' ? 'بررسی' : 'در انتظار'}
+                        {result.identityVerificationStatus === 'VERIFIED' ? t.homeTrkVerified :
+                         result.identityVerificationStatus === 'REJECTED' ? t.homeTrkRejected :
+                         result.identityVerificationStatus === 'MANUAL_REVIEW' ? t.homeTrkReview : t.homeTrkPending}
                       </span>
                     </div>
                   )}
                   {result.cargoVerificationStatus && (
                     <div className="flex items-center gap-1.5">
-                      <span className="text-[10px] text-gray-500">کالا:</span>
+                      <span className="text-[10px] text-gray-500">{t.homeTrkCargo}</span>
                       <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${
                         result.cargoVerificationStatus === 'VERIFIED'      ? 'bg-green-500/15 text-green-400' :
                         result.cargoVerificationStatus === 'REJECTED'      ? 'bg-red-500/15 text-red-400'   :
                         result.cargoVerificationStatus === 'MANUAL_REVIEW' ? 'bg-blue-500/15 text-blue-400'  :
                                                                               'bg-yellow-500/15 text-yellow-400'
                       }`}>
-                        {result.cargoVerificationStatus === 'VERIFIED' ? 'تأیید' :
-                         result.cargoVerificationStatus === 'REJECTED' ? 'رد' :
-                         result.cargoVerificationStatus === 'MANUAL_REVIEW' ? 'بررسی' : 'در انتظار'}
+                        {result.cargoVerificationStatus === 'VERIFIED' ? t.homeTrkVerified :
+                         result.cargoVerificationStatus === 'REJECTED' ? t.homeTrkRejected :
+                         result.cargoVerificationStatus === 'MANUAL_REVIEW' ? t.homeTrkReview : t.homeTrkPending}
                       </span>
                     </div>
                   )}
@@ -1830,7 +1838,7 @@ function NavTrackingPanel({ onClose }: { onClose: () => void }) {
 
               {result.eta && (
                 <div className="text-xs text-gray-500">
-                  تحویل: <span className="text-white font-medium">{result.eta}</span>
+                  {t.homeTrkEta} <span className="text-white font-medium">{result.eta}</span>
                   {result.distanceText && <> · {result.distanceText}</>}
                 </div>
               )}
@@ -1850,7 +1858,7 @@ function NavTrackingPanel({ onClose }: { onClose: () => void }) {
 
 // ─── App ──────────────────────────────────────────────────────────────────────
 export default function App() {
-  const [lang, setLang] = useState<LangCode>('fa');
+  const { lang, setLang, t, isRTL } = useLang();
   const [currentPage, setCurrentPage] = useState<Page>(() => {
     const p = new URLSearchParams(window.location.search).get('page');
     const valid: Page[] = ['home','buy-for-me','send-package','traveler','marketplace','trust-safety','investors','faq','auth','my-orders','wallet','receipt','profile','notifications','traveler-dashboard','smart-tester'];
@@ -1863,9 +1871,8 @@ export default function App() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showTrackPanel, setShowTrackPanel] = useState(false);
   const { session, clearSession } = useSession();
-
-  const t = translations[lang];
-  const isRTL = RTL_LANGS.includes(lang);
+  // Tracks which page triggered the auth gate so AuthPage can return the user there on success
+  const returnPageRef = useRef<Page>('home');
 
   useEffect(() => {
     if (window.location.pathname === '/google-earth-preview') {
@@ -1889,6 +1896,15 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [currentPage]);
 
+  // Redirect logged-out users away from protected pages directly to auth (no interstitial)
+  useEffect(() => {
+    const protected_pages: Page[] = ['send-package', 'traveler', 'buy-for-me', 'my-orders', 'wallet', 'profile', 'traveler-dashboard'];
+    if (!session && protected_pages.includes(currentPage)) {
+      returnPageRef.current = currentPage;
+      setCurrentPage('auth');
+    }
+  }, [currentPage, session]);
+
   // Sync React state with browser back/forward buttons
   useEffect(() => {
     const onPop = (e: PopStateEvent) => {
@@ -1899,6 +1915,15 @@ export default function App() {
   }, []);
 
   const fontStyle = isRTL ? { fontFamily: "'Vazirmatn', Tahoma, Arial, sans-serif" } : {};
+
+  // Synchronous auth gate — determines effective page to render without a flash.
+  // The useEffect below still runs to sync currentPage/history, but the render
+  // already shows AuthPage on the very first frame so there is no white interstitial.
+  const AUTH_PROTECTED: Page[] = ['send-package', 'traveler', 'buy-for-me', 'my-orders', 'wallet', 'profile', 'traveler-dashboard'];
+  if (!session && AUTH_PROTECTED.includes(currentPage)) {
+    returnPageRef.current = currentPage; // store intended destination
+  }
+  const renderPage: Page = (!session && AUTH_PROTECTED.includes(currentPage)) ? 'auth' : currentPage;
 
   return (
     <div dir={isRTL ? 'rtl' : 'ltr'} className="relative min-h-screen bg-[#050810]" style={fontStyle}>
@@ -2010,7 +2035,7 @@ export default function App() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
-                رهگیری مسیر
+                {t.homeNavTrackRoute}
               </button>
             </div>
 
@@ -2022,7 +2047,7 @@ export default function App() {
                     onClick={() => clearSession()}
                     className="px-4 py-2 text-sm font-medium text-gray-300 hover:text-white hover:bg-white/5 rounded-lg transition-all"
                     whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}>
-                    خروج
+                    {t.homeNavLogout}
                   </motion.button>
                 </>
               ) : (
@@ -2091,14 +2116,14 @@ export default function App() {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                     </svg>
-                    رهگیری مسیر
+                    {t.homeNavTrackRoute}
                   </button>
                 </div>
                 <div className="flex gap-2">
                   {session ? (
                     <button onClick={() => { clearSession(); setMobileMenuOpen(false); }}
                       className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-300 border border-white/10 rounded-xl hover:bg-white/5 transition-colors">
-                      خروج ({session.firstName})
+                      {t.homeNavLogout} ({session.firstName})
                     </button>
                   ) : (
                     <>
@@ -2134,25 +2159,25 @@ export default function App() {
         )}
       </AnimatePresence>
 
-      {/* Page content */}
+      {/* Page content — uses renderPage (synchronous auth gate) so AuthPage renders on first frame */}
       <AnimatePresence mode="wait">
-        <motion.div key={currentPage} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.25 }}>
-          {currentPage === 'home' && <HomePage t={t} setPage={setCurrentPage} isRTL={isRTL} />}
-          {currentPage === 'buy-for-me' && <BuyForMePage onBack={() => setCurrentPage('home')} onHome={() => setCurrentPage('home')} t={t} />}
-          {currentPage === 'send-package' && <SendPackagePage onBack={() => setCurrentPage('home')} onHome={() => setCurrentPage('home')} t={t} onNavigate={(p) => setCurrentPage(p as Page)} />}
-          {currentPage === 'traveler' && <TravelerPage onBack={() => setCurrentPage('home')} onHome={() => setCurrentPage('home')} t={t} onNavigate={(p) => setCurrentPage(p as Page)} />}
-          {currentPage === 'marketplace' && <MarketplacePage onBack={() => setCurrentPage('home')} onHome={() => setCurrentPage('home')} t={t} onBook={() => setCurrentPage('send-package')} />}
-          {currentPage === 'trust-safety' && <TrustSafetyPage onBack={() => setCurrentPage('home')} onHome={() => setCurrentPage('home')} t={t} />}
-          {currentPage === 'investors' && <InvestorsPage onBack={() => setCurrentPage('home')} onHome={() => setCurrentPage('home')} t={t} />}
-          {currentPage === 'faq'  && <FAQPage  onBack={() => setCurrentPage('home')} onHome={() => setCurrentPage('home')} t={t} />}
-          {currentPage === 'auth' && <AuthPage onHome={() => setCurrentPage('home')} />}
-          {currentPage === 'my-orders' && <MyOrdersPage onBack={() => setCurrentPage('home')} onHome={() => setCurrentPage('home')} t={t} onOpenReceipt={(id) => { setReceiptId(id); setCurrentPage('receipt'); }} />}
-          {currentPage === 'wallet' && <WalletPage onBack={() => setCurrentPage('home')} onHome={() => setCurrentPage('home')} t={t} />}
-          {currentPage === 'receipt' && <ReceiptPage onBack={() => setCurrentPage('my-orders')} onHome={() => setCurrentPage('home')} t={t} trackId={receiptId} />}
-          {currentPage === 'profile' && <ProfilePage onBack={() => setCurrentPage('home')} onHome={() => setCurrentPage('home')} t={t} onOpenWallet={() => setCurrentPage('wallet')} onOpenOrders={() => setCurrentPage('my-orders')} />}
-          {currentPage === 'notifications' && <NotificationsPage onBack={() => setCurrentPage('home')} onHome={() => setCurrentPage('home')} t={t} onNavigate={(p) => setCurrentPage(p as Page)} />}
-          {currentPage === 'traveler-dashboard' && <TravelerDashboardPage onBack={() => setCurrentPage('home')} onHome={() => setCurrentPage('home')} t={t} onNewTrip={() => setCurrentPage('traveler')} onNavigate={(p) => setCurrentPage(p as Page)} />}
-          {currentPage === 'smart-tester' && <SmartTester onHome={() => setCurrentPage('home')} />}
+        <motion.div key={renderPage} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.25 }}>
+          {renderPage === 'home' && <HomePage t={t} setPage={setCurrentPage} isRTL={isRTL} />}
+          {renderPage === 'buy-for-me' && <BuyForMePage onBack={() => setCurrentPage('home')} onHome={() => setCurrentPage('home')} t={t} onNavigate={(p) => { setCurrentPage(p as Page); }} />}
+          {renderPage === 'send-package' && <SendPackagePage onBack={() => setCurrentPage('home')} onHome={() => setCurrentPage('home')} t={t} onNavigate={(p) => { setCurrentPage(p as Page); }} />}
+          {renderPage === 'traveler' && <TravelerPage onBack={() => setCurrentPage('home')} onHome={() => setCurrentPage('home')} t={t} onNavigate={(p) => { setCurrentPage(p as Page); }} />}
+          {renderPage === 'marketplace' && <MarketplacePage onBack={() => setCurrentPage('home')} onHome={() => setCurrentPage('home')} t={t} onBook={() => setCurrentPage('send-package')} />}
+          {renderPage === 'trust-safety' && <TrustSafetyPage onBack={() => setCurrentPage('home')} onHome={() => setCurrentPage('home')} t={t} />}
+          {renderPage === 'investors' && <InvestorsPage onBack={() => setCurrentPage('home')} onHome={() => setCurrentPage('home')} t={t} />}
+          {renderPage === 'faq'  && <FAQPage  onBack={() => setCurrentPage('home')} onHome={() => setCurrentPage('home')} t={t} />}
+          {renderPage === 'auth' && <AuthPage onHome={() => setCurrentPage('home')} onSuccess={() => setCurrentPage(returnPageRef.current)} />}
+          {renderPage === 'my-orders' && <MyOrdersPage onBack={() => setCurrentPage('home')} onHome={() => setCurrentPage('home')} t={t} onOpenReceipt={(id) => { setReceiptId(id); setCurrentPage('receipt'); }} />}
+          {renderPage === 'wallet' && <WalletPage onBack={() => setCurrentPage('home')} onHome={() => setCurrentPage('home')} t={t} />}
+          {renderPage === 'receipt' && <ReceiptPage onBack={() => setCurrentPage('my-orders')} onHome={() => setCurrentPage('home')} t={t} trackId={receiptId} />}
+          {renderPage === 'profile' && <ProfilePage onBack={() => setCurrentPage('home')} onHome={() => setCurrentPage('home')} t={t} onOpenWallet={() => setCurrentPage('wallet')} onOpenOrders={() => setCurrentPage('my-orders')} />}
+          {renderPage === 'notifications' && <NotificationsPage onBack={() => setCurrentPage('home')} onHome={() => setCurrentPage('home')} t={t} onNavigate={(p) => setCurrentPage(p as Page)} />}
+          {renderPage === 'traveler-dashboard' && <TravelerDashboardPage onBack={() => setCurrentPage('home')} onHome={() => setCurrentPage('home')} t={t} onNewTrip={() => setCurrentPage('traveler')} onNavigate={(p) => setCurrentPage(p as Page)} />}
+          {renderPage === 'smart-tester' && <SmartTester onHome={() => setCurrentPage('home')} />}
         </motion.div>
       </AnimatePresence>
     </div>
