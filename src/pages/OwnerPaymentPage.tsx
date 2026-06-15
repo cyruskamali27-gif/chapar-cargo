@@ -9,6 +9,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Store, getLiveRate, getSession, genId } from '../lib/store';
 import { useLang } from '../lib/LangContext';
+import { useVerifyGate } from '../lib/useVerifyGate';
 
 /* ── Window globals declared by CDN scripts ───────────────────────────────── */
 declare global {
@@ -70,6 +71,7 @@ function fmtUsd(v: number) { return '$ ' + Number(v).toFixed(2); }
 
 export default function OwnerPaymentPage() {
   const { t, isRTL } = useLang();
+  const { gate, modal } = useVerifyGate();
   const [state,     setState]     = useState<State>('main');
   const [offer,     setOffer]     = useState<Offer | null>(null);
   const [order,     setOrder]     = useState<Order>({});
@@ -678,6 +680,7 @@ export default function OwnerPaymentPage() {
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-gray-50" dir={isRTL ? 'rtl' : 'ltr'}>
+      {modal}
       {/* Header */}
       <div className="bg-white border-b border-gray-200 px-4 py-3 flex items-center gap-3 sticky top-0 z-10 shadow-sm">
         <button onClick={() => history.back()} className="text-sm text-gray-500 hover:text-gray-800 transition-colors flex items-center gap-1">← {t.opayBack}</button>
@@ -944,7 +947,7 @@ export default function OwnerPaymentPage() {
 
             {/* Pay button */}
             <button
-              onClick={doPayment}
+              onClick={() => gate(doPayment)}
               className="w-full h-13 py-4 rounded-xl bg-gradient-to-r from-blue-500 to-blue-700 text-white font-extrabold text-sm shadow-lg hover:opacity-90 transition-all"
             >
               🔒 پرداخت و رزرو مسافر ←

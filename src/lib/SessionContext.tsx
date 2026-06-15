@@ -13,8 +13,8 @@ const Ctx = createContext<SessionCtx>({
   clearSession: storeClearSession,
 });
 
-function userToSession(user: { id: string; email: string | null; phone: string | null }): Session {
-  return { userId: user.id, firstName: '', lastName: '', email: user.email ?? '', phone: user.phone ?? '' };
+function userToSession(user: { id: string; email: string | null; phone: string | null; emailVerified?: boolean }): Session {
+  return { userId: user.id, firstName: '', lastName: '', email: user.email ?? '', phone: user.phone ?? '', emailVerified: user.emailVerified ?? false };
 }
 
 export function SessionProvider({ children }: { children: React.ReactNode }) {

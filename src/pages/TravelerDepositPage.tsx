@@ -9,6 +9,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Store, getLiveRate, getSession, genId } from '../lib/store';
 import { useLang } from '../lib/LangContext';
+import { useVerifyGate } from '../lib/useVerifyGate';
 
 declare global {
   interface Window {
@@ -84,6 +85,7 @@ function wlHold(phone: string, amount: number, desc: string, orderId: string | n
 
 export default function TravelerDepositPage() {
   const { t, isRTL } = useLang();
+  const { gate, modal } = useVerifyGate();
   const [viewState,  setViewState]  = useState<ViewState>('main');
   const [offer,      setOffer]      = useState<Offer | null>(null);
   const [order,      setOrder]      = useState<Order>({});
@@ -644,6 +646,7 @@ export default function TravelerDepositPage() {
 
   return (
     <div className="min-h-screen bg-gray-50" dir={isRTL ? 'rtl' : 'ltr'}>
+      {modal}
       {/* Header */}
       <div className="bg-white border-b border-gray-200 px-4 py-3 flex items-center gap-3 sticky top-0 z-10 shadow-sm">
         <button onClick={() => history.back()} className="text-sm text-gray-500 hover:text-gray-800 transition-colors">← {t.tdepBack}</button>
@@ -704,7 +707,7 @@ export default function TravelerDepositPage() {
               {!polyDepReady && <div className="w-5 h-5 rounded-full border-2 border-blue-200 border-t-blue-600 animate-spin mx-auto mt-2" />}
             </div>
             {polyDepReady && (
-              <button onClick={doTravelerDeposit} className="w-full h-12 rounded-xl font-bold text-sm text-white" style={{ background: 'linear-gradient(135deg,#818cf8,#6366f1)' }}>
+              <button onClick={() => gate(doTravelerDeposit)} className="w-full h-12 rounded-xl font-bold text-sm text-white" style={{ background: 'linear-gradient(135deg,#818cf8,#6366f1)' }}>
                 ⬡ واریز ودیعه به قرارداد ←
               </button>
             )}
@@ -931,7 +934,7 @@ export default function TravelerDepositPage() {
 
             {/* Deposit button */}
             <button
-              onClick={doDeposit}
+              onClick={() => gate(doDeposit)}
               className="w-full h-13 py-4 rounded-xl bg-gradient-to-r from-blue-500 to-blue-700 text-white font-extrabold text-sm shadow-lg hover:opacity-90 transition-all"
             >
               🛡️ تودیع ودیعه و شروع مسیر ←

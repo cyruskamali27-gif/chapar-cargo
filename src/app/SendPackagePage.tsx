@@ -6,6 +6,7 @@ import { getAirportByIata } from './airports';
 import { IdentityVerification, CargoVerification } from './VerificationModules';
 import { useSession } from '../lib/SessionContext';
 import { useLang } from '../lib/LangContext';
+import { useVerifyGate } from '../lib/useVerifyGate';
 import { Store, genId, getLiveRate } from '../lib/store';
 import SecuritySelector from './ProtectionSelector';
 import { defaultSecurityLevel, type SecurityLevel } from './shipmentTypes';
@@ -189,6 +190,7 @@ export default function SendPackagePage({ onHome, cargoType = 'personal', onNavi
   ];
 
   const { session } = useSession();
+  const { gate, modal } = useVerifyGate();
 
   const [step, setStep] = useState(1);
 
@@ -676,6 +678,7 @@ export default function SendPackagePage({ onHome, cargoType = 'personal', onNavi
 
   return (
     <div className="min-h-screen bg-white" dir={isRTL ? 'rtl' : 'ltr'}>
+      {modal}
       <PageHeader onHome={onHome} title={pageTitle} desc={pageDesc} />
       <div className="max-w-2xl mx-auto px-4 py-10 pb-24">
         <StepPills step={step} />
@@ -1252,7 +1255,7 @@ export default function SendPackagePage({ onHome, cargoType = 'personal', onNavi
             <Err msg={err} />
             <div className="flex gap-3 mt-2">
               <button onClick={() => goStep(7)} className="ds-btn-secondary flex-shrink-0 px-5 py-3">{t.wizardPrev}</button>
-              <button onClick={publishOrder} disabled={publishing || !payVerified}
+              <button onClick={() => gate(publishOrder)} disabled={publishing || !payVerified}
                 className="ds-btn-primary flex-1 py-3 disabled:opacity-40">
                 {publishing
                   ? <span className="flex items-center justify-center gap-2"><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"/>{t.spPublishing}</span>

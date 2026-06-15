@@ -283,6 +283,9 @@ export interface Translations {
   otpErrSend: string;
   otpSuccessTitle: string;
   otpSuccessSub: string;
+  gateTitle: string;
+  gateSubtitle: string;
+  gateCancel: string;
 
   // Shared wizard nav
   navBack: string;
@@ -991,6 +994,7 @@ export const translations: Record<LangCode, Translations> = {
     otpSkipLink: 'تأیید بعداً',
     otpErrInvalid: 'کد نادرست یا منقضی شده است', otpErrTooMany: 'تعداد تلاش بیش از حد — کد جدید درخواست کنید', otpErrSend: 'ارسال کد با خطا مواجه شد',
     otpSuccessTitle: '✓ ایمیل تأیید شد', otpSuccessSub: 'آدرس ایمیل شما با موفقیت تأیید شد. در حال انتقال...',
+    gateTitle: 'تأیید ایمیل الزامی است', gateSubtitle: 'لطفاً ایمیل خود را تأیید کنید تا بتوانید ادامه دهید.', gateCancel: 'انصراف',
 
     // Shared wizard nav
     navBack: 'بازگشت', navHome: 'صفحه اصلی',
@@ -1722,6 +1726,7 @@ export const translations: Record<LangCode, Translations> = {
     otpSkipLink: 'Verify later',
     otpErrInvalid: 'Invalid or expired code', otpErrTooMany: 'Too many attempts — request a new code', otpErrSend: 'Failed to send code',
     otpSuccessTitle: '✓ Email verified', otpSuccessSub: 'Your email was verified successfully. Redirecting...',
+    gateTitle: 'Email verification required', gateSubtitle: 'Please verify your email to continue.', gateCancel: 'Cancel',
 
     navBack: 'Back', navHome: 'Home',
     wizardStep: 'Step {n} of {m}', wizardContinue: 'Continue →', wizardPrev: '← Back',
@@ -2448,6 +2453,7 @@ export const translations: Record<LangCode, Translations> = {
     otpSkipLink: 'Sonra doğrula',
     otpErrInvalid: 'Geçersiz veya süresi dolmuş kod', otpErrTooMany: 'Çok fazla deneme — yeni kod isteyin', otpErrSend: 'Kod gönderilemedi',
     otpSuccessTitle: '✓ E-posta doğrulandı', otpSuccessSub: 'E-posta adresiniz başarıyla doğrulandı. Yönlendiriliyor...',
+    gateTitle: 'E-posta doğrulaması gerekli', gateSubtitle: 'Devam etmek için e-postanızı doğrulayın.', gateCancel: 'İptal',
 
     navBack: 'Geri', navHome: 'Ana Sayfa',
     wizardStep: 'Adım {n}/{m}', wizardContinue: 'Devam →', wizardPrev: '← Geri',
@@ -3174,6 +3180,7 @@ export const translations: Record<LangCode, Translations> = {
     otpSkipLink: 'التحقق لاحقاً',
     otpErrInvalid: 'الرمز غير صحيح أو منتهي الصلاحية', otpErrTooMany: 'عدد المحاولات كثير — اطلب رمزاً جديداً', otpErrSend: 'فشل في إرسال الرمز',
     otpSuccessTitle: '✓ تم التحقق من البريد الإلكتروني', otpSuccessSub: 'تم التحقق من بريدك الإلكتروني بنجاح. جارٍ التوجيه...',
+    gateTitle: 'التحقق من البريد الإلكتروني مطلوب', gateSubtitle: 'يرجى التحقق من بريدك الإلكتروني للمتابعة.', gateCancel: 'إلغاء',
 
     navBack: 'رجوع', navHome: 'الرئيسية',
     wizardStep: 'الخطوة {n} من {m}', wizardContinue: 'متابعة ←', wizardPrev: '← السابق',
@@ -3899,6 +3906,7 @@ export const translations: Record<LangCode, Translations> = {
     otpSkipLink: 'Vérifier plus tard',
     otpErrInvalid: 'Code invalide ou expiré', otpErrTooMany: 'Trop de tentatives — demandez un nouveau code', otpErrSend: "Échec de l'envoi du code",
     otpSuccessTitle: '✓ E-mail vérifié', otpSuccessSub: 'Votre e-mail a été vérifié avec succès. Redirection...',
+    gateTitle: 'Vérification e-mail requise', gateSubtitle: 'Veuillez vérifier votre e-mail pour continuer.', gateCancel: 'Annuler',
 
     navBack: 'Retour', navHome: 'Accueil',
     wizardStep: 'Étape {n}/{m}', wizardContinue: 'Continuer →', wizardPrev: '← Précédent',
@@ -4625,6 +4633,7 @@ export const translations: Record<LangCode, Translations> = {
     otpSkipLink: '稍后验证',
     otpErrInvalid: '验证码无效或已过期', otpErrTooMany: '尝试次数过多，请申请新验证码', otpErrSend: '发送验证码失败',
     otpSuccessTitle: '✓ 邮箱已验证', otpSuccessSub: '您的邮箱已成功验证，正在跳转...',
+    gateTitle: '需要验证邮箱', gateSubtitle: '请先验证您的邮箱以继续操作。', gateCancel: '取消',
 
     navBack: '返回', navHome: '首页',
     wizardStep: '第 {n}/{m} 步', wizardContinue: '继续 →', wizardPrev: '← 上一步',

@@ -11,6 +11,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { ArrowLeft, Home } from 'lucide-react';
 import { Store, genId, getOrder, saveOrder, clearOrder, getSession, getLiveRate } from '../lib/store';
 import { useLang } from '../lib/LangContext';
+import { useVerifyGate } from '../lib/useVerifyGate';
 
 // ── Wallet helpers (mirrors wallet.html WL) ──────────────────────────────────
 interface Wallet { balance: number; held: number; transactions: Array<Record<string, unknown>>; }
@@ -41,6 +42,7 @@ type ViewState = 'form' | 'processing' | 'success' | 'fail';
 
 export default function PaymentPage() {
   const { t, isRTL } = useLang();
+  const { gate, modal } = useVerifyGate();
 
   const METHOD_LABELS: Record<string, string> = {
     card:   t.payMethodCard,
@@ -180,6 +182,7 @@ export default function PaymentPage() {
 
   return (
     <div className="min-h-screen bg-gray-50" dir={isRTL ? 'rtl' : 'ltr'}>
+      {modal}
 
       {/* Header */}
       <div className="bg-white border-b border-gray-100 px-4 py-4">
@@ -253,7 +256,7 @@ export default function PaymentPage() {
               </div>
             )}
 
-            <button onClick={processPayment}
+            <button onClick={() => gate(processPayment)}
               disabled={!payMethod || viewState === 'processing'}
               className="w-full h-12 rounded-xl bg-gradient-to-r from-blue-500 to-blue-700 text-white font-bold text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90 transition-all">
               {viewState === 'processing'

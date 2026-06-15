@@ -37,6 +37,7 @@ export interface Session {
   lastName: string;
   email: string;
   phone: string;
+  emailVerified?: boolean;
 }
 
 export interface User {

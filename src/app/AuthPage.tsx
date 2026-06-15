@@ -86,13 +86,14 @@ type Tab = 'login' | 'register' | 'verify' | 'success';
 
 const AUTH_BASE = '/api/auth';
 
-function userToSession(user: { id: string; email: string | null; phone: string | null }) {
+function userToSession(user: { id: string; email: string | null; phone: string | null; emailVerified?: boolean }) {
   return {
     userId: user.id,
     firstName: '',
     lastName: '',
     email: user.email ?? '',
     phone: user.phone ?? '',
+    emailVerified: user.emailVerified ?? false,
   };
 }
 

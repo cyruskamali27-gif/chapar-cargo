@@ -6,6 +6,7 @@ import { getAirportByIata } from './airports';
 import { IdentityVerification } from './VerificationModules';
 import { useSession } from '../lib/SessionContext';
 import { useLang } from '../lib/LangContext';
+import { useVerifyGate } from '../lib/useVerifyGate';
 import { Store, genId } from '../lib/store';
 import SecuritySelector from './ProtectionSelector';
 import { type SecurityLevel } from './shipmentTypes';
@@ -108,6 +109,7 @@ interface Props { onBack: () => void; onHome: () => void; t: Record<string, stri
 export default function TravelerPage({ onHome, onNavigate }: Props) {
   const { session } = useSession();
   const { t, isRTL } = useLang();
+  const { gate, modal } = useVerifyGate();
 
   // Cargo options built from translations
   const CARGO_OPTIONS = [
@@ -280,7 +282,7 @@ export default function TravelerPage({ onHome, onNavigate }: Props) {
       if (step === 2 && !validateStep2()) return;
       if (step === 3 && !validateStep3()) return;
       if (step === 4 && !validateStep4()) return;
-      if (step === 4 && n === 5) { publishTrip(); return; }
+      if (step === 4 && n === 5) { gate(publishTrip); return; }
     }
     setStep(n);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -457,6 +459,7 @@ export default function TravelerPage({ onHome, onNavigate }: Props) {
 
   return (
     <div className="min-h-screen bg-white" dir={isRTL ? 'rtl' : 'ltr'}>
+      {modal}
       <PageHeader onHome={onHome} />
       <div className="max-w-2xl mx-auto px-4 py-10 pb-24">
         <StepPills step={step} />
