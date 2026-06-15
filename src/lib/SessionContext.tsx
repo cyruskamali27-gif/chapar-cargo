@@ -13,8 +13,10 @@ const Ctx = createContext<SessionCtx>({
   clearSession: storeClearSession,
 });
 
-function userToSession(user: { id: string; email: string | null; phone: string | null; emailVerified?: boolean; telegramLinked?: boolean }): Session {
-  return { userId: user.id, firstName: '', lastName: '', email: user.email ?? '', phone: user.phone ?? '', emailVerified: user.emailVerified ?? false, telegramLinked: user.telegramLinked ?? false };
+function userToSession(user: { id: string; email: string | null; phone: string | null; firstName?: string; lastName?: string; emailVerified?: boolean; telegramLinked?: boolean }): Session {
+  // phone-only users have no email to verify — treat as verified so the gate doesn't block them
+  const emailVerified = user.email ? (user.emailVerified ?? false) : true;
+  return { userId: user.id, firstName: user.firstName ?? '', lastName: user.lastName ?? '', email: user.email ?? '', phone: user.phone ?? '', emailVerified, telegramLinked: user.telegramLinked ?? false };
 }
 
 export function SessionProvider({ children }: { children: React.ReactNode }) {

@@ -3,6 +3,8 @@ import { Eye, EyeOff, ArrowLeft, Mail, Send } from 'lucide-react';
 import { useSession } from '../lib/SessionContext';
 import { useLang } from '../lib/LangContext';
 import { useOtpChannel, OtpChannelPanel } from '../lib/useOtpChannel';
+import { PhoneField, isValidPhoneNumber } from '../lib/PhoneField';
+import type { Country } from '../lib/PhoneField';
 
 // ── Password strength ─────────────────────────────────────────────────────────
 function pwScore(pw: string): number {
@@ -87,16 +89,49 @@ type Tab = 'login' | 'register' | 'verify' | 'forgot' | 'success';
 
 const AUTH_BASE = '/api/auth';
 
-function userToSession(user: { id: string; email: string | null; phone: string | null; emailVerified?: boolean; telegramLinked?: boolean }) {
+function userToSession(user: { id: string; email: string | null; phone: string | null; firstName?: string; lastName?: string; emailVerified?: boolean; telegramLinked?: boolean }) {
+  // phone-only users have no email to verify — treat as verified so the gate doesn't block them
+  const emailVerified = user.email ? (user.emailVerified ?? false) : true;
   return {
     userId: user.id,
-    firstName: '',
-    lastName: '',
+    firstName: user.firstName ?? '',
+    lastName: user.lastName ?? '',
     email: user.email ?? '',
     phone: user.phone ?? '',
-    emailVerified: user.emailVerified ?? false,
+    emailVerified,
     telegramLinked: user.telegramLinked ?? false,
   };
+}
+
+// Identifier-mode toggle (Email vs Phone) used in both login and register
+type IdMode = 'email' | 'phone';
+
+function IdModeToggle({
+  mode,
+  setMode,
+}: {
+  mode:    IdMode;
+  setMode: (m: IdMode) => void;
+}) {
+  const { t } = useLang();
+  return (
+    <div className="flex bg-gray-100 border border-gray-200 rounded-xl p-0.5 mb-3 gap-1">
+      {(['email', 'phone'] as const).map(m => (
+        <button
+          key={m}
+          type="button"
+          onClick={() => setMode(m)}
+          className={`flex-1 h-8 rounded-xl text-xs font-bold transition-all ${
+            mode === m
+              ? 'bg-white text-cyan-600 shadow-sm border border-gray-200'
+              : 'text-gray-500 hover:text-gray-900'
+          }`}
+        >
+          {m === 'email' ? t.channelEmail : t.idModePhone}
+        </button>
+      ))}
+    </div>
+  );
 }
 
 export default function AuthPage({ onHome, onSuccess, defaultTab = 'login' }: Props) {
@@ -109,6 +144,8 @@ export default function AuthPage({ onHome, onSuccess, defaultTab = 'login' }: Pr
   const [lPw,      setLPw]      = useState('');
   const [lErr,     setLErr]     = useState<{ id?: string; pw?: string; global?: string }>({});
   const [lLoading, setLLoading] = useState(false);
+  const [lIdMode,  setLIdMode]  = useState<IdMode>('email');
+  const [lPhone,   setLPhone]   = useState('');
 
   // ── Register state ───────────────────────────────────────────────────────────
   const [rId,      setRId]      = useState('');
@@ -117,6 +154,8 @@ export default function AuthPage({ onHome, onSuccess, defaultTab = 'login' }: Pr
   const [rTerms,   setRTerms]   = useState(false);
   const [rErr,     setRErr]     = useState<Record<string, string>>({});
   const [rLoading, setRLoading] = useState(false);
+  const [rIdMode,  setRIdMode]  = useState<IdMode>('email');
+  const [rPhone,   setRPhone]   = useState('');
 
   // ── Verify step state ────────────────────────────────────────────────────────
   const [vIdentifier, setVIdentifier] = useState('');
@@ -245,17 +284,22 @@ export default function AuthPage({ onHome, onSuccess, defaultTab = 'login' }: Pr
   // ── Login ────────────────────────────────────────────────────────────────────
   async function doLogin() {
     const errors: typeof lErr = {};
-    if (!lId.trim()) errors.id = t.authErrEmailRequired;
-    if (!lPw)        errors.pw = t.authErrPasswordRequired;
+    if (lIdMode === 'email') {
+      if (!lId.trim()) errors.id = t.authErrEmailRequired;
+    } else {
+      if (!lPhone || !isValidPhoneNumber(lPhone)) errors.id = t.authErrPhoneInvalid;
+    }
+    if (!lPw) errors.pw = t.authErrPasswordRequired;
     if (Object.keys(errors).length) { setLErr(errors); return; }
 
+    const identifier = lIdMode === 'phone' ? lPhone : lId.trim();
     setLLoading(true);
     setLErr({});
     try {
       const res  = await fetch(`${AUTH_BASE}/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ identifier: lId.trim(), password: lPw }),
+        body: JSON.stringify({ identifier, password: lPw }),
       });
       const data = await res.json();
       if (!data.ok) { setLErr({ global: t.authErrInvalidCredentials }); return; }
@@ -275,19 +319,24 @@ export default function AuthPage({ onHome, onSuccess, defaultTab = 'login' }: Pr
   // ── Register ─────────────────────────────────────────────────────────────────
   async function doRegister() {
     const errs: Record<string, string> = {};
-    if (!rId.trim())              errs.id    = t.authErrEmailRequired;
-    if (!rPw || rPw.length < 8)  errs.pw    = t.authErrPasswordLength;
-    if (rPw && rPw2 && rPw !== rPw2) errs.pw2 = t.authErrPasswordMatch;
-    if (!rTerms)                  errs.terms = t.authErrTerms;
+    if (rIdMode === 'email') {
+      if (!rId.trim()) errs.id = t.authErrEmailRequired;
+    } else {
+      if (!rPhone || !isValidPhoneNumber(rPhone)) errs.id = t.authErrPhoneInvalid;
+    }
+    if (!rPw || rPw.length < 8)      errs.pw    = t.authErrPasswordLength;
+    if (rPw && rPw2 && rPw !== rPw2) errs.pw2   = t.authErrPasswordMatch;
+    if (!rTerms)                      errs.terms = t.authErrTerms;
     if (Object.keys(errs).length) { setRErr(errs); return; }
 
+    const identifier = rIdMode === 'phone' ? rPhone : rId.trim();
     setRLoading(true);
     setRErr({});
     try {
       const signupRes  = await fetch(`${AUTH_BASE}/signup`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ identifier: rId.trim(), password: rPw }),
+        body: JSON.stringify({ identifier, password: rPw }),
       });
       const signupData = await signupRes.json();
       if (!signupData.ok) {
@@ -309,13 +358,22 @@ export default function AuthPage({ onHome, onSuccess, defaultTab = 'login' }: Pr
       if (!loginData.ok) { setTab('login'); return; }
 
       localStorage.setItem('cp_token', loginData.token);
-      setSession(userToSession(loginData.user));
 
-      // Route through email verification
-      setVIdentifier(rId.trim());
-      otpChannel.reset();
-      setTab('verify');
-      otpChannel.selectChannel('email');
+      if (rIdMode === 'phone') {
+        // Phone signup: bypass email verify (SMS OTP in future phase)
+        setSession({ ...userToSession(loginData.user), emailVerified: true });
+        setSuccessTitle(t.authSuccessLoginPrefix.trim() + '!');
+        setSuccessSub(t.authSuccessLoginSub);
+        setTab('success');
+        setTimeout(onSuccess ?? onHome, 1400);
+      } else {
+        setSession(userToSession(loginData.user));
+        // Route through email verification
+        setVIdentifier(rId.trim());
+        otpChannel.reset();
+        setTab('verify');
+        otpChannel.selectChannel('email');
+      }
     } catch {
       setRErr({ global: t.authErrNetwork });
     } finally {
@@ -325,6 +383,8 @@ export default function AuthPage({ onHome, onSuccess, defaultTab = 'login' }: Pr
 
   const inputCls = (err?: string) =>
     `ds-input ${err ? 'border-red-400 bg-red-50 focus:border-red-400' : ''}`;
+
+  const defaultPhoneCountry: Country = isRTL ? 'IR' : 'CA';
 
   const showTabs = tab !== 'success' && tab !== 'verify' && tab !== 'forgot';
 
@@ -362,9 +422,23 @@ export default function AuthPage({ onHome, onSuccess, defaultTab = 'login' }: Pr
             <div>
               <div className="mb-4">
                 <label className="ds-label">{t.authEmailOrPhone}</label>
-                <input type="text" value={lId} onChange={e => { setLId(e.target.value); setLErr({}); }}
-                  placeholder={t.authEmailOrPhonePlaceholder} autoComplete="username"
-                  className={inputCls(lErr.id)} />
+                <IdModeToggle
+                  mode={lIdMode}
+                  setMode={m => { setLIdMode(m); setLErr({}); setLPhone(''); }}
+                />
+                {lIdMode === 'email' ? (
+                  <input type="text" value={lId} onChange={e => { setLId(e.target.value); setLErr({}); }}
+                    placeholder={t.authEmailOrPhonePlaceholder} autoComplete="username"
+                    className={inputCls(lErr.id)} />
+                ) : (
+                  <PhoneField
+                    value={lPhone}
+                    onChange={v => { setLPhone(v); setLErr({}); }}
+                    defaultCountry={defaultPhoneCountry}
+                    placeholder={t.phonePlaceholder}
+                    hasError={!!lErr.id}
+                  />
+                )}
                 <FieldError msg={lErr.id ?? ''} />
               </div>
               <div className="mb-2">
@@ -395,9 +469,23 @@ export default function AuthPage({ onHome, onSuccess, defaultTab = 'login' }: Pr
             <div>
               <div className="mb-4">
                 <label className="ds-label">{t.authEmailOrPhone}</label>
-                <input type="text" value={rId} onChange={e => { setRId(e.target.value); setRErr(p => ({ ...p, id: '' })); }}
-                  placeholder={t.authEmailOrPhonePlaceholder} autoComplete="username"
-                  className={inputCls(rErr.id)} />
+                <IdModeToggle
+                  mode={rIdMode}
+                  setMode={m => { setRIdMode(m); setRErr(p => ({ ...p, id: '' })); setRPhone(''); }}
+                />
+                {rIdMode === 'email' ? (
+                  <input type="text" value={rId} onChange={e => { setRId(e.target.value); setRErr(p => ({ ...p, id: '' })); }}
+                    placeholder={t.authEmailOrPhonePlaceholder} autoComplete="username"
+                    className={inputCls(rErr.id)} />
+                ) : (
+                  <PhoneField
+                    value={rPhone}
+                    onChange={v => { setRPhone(v); setRErr(p => ({ ...p, id: '' })); }}
+                    defaultCountry={defaultPhoneCountry}
+                    placeholder={t.phonePlaceholder}
+                    hasError={!!rErr.id}
+                  />
+                )}
                 <FieldError msg={rErr.id ?? ''} />
               </div>
               <div className="mb-4">

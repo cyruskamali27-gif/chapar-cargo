@@ -2042,7 +2042,17 @@ export default function App() {
             <div className="hidden lg:flex items-center gap-3">
               {session ? (
                 <>
-                  <span className="text-sm text-gray-300 font-medium">{session.firstName}</span>
+                  <motion.button
+                    onClick={() => setCurrentPage('profile')}
+                    className="flex items-center gap-2 px-2.5 py-1.5 rounded-xl bg-white/8 border border-white/12 hover:bg-white/14 transition-all"
+                    whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
+                    <div className="w-7 h-7 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-white text-xs font-extrabold flex-shrink-0">
+                      {(session.firstName || session.email || '?').charAt(0).toUpperCase()}
+                    </div>
+                    {session.firstName && (
+                      <span className="text-sm text-gray-200 font-medium">{session.firstName}</span>
+                    )}
+                  </motion.button>
                   <motion.button
                     onClick={() => clearSession()}
                     className="px-4 py-2 text-sm font-medium text-gray-300 hover:text-white hover:bg-white/5 rounded-lg transition-all"
@@ -2121,10 +2131,19 @@ export default function App() {
                 </div>
                 <div className="flex gap-2">
                   {session ? (
-                    <button onClick={() => { clearSession(); setMobileMenuOpen(false); }}
-                      className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-300 border border-white/10 rounded-xl hover:bg-white/5 transition-colors">
-                      {t.homeNavLogout} ({session.firstName})
-                    </button>
+                    <div className="flex flex-col gap-2 flex-1">
+                      <button onClick={() => { setCurrentPage('profile'); setMobileMenuOpen(false); }}
+                        className="flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium text-gray-200 border border-white/10 rounded-xl hover:bg-white/8 transition-colors">
+                        <div className="w-6 h-6 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-white text-xs font-extrabold flex-shrink-0">
+                          {(session.firstName || session.email || '?').charAt(0).toUpperCase()}
+                        </div>
+                        <span>{session.firstName || session.email || t.profTitle}</span>
+                      </button>
+                      <button onClick={() => { clearSession(); setMobileMenuOpen(false); }}
+                        className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-400 border border-white/10 rounded-xl hover:bg-white/5 transition-colors">
+                        {t.homeNavLogout}
+                      </button>
+                    </div>
                   ) : (
                     <>
                       <button onClick={() => { setCurrentPage('auth'); setMobileMenuOpen(false); }}
