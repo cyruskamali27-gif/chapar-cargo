@@ -267,6 +267,22 @@ export interface Translations {
   authSuccessLoginSub: string;
   authSuccessRegisterPrefix: string;
   authSuccessRegisterSub: string;
+  authErrInvalidCredentials: string;
+  authErrAccountExists: string;
+  authErrNetwork: string;
+  otpTitle: string;
+  otpSubtitle: string;
+  otpCodeLabel: string;
+  otpCodePlaceholder: string;
+  otpVerifyBtn: string;
+  otpResendBtn: string;
+  otpResendIn: string;
+  otpSkipLink: string;
+  otpErrInvalid: string;
+  otpErrTooMany: string;
+  otpErrSend: string;
+  otpSuccessTitle: string;
+  otpSuccessSub: string;
 
   // Shared wizard nav
   navBack: string;
@@ -966,6 +982,15 @@ export const translations: Record<LangCode, Translations> = {
     authErrSave: 'خطا در ذخیره‌سازی. لطفاً حالت ناشناس مرورگر را بررسی کنید.',
     authSuccessLoginPrefix: 'سلام ', authSuccessLoginSub: 'با موفقیت وارد شدید. در حال انتقال...',
     authSuccessRegisterPrefix: 'خوش آمدید ', authSuccessRegisterSub: 'حساب شما با موفقیت ساخته شد.',
+    authErrInvalidCredentials: 'اطلاعات ورود نادرست است',
+    authErrAccountExists: 'این ایمیل یا شماره موبایل قبلاً ثبت شده است',
+    authErrNetwork: 'خطای شبکه. لطفاً دوباره امتحان کنید.',
+    otpTitle: 'تأیید ایمیل', otpSubtitle: 'کد ۶ رقمی برای آدرس زیر ارسال شد:',
+    otpCodeLabel: 'کد تأیید', otpCodePlaceholder: 'کد ۶ رقمی',
+    otpVerifyBtn: 'تأیید کد', otpResendBtn: 'ارسال مجدد کد', otpResendIn: 'ارسال مجدد ({n}s)',
+    otpSkipLink: 'تأیید بعداً',
+    otpErrInvalid: 'کد نادرست یا منقضی شده است', otpErrTooMany: 'تعداد تلاش بیش از حد — کد جدید درخواست کنید', otpErrSend: 'ارسال کد با خطا مواجه شد',
+    otpSuccessTitle: '✓ ایمیل تأیید شد', otpSuccessSub: 'آدرس ایمیل شما با موفقیت تأیید شد. در حال انتقال...',
 
     // Shared wizard nav
     navBack: 'بازگشت', navHome: 'صفحه اصلی',
@@ -1688,6 +1713,15 @@ export const translations: Record<LangCode, Translations> = {
     authErrSave: 'Error saving. Please check if you are in private/incognito mode.',
     authSuccessLoginPrefix: 'Hello ', authSuccessLoginSub: 'Successfully signed in. Redirecting...',
     authSuccessRegisterPrefix: 'Welcome ', authSuccessRegisterSub: 'Your account has been created successfully.',
+    authErrInvalidCredentials: 'Invalid credentials',
+    authErrAccountExists: 'An account with this email or phone already exists',
+    authErrNetwork: 'Network error. Please try again.',
+    otpTitle: 'Verify your email', otpSubtitle: 'A 6-digit code was sent to:',
+    otpCodeLabel: 'Verification code', otpCodePlaceholder: '6-digit code',
+    otpVerifyBtn: 'Verify', otpResendBtn: 'Resend code', otpResendIn: 'Resend in {n}s',
+    otpSkipLink: 'Verify later',
+    otpErrInvalid: 'Invalid or expired code', otpErrTooMany: 'Too many attempts — request a new code', otpErrSend: 'Failed to send code',
+    otpSuccessTitle: '✓ Email verified', otpSuccessSub: 'Your email was verified successfully. Redirecting...',
 
     navBack: 'Back', navHome: 'Home',
     wizardStep: 'Step {n} of {m}', wizardContinue: 'Continue →', wizardPrev: '← Back',
@@ -2405,6 +2439,15 @@ export const translations: Record<LangCode, Translations> = {
     authErrSave: 'Kaydetme hatası. Lütfen gizli/özel tarama modunda olup olmadığınızı kontrol edin.',
     authSuccessLoginPrefix: 'Merhaba ', authSuccessLoginSub: 'Başarıyla giriş yapıldı. Yönlendiriliyor...',
     authSuccessRegisterPrefix: 'Hoş geldiniz ', authSuccessRegisterSub: 'Hesabınız başarıyla oluşturuldu.',
+    authErrInvalidCredentials: 'Geçersiz kimlik bilgileri',
+    authErrAccountExists: 'Bu e-posta veya telefona ait bir hesap zaten mevcut',
+    authErrNetwork: 'Ağ hatası. Lütfen tekrar deneyin.',
+    otpTitle: 'E-postanızı doğrulayın', otpSubtitle: '6 haneli kod şu adrese gönderildi:',
+    otpCodeLabel: 'Doğrulama kodu', otpCodePlaceholder: '6 haneli kod',
+    otpVerifyBtn: 'Doğrula', otpResendBtn: 'Kodu tekrar gönder', otpResendIn: '{n}s sonra tekrar gönder',
+    otpSkipLink: 'Sonra doğrula',
+    otpErrInvalid: 'Geçersiz veya süresi dolmuş kod', otpErrTooMany: 'Çok fazla deneme — yeni kod isteyin', otpErrSend: 'Kod gönderilemedi',
+    otpSuccessTitle: '✓ E-posta doğrulandı', otpSuccessSub: 'E-posta adresiniz başarıyla doğrulandı. Yönlendiriliyor...',
 
     navBack: 'Geri', navHome: 'Ana Sayfa',
     wizardStep: 'Adım {n}/{m}', wizardContinue: 'Devam →', wizardPrev: '← Geri',
@@ -3122,6 +3165,15 @@ export const translations: Record<LangCode, Translations> = {
     authErrSave: 'خطأ في الحفظ. يرجى التحقق من وضع التصفح الخاص.',
     authSuccessLoginPrefix: 'مرحباً ', authSuccessLoginSub: 'تم تسجيل الدخول بنجاح. جارٍ التوجيه...',
     authSuccessRegisterPrefix: 'أهلاً بك ', authSuccessRegisterSub: 'تم إنشاء حسابك بنجاح.',
+    authErrInvalidCredentials: 'بيانات الدخول غير صحيحة',
+    authErrAccountExists: 'يوجد حساب مسجّل بهذا البريد أو الهاتف بالفعل',
+    authErrNetwork: 'خطأ في الشبكة. يرجى المحاولة مجدداً.',
+    otpTitle: 'تحقق من بريدك الإلكتروني', otpSubtitle: 'تم إرسال رمز مكون من 6 أرقام إلى:',
+    otpCodeLabel: 'رمز التحقق', otpCodePlaceholder: 'رمز مكون من 6 أرقام',
+    otpVerifyBtn: 'تحقق', otpResendBtn: 'إعادة إرسال الرمز', otpResendIn: 'إعادة الإرسال خلال {n}s',
+    otpSkipLink: 'التحقق لاحقاً',
+    otpErrInvalid: 'الرمز غير صحيح أو منتهي الصلاحية', otpErrTooMany: 'عدد المحاولات كثير — اطلب رمزاً جديداً', otpErrSend: 'فشل في إرسال الرمز',
+    otpSuccessTitle: '✓ تم التحقق من البريد الإلكتروني', otpSuccessSub: 'تم التحقق من بريدك الإلكتروني بنجاح. جارٍ التوجيه...',
 
     navBack: 'رجوع', navHome: 'الرئيسية',
     wizardStep: 'الخطوة {n} من {m}', wizardContinue: 'متابعة ←', wizardPrev: '← السابق',
@@ -3838,6 +3890,15 @@ export const translations: Record<LangCode, Translations> = {
     authErrSave: 'Erreur de sauvegarde. Vérifiez si vous êtes en navigation privée.',
     authSuccessLoginPrefix: 'Bonjour ', authSuccessLoginSub: 'Connexion réussie. Redirection...',
     authSuccessRegisterPrefix: 'Bienvenue ', authSuccessRegisterSub: 'Votre compte a été créé avec succès.',
+    authErrInvalidCredentials: 'Identifiants invalides',
+    authErrAccountExists: 'Un compte avec cet e-mail ou téléphone existe déjà',
+    authErrNetwork: 'Erreur réseau. Veuillez réessayer.',
+    otpTitle: 'Vérifiez votre e-mail', otpSubtitle: 'Un code à 6 chiffres a été envoyé à :',
+    otpCodeLabel: 'Code de vérification', otpCodePlaceholder: 'Code à 6 chiffres',
+    otpVerifyBtn: 'Vérifier', otpResendBtn: 'Renvoyer le code', otpResendIn: 'Renvoyer dans {n}s',
+    otpSkipLink: 'Vérifier plus tard',
+    otpErrInvalid: 'Code invalide ou expiré', otpErrTooMany: 'Trop de tentatives — demandez un nouveau code', otpErrSend: "Échec de l'envoi du code",
+    otpSuccessTitle: '✓ E-mail vérifié', otpSuccessSub: 'Votre e-mail a été vérifié avec succès. Redirection...',
 
     navBack: 'Retour', navHome: 'Accueil',
     wizardStep: 'Étape {n}/{m}', wizardContinue: 'Continuer →', wizardPrev: '← Précédent',
@@ -4555,6 +4616,15 @@ export const translations: Record<LangCode, Translations> = {
     authErrSave: '保存出错。请检查您是否处于隐私浏览模式。',
     authSuccessLoginPrefix: '您好，', authSuccessLoginSub: '登录成功。正在跳转...',
     authSuccessRegisterPrefix: '欢迎，', authSuccessRegisterSub: '您的账户已成功创建。',
+    authErrInvalidCredentials: '登录信息不正确',
+    authErrAccountExists: '该邮箱或手机号已注册',
+    authErrNetwork: '网络错误，请重试。',
+    otpTitle: '验证您的邮箱', otpSubtitle: '6位验证码已发送至：',
+    otpCodeLabel: '验证码', otpCodePlaceholder: '6位验证码',
+    otpVerifyBtn: '验证', otpResendBtn: '重新发送验证码', otpResendIn: '{n}秒后重新发送',
+    otpSkipLink: '稍后验证',
+    otpErrInvalid: '验证码无效或已过期', otpErrTooMany: '尝试次数过多，请申请新验证码', otpErrSend: '发送验证码失败',
+    otpSuccessTitle: '✓ 邮箱已验证', otpSuccessSub: '您的邮箱已成功验证，正在跳转...',
 
     navBack: '返回', navHome: '首页',
     wizardStep: '第 {n}/{m} 步', wizardContinue: '继续 →', wizardPrev: '← 上一步',

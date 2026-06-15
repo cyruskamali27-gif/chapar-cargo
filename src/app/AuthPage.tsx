@@ -1,6 +1,5 @@
-import { useState } from 'react';
-import { Eye, EyeOff, ArrowLeft } from 'lucide-react';
-import { genId, getUsers, saveUsers, type User } from '../lib/store';
+import { useState, useEffect } from 'react';
+import { Eye, EyeOff, ArrowLeft, Mail, ShieldCheck } from 'lucide-react';
 import { useSession } from '../lib/SessionContext';
 import { useLang } from '../lib/LangContext';
 
@@ -83,108 +82,229 @@ interface Props {
   defaultTab?: 'login' | 'register';
 }
 
-type Tab = 'login' | 'register' | 'success';
+type Tab = 'login' | 'register' | 'verify' | 'success';
+
+const AUTH_BASE = '/api/auth';
+
+function userToSession(user: { id: string; email: string | null; phone: string | null }) {
+  return {
+    userId: user.id,
+    firstName: '',
+    lastName: '',
+    email: user.email ?? '',
+    phone: user.phone ?? '',
+  };
+}
 
 export default function AuthPage({ onHome, onSuccess, defaultTab = 'login' }: Props) {
   const { setSession } = useSession();
   const { t, isRTL } = useLang();
   const [tab, setTab] = useState<Tab>(defaultTab);
 
-  const [lId, setLId]   = useState('');
-  const [lPw, setLPw]   = useState('');
-  const [lErr, setLErr] = useState<{ id?: string; pw?: string; global?: string }>({});
+  // ── Login state ──────────────────────────────────────────────────────────────
+  const [lId,      setLId]      = useState('');
+  const [lPw,      setLPw]      = useState('');
+  const [lErr,     setLErr]     = useState<{ id?: string; pw?: string; global?: string }>({});
+  const [lLoading, setLLoading] = useState(false);
 
-  const [rFirst,  setRFirst]  = useState('');
-  const [rLast,   setRLast]   = useState('');
-  const [rEmail,  setREmail]  = useState('');
-  const [rPhone,  setRPhone]  = useState('');
-  const [rPw,     setRPw]     = useState('');
-  const [rPw2,    setRPw2]    = useState('');
-  const [rTerms,  setRTerms]  = useState(false);
-  const [rErr,    setRErr]    = useState<Record<string, string>>({});
+  // ── Register state ───────────────────────────────────────────────────────────
+  const [rId,      setRId]      = useState('');
+  const [rPw,      setRPw]      = useState('');
+  const [rPw2,     setRPw2]     = useState('');
+  const [rTerms,   setRTerms]   = useState(false);
+  const [rErr,     setRErr]     = useState<Record<string, string>>({});
+  const [rLoading, setRLoading] = useState(false);
 
+  // ── Verify step state ────────────────────────────────────────────────────────
+  const [vCode,       setVCode]       = useState('');
+  const [vErr,        setVErr]        = useState('');
+  const [vLoading,    setVLoading]    = useState(false);
+  const [vSending,    setVSending]    = useState(false);
+  const [vIdentifier, setVIdentifier] = useState('');
+  const [countdown,   setCountdown]   = useState(0);
+
+  // ── Shared success state ─────────────────────────────────────────────────────
   const [successTitle, setSuccessTitle] = useState('');
   const [successSub,   setSuccessSub]   = useState('');
 
-  function doLogin() {
+  // Countdown ticker
+  useEffect(() => {
+    if (countdown <= 0) return;
+    const timer = setTimeout(() => setCountdown(c => c - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [countdown]);
+
+  // ── OTP helpers ──────────────────────────────────────────────────────────────
+  async function sendOtp() {
+    const token = localStorage.getItem('cp_token');
+    if (!token) return;
+    setVSending(true);
+    setVErr('');
+    try {
+      const res  = await fetch(`${AUTH_BASE}/send-otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ channel: 'email' }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        setCountdown(60);
+      } else if (data.error === 'resend cooldown') {
+        setCountdown(data.cooldownLeft ?? 60);
+      } else {
+        setVErr(t.otpErrSend);
+      }
+    } catch {
+      setVErr(t.authErrNetwork);
+    } finally {
+      setVSending(false);
+    }
+  }
+
+  async function doVerify() {
+    const code = vCode.trim();
+    if (!code) return;
+    const token = localStorage.getItem('cp_token');
+    if (!token) return;
+    setVLoading(true);
+    setVErr('');
+    try {
+      const res  = await fetch(`${AUTH_BASE}/verify-otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ code }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        // Refresh session so emailVerified is true in cp_session
+        const meRes  = await fetch(`${AUTH_BASE}/me`, { headers: { Authorization: `Bearer ${token}` } });
+        const meData = await meRes.json();
+        if (meData.ok) setSession(userToSession(meData.user));
+        setSuccessTitle(t.otpSuccessTitle);
+        setSuccessSub(t.otpSuccessSub);
+        setTab('success');
+        setTimeout(onSuccess ?? onHome, 1400);
+      } else {
+        const tooMany = data.error === 'too many attempts, request a new code' || data.attemptsLeft === 0;
+        if (tooMany) {
+          setVErr(t.otpErrTooMany);
+        } else {
+          const left = data.attemptsLeft != null ? ` (${data.attemptsLeft})` : '';
+          setVErr(t.otpErrInvalid + left);
+        }
+      }
+    } catch {
+      setVErr(t.authErrNetwork);
+    } finally {
+      setVLoading(false);
+    }
+  }
+
+  function doSkip() {
+    (onSuccess ?? onHome)();
+  }
+
+  // ── Login ────────────────────────────────────────────────────────────────────
+  async function doLogin() {
     const errors: typeof lErr = {};
     if (!lId.trim()) errors.id = t.authErrEmailRequired;
     if (!lPw)        errors.pw = t.authErrPasswordRequired;
     if (Object.keys(errors).length) { setLErr(errors); return; }
 
-    const users = getUsers();
-    const norm  = (s: string) => s.replace(/\D/g, '');
-    const idNorm = lId.trim().toLowerCase();
-    const user  = users.find(u =>
-      u.email === idNorm ||
-      u.phone === lId.trim() ||
-      norm(u.phone) === norm(lId.trim())
-    );
-
-    if (!user) { setLErr({ id: t.authErrNotFound }); return; }
-    if (user.password !== lPw) { setLErr({ pw: t.authErrWrongPassword }); return; }
-
+    setLLoading(true);
     setLErr({});
-    setSession({ userId: user.id, firstName: user.firstName, lastName: user.lastName, email: user.email, phone: user.phone });
-    setSuccessTitle(`${t.authSuccessLoginPrefix}${user.firstName}!`);
-    setSuccessSub(t.authSuccessLoginSub);
-    setTab('success');
-    setTimeout(onSuccess ?? onHome, 1400);
+    try {
+      const res  = await fetch(`${AUTH_BASE}/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ identifier: lId.trim(), password: lPw }),
+      });
+      const data = await res.json();
+      if (!data.ok) { setLErr({ global: t.authErrInvalidCredentials }); return; }
+      localStorage.setItem('cp_token', data.token);
+      setSession(userToSession(data.user));
+      setSuccessTitle(t.authSuccessLoginPrefix.trim() + '!');
+      setSuccessSub(t.authSuccessLoginSub);
+      setTab('success');
+      setTimeout(onSuccess ?? onHome, 1400);
+    } catch {
+      setLErr({ global: t.authErrNetwork });
+    } finally {
+      setLLoading(false);
+    }
   }
 
-  function doRegister() {
+  // ── Register ─────────────────────────────────────────────────────────────────
+  async function doRegister() {
     const errs: Record<string, string> = {};
-    const email = rEmail.trim().toLowerCase();
-    const phone = rPhone.trim();
-
-    if (!rFirst.trim()) errs.first = t.authErrFirstName;
-    if (!rLast.trim())  errs.last  = t.authErrLastName;
-    if (!email || !/\S+@\S+\.\S+/.test(email)) errs.email = t.authErrEmail;
-    if (!phone || phone.replace(/\D/g, '').length < 10) errs.phone = t.authErrPhone;
-    if (!rPw || rPw.length < 8) errs.pw = t.authErrPasswordLength;
+    if (!rId.trim())              errs.id    = t.authErrEmailRequired;
+    if (!rPw || rPw.length < 8)  errs.pw    = t.authErrPasswordLength;
     if (rPw && rPw2 && rPw !== rPw2) errs.pw2 = t.authErrPasswordMatch;
-    if (!rTerms) errs.terms = t.authErrTerms;
+    if (!rTerms)                  errs.terms = t.authErrTerms;
     if (Object.keys(errs).length) { setRErr(errs); return; }
 
-    const users = getUsers();
-    const norm  = (s: string) => s.replace(/\D/g, '');
-    if (users.find(u => u.email === email))
-      { setRErr({ email: t.authErrEmailExists }); return; }
-    if (users.find(u => norm(u.phone) === norm(phone)))
-      { setRErr({ phone: t.authErrPhoneExists }); return; }
-
-    const newUser: User = {
-      id: genId('U'), firstName: rFirst.trim(), lastName: rLast.trim(),
-      email, phone, password: rPw, createdAt: Date.now(),
-    };
-    try {
-      saveUsers([...users, newUser]);
-    } catch {
-      setRErr({ global: t.authErrSave });
-      return;
-    }
-    setSession({ userId: newUser.id, firstName: newUser.firstName, lastName: newUser.lastName, email, phone });
+    setRLoading(true);
     setRErr({});
-    setSuccessTitle(`${t.authSuccessRegisterPrefix}${rFirst.trim()}!`);
-    setSuccessSub(t.authSuccessRegisterSub);
-    setTab('success');
-    setTimeout(onSuccess ?? onHome, 1400);
+    try {
+      const signupRes  = await fetch(`${AUTH_BASE}/signup`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ identifier: rId.trim(), password: rPw }),
+      });
+      const signupData = await signupRes.json();
+      if (!signupData.ok) {
+        setRErr({
+          global: signupData.error === 'account already exists'
+            ? t.authErrAccountExists
+            : t.authErrNetwork,
+        });
+        return;
+      }
+
+      // Auto-login after signup
+      const loginRes  = await fetch(`${AUTH_BASE}/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ identifier: rId.trim(), password: rPw }),
+      });
+      const loginData = await loginRes.json();
+      if (!loginData.ok) { setTab('login'); return; }
+
+      localStorage.setItem('cp_token', loginData.token);
+      setSession(userToSession(loginData.user));
+
+      // Route through email verification
+      setVIdentifier(rId.trim());
+      setVCode('');
+      setVErr('');
+      setTab('verify');
+      sendOtp(); // fire-and-forget; has its own vSending state
+    } catch {
+      setRErr({ global: t.authErrNetwork });
+    } finally {
+      setRLoading(false);
+    }
   }
 
   const inputCls = (err?: string) =>
     `ds-input ${err ? 'border-red-400 bg-red-50 focus:border-red-400' : ''}`;
 
+  const showTabs = tab !== 'success' && tab !== 'verify';
+
   return (
     <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center px-4 pt-20 pb-10" dir={isRTL ? 'rtl' : 'ltr'}>
       <div className="w-full max-w-sm">
+        {/* Header */}
         <div className="text-center mb-6">
           <img src="/assets/chapar-logo.png" alt="چاپار" className="h-12 mx-auto mb-4" onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
           {tab === 'login'    && <><h2 className="text-2xl font-extrabold text-gray-900">{t.authWelcome}</h2><p className="text-sm text-gray-500 mt-1">{t.authLoginSubtitle}</p></>}
           {tab === 'register' && <><h2 className="text-2xl font-extrabold text-gray-900">{t.authRegisterTitle}</h2><p className="text-sm text-gray-500 mt-1">{t.authRegisterSubtitle}</p></>}
+          {tab === 'verify'   && <><h2 className="text-2xl font-extrabold text-gray-900">{t.otpTitle}</h2><p className="text-sm text-gray-500 mt-1">{t.otpSubtitle}</p></>}
         </div>
 
         <div className="ds-card p-6">
-          {tab !== 'success' && (
+          {/* Login / Register tab switcher */}
+          {showTabs && (
             <div className="flex bg-gray-100 border border-gray-200 rounded-xl p-1 mb-6 gap-1">
               {(['login', 'register'] as const).map(tabKey => (
                 <button key={tabKey} onClick={() => setTab(tabKey)}
@@ -199,32 +319,29 @@ export default function AuthPage({ onHome, onSuccess, defaultTab = 'login' }: Pr
             </div>
           )}
 
+          {/* ── Login ─────────────────────────────────────────────────────────── */}
           {tab === 'login' && (
             <div>
               <div className="mb-4">
                 <label className="ds-label">{t.authEmailOrPhone}</label>
                 <input type="text" value={lId} onChange={e => { setLId(e.target.value); setLErr({}); }}
-                  placeholder={t.authEmailOrPhonePlaceholder}
-                  autoComplete="username"
+                  placeholder={t.authEmailOrPhonePlaceholder} autoComplete="username"
                   className={inputCls(lErr.id)} />
                 <FieldError msg={lErr.id ?? ''} />
               </div>
-
               <div className="mb-2">
                 <label className="ds-label">{t.authPassword}</label>
                 <PwInput id="lPw" value={lPw} onChange={v => { setLPw(v); setLErr({}); }} placeholder={t.authPasswordPlaceholder} onEnter={doLogin} />
                 <FieldError msg={lErr.pw ?? ''} />
               </div>
-
+              <FieldError msg={lErr.global ?? ''} />
               <button className="block text-[11px] font-semibold text-gray-400 hover:text-cyan-600 mb-5 mt-1 transition-colors"
                 onClick={() => alert(t.authForgotPasswordAlert)}>
                 {t.authForgotPassword}
               </button>
-
-              <button onClick={doLogin} className="ds-btn-primary w-full h-12">
-                {t.authLoginBtn}
+              <button onClick={doLogin} disabled={lLoading} className="ds-btn-primary w-full h-12 disabled:opacity-60">
+                {lLoading ? '…' : t.authLoginBtn}
               </button>
-
               <div className="flex items-center gap-3 my-5 text-gray-400 text-xs">
                 <span className="flex-1 border-t border-gray-200" />{t.authOr}<span className="flex-1 border-t border-gray-200" />
               </div>
@@ -235,50 +352,27 @@ export default function AuthPage({ onHome, onSuccess, defaultTab = 'login' }: Pr
             </div>
           )}
 
+          {/* ── Register ──────────────────────────────────────────────────────── */}
           {tab === 'register' && (
             <div>
-              <div className="flex gap-3 mb-4">
-                <div className="flex-1">
-                  <label className="ds-label">{t.authFirstName}</label>
-                  <input type="text" value={rFirst} onChange={e => { setRFirst(e.target.value); setRErr(p => ({ ...p, first: '' })); }}
-                    placeholder={t.authFirstName} autoComplete="given-name" className={inputCls(rErr.first)} />
-                  <FieldError msg={rErr.first ?? ''} />
-                </div>
-                <div className="flex-1">
-                  <label className="ds-label">{t.authLastName}</label>
-                  <input type="text" value={rLast} onChange={e => { setRLast(e.target.value); setRErr(p => ({ ...p, last: '' })); }}
-                    placeholder={t.authLastName} autoComplete="family-name" className={inputCls(rErr.last)} />
-                  <FieldError msg={rErr.last ?? ''} />
-                </div>
-              </div>
-
               <div className="mb-4">
-                <label className="ds-label">{t.authEmail}</label>
-                <input type="email" value={rEmail} onChange={e => { setREmail(e.target.value); setRErr(p => ({ ...p, email: '' })); }}
-                  placeholder="example@email.com" autoComplete="email" className={inputCls(rErr.email)} />
-                <FieldError msg={rErr.email ?? ''} />
+                <label className="ds-label">{t.authEmailOrPhone}</label>
+                <input type="text" value={rId} onChange={e => { setRId(e.target.value); setRErr(p => ({ ...p, id: '' })); }}
+                  placeholder={t.authEmailOrPhonePlaceholder} autoComplete="username"
+                  className={inputCls(rErr.id)} />
+                <FieldError msg={rErr.id ?? ''} />
               </div>
-
-              <div className="mb-4">
-                <label className="ds-label">{t.authPhone}</label>
-                <input type="tel" value={rPhone} onChange={e => { setRPhone(e.target.value); setRErr(p => ({ ...p, phone: '' })); }}
-                  placeholder={t.authPhonePlaceholder} autoComplete="tel" className={inputCls(rErr.phone)} />
-                <FieldError msg={rErr.phone ?? ''} />
-              </div>
-
               <div className="mb-4">
                 <label className="ds-label">{t.authPassword}</label>
                 <PwInput id="rPw" value={rPw} onChange={v => { setRPw(v); setRErr(p => ({ ...p, pw: '' })); }} placeholder={t.authPasswordMin} />
                 <StrengthMeter pw={rPw} />
                 <FieldError msg={rErr.pw ?? ''} />
               </div>
-
               <div className="mb-4">
                 <label className="ds-label">{t.authPasswordRepeat}</label>
                 <PwInput id="rPw2" value={rPw2} onChange={v => { setRPw2(v); setRErr(p => ({ ...p, pw2: '' })); }} placeholder={t.authPasswordRepeat} onEnter={doRegister} />
                 <FieldError msg={rErr.pw2 ?? ''} />
               </div>
-
               <div className="flex items-start gap-2.5 mb-5">
                 <input type="checkbox" id="rTerms" checked={rTerms} onChange={e => { setRTerms(e.target.checked); setRErr(p => ({ ...p, terms: '' })); }}
                   className="mt-0.5 w-4 h-4 accent-blue-500 cursor-pointer flex-shrink-0" />
@@ -292,11 +386,9 @@ export default function AuthPage({ onHome, onSuccess, defaultTab = 'login' }: Pr
               </div>
               <FieldError msg={rErr.terms ?? ''} />
               <FieldError msg={rErr.global ?? ''} />
-
-              <button onClick={doRegister} className="ds-btn-primary w-full h-12">
-                {t.authCreateAccount}
+              <button onClick={doRegister} disabled={rLoading} className="ds-btn-primary w-full h-12 disabled:opacity-60">
+                {rLoading ? '…' : t.authCreateAccount}
               </button>
-
               <div className="flex items-center gap-3 my-5 text-gray-400 text-xs">
                 <span className="flex-1 border-t border-gray-200" />{t.authOr}<span className="flex-1 border-t border-gray-200" />
               </div>
@@ -307,6 +399,69 @@ export default function AuthPage({ onHome, onSuccess, defaultTab = 'login' }: Pr
             </div>
           )}
 
+          {/* ── Verify email ──────────────────────────────────────────────────── */}
+          {tab === 'verify' && (
+            <div className="text-center">
+              {/* Icon */}
+              <div className="w-16 h-16 rounded-full bg-cyan-50 border-2 border-cyan-100 flex items-center justify-center mx-auto mb-4">
+                <Mail className="w-8 h-8 text-cyan-500" />
+              </div>
+
+              {/* Destination */}
+              <p className="text-sm font-semibold text-gray-700 mb-1 break-all">{vIdentifier}</p>
+              {vSending && (
+                <p className="text-xs text-gray-400 mb-4">…</p>
+              )}
+
+              {/* Code input */}
+              <div className="text-left mt-5 mb-4">
+                <label className="ds-label">{t.otpCodeLabel}</label>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={6}
+                  value={vCode}
+                  onChange={e => { setVCode(e.target.value.replace(/\D/g, '')); setVErr(''); }}
+                  onKeyDown={e => { if (e.key === 'Enter') doVerify(); }}
+                  placeholder={t.otpCodePlaceholder}
+                  className={`ds-input text-center text-2xl font-bold tracking-[0.5em] ${vErr ? 'border-red-400 bg-red-50' : ''}`}
+                  autoComplete="one-time-code"
+                />
+                <FieldError msg={vErr} />
+              </div>
+
+              {/* Verify button */}
+              <button
+                onClick={doVerify}
+                disabled={vLoading || vCode.length < 6}
+                className="ds-btn-primary w-full h-12 disabled:opacity-60 mb-4 flex items-center justify-center gap-2"
+              >
+                <ShieldCheck size={16} />
+                {vLoading ? '…' : t.otpVerifyBtn}
+              </button>
+
+              {/* Resend */}
+              <button
+                onClick={sendOtp}
+                disabled={countdown > 0 || vSending}
+                className="w-full h-10 text-sm font-semibold text-cyan-600 hover:text-cyan-700 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors mb-3"
+              >
+                {countdown > 0
+                  ? t.otpResendIn.replace('{n}', String(countdown))
+                  : t.otpResendBtn}
+              </button>
+
+              {/* Skip */}
+              <button
+                onClick={doSkip}
+                className="text-xs text-gray-400 hover:text-gray-600 transition-colors underline underline-offset-2"
+              >
+                {t.otpSkipLink}
+              </button>
+            </div>
+          )}
+
+          {/* ── Success ───────────────────────────────────────────────────────── */}
           {tab === 'success' && (
             <div className="text-center py-6">
               <span className="text-6xl block mb-4">🎉</span>
@@ -316,7 +471,8 @@ export default function AuthPage({ onHome, onSuccess, defaultTab = 'login' }: Pr
           )}
         </div>
 
-        {tab !== 'success' && (
+        {/* Back home — hidden on verify/success to avoid accidental exit */}
+        {showTabs && (
           <div className="mt-5 flex justify-center">
             <button onClick={onHome} className="ds-nav-btn text-sm">
               <ArrowLeft className="w-4 h-4" />

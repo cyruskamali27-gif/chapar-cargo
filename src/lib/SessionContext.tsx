@@ -13,8 +13,32 @@ const Ctx = createContext<SessionCtx>({
   clearSession: storeClearSession,
 });
 
+function userToSession(user: { id: string; email: string | null; phone: string | null }): Session {
+  return { userId: user.id, firstName: '', lastName: '', email: user.email ?? '', phone: user.phone ?? '' };
+}
+
 export function SessionProvider({ children }: { children: React.ReactNode }) {
   const [session, setLocal] = useState<Session | null>(() => getSession());
+
+  // Validate JWT on mount; clear stale session if token is expired/missing
+  useEffect(() => {
+    const token = localStorage.getItem('cp_token');
+    if (!token) return;
+    fetch('/api/auth/me', { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.json())
+      .then(data => {
+        if (data.ok) {
+          const s = userToSession(data.user);
+          storeSetSession(s);
+          setLocal(s);
+        } else {
+          localStorage.removeItem('cp_token');
+          storeClearSession();
+          setLocal(null);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     const sync = () => setLocal(getSession());
@@ -29,12 +53,13 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const setSession = (s: Session) => {
-    storeSetSession(s);  // writes localStorage + fires 'cp:session'
+    storeSetSession(s);
     setLocal(s);
   };
 
   const clearSession = () => {
-    storeClearSession();  // clears localStorage + fires 'cp:session'
+    localStorage.removeItem('cp_token');
+    storeClearSession();
     setLocal(null);
   };
 
