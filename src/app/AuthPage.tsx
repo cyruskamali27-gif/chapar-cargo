@@ -82,7 +82,7 @@ interface Props {
   defaultTab?: 'login' | 'register';
 }
 
-type Tab = 'login' | 'register' | 'verify' | 'success';
+type Tab = 'login' | 'register' | 'verify' | 'forgot' | 'success';
 
 const AUTH_BASE = '/api/auth';
 
@@ -124,16 +124,33 @@ export default function AuthPage({ onHome, onSuccess, defaultTab = 'login' }: Pr
   const [vIdentifier, setVIdentifier] = useState('');
   const [countdown,   setCountdown]   = useState(0);
 
+  // ── Forgot-password / reset state ───────────────────────────────────────────
+  const [forgotStep,    setForgotStep]    = useState<1 | 2>(1);
+  const [fId,           setFId]           = useState('');
+  const [fCode,         setFCode]         = useState('');
+  const [fPw,           setFPw]           = useState('');
+  const [fPw2,          setFPw2]          = useState('');
+  const [fErr,          setFErr]          = useState('');
+  const [fLoading,      setFLoading]      = useState(false);
+  const [fCountdown,    setFCountdown]    = useState(0);
+
   // ── Shared success state ─────────────────────────────────────────────────────
   const [successTitle, setSuccessTitle] = useState('');
   const [successSub,   setSuccessSub]   = useState('');
 
-  // Countdown ticker
+  // Countdown ticker (verify)
   useEffect(() => {
     if (countdown <= 0) return;
     const timer = setTimeout(() => setCountdown(c => c - 1), 1000);
     return () => clearTimeout(timer);
   }, [countdown]);
+
+  // Countdown ticker (forgot)
+  useEffect(() => {
+    if (fCountdown <= 0) return;
+    const timer = setTimeout(() => setFCountdown(c => c - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [fCountdown]);
 
   // ── OTP helpers ──────────────────────────────────────────────────────────────
   async function sendOtp() {
@@ -203,6 +220,83 @@ export default function AuthPage({ onHome, onSuccess, defaultTab = 'login' }: Pr
 
   function doSkip() {
     (onSuccess ?? onHome)();
+  }
+
+  // ── Forgot password ───────────────────────────────────────────────────────────
+  async function doForgotSend() {
+    const id = fId.trim();
+    if (!id) { setFErr(t.authErrEmailRequired); return; }
+    setFLoading(true);
+    setFErr('');
+    try {
+      await fetch(`${AUTH_BASE}/forgot-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ identifier: id }),
+      });
+      // Always treat as success (anti-enumeration: server always returns ok:true)
+      setForgotStep(2);
+      setFCountdown(60);
+    } catch {
+      setFErr(t.authErrNetwork);
+    } finally {
+      setFLoading(false);
+    }
+  }
+
+  async function doForgotResend() {
+    const id = fId.trim();
+    if (!id) return;
+    setFLoading(true);
+    setFErr('');
+    try {
+      await fetch(`${AUTH_BASE}/forgot-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ identifier: id }),
+      });
+      setFCountdown(60);
+    } catch {
+      setFErr(t.authErrNetwork);
+    } finally {
+      setFLoading(false);
+    }
+  }
+
+  async function doForgotReset() {
+    const code = fCode.trim();
+    if (!code) { setFErr(t.otpErrInvalid); return; }
+    if (!fPw || fPw.length < 8) { setFErr(t.authErrPasswordLength); return; }
+    if (fPw !== fPw2) { setFErr(t.authErrPasswordMatch); return; }
+    setFLoading(true);
+    setFErr('');
+    try {
+      const res  = await fetch(`${AUTH_BASE}/reset-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ identifier: fId.trim(), code, newPassword: fPw }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        setLId(fId.trim()); // pre-fill login identifier
+        setSuccessTitle(t.forgotSuccessTitle);
+        setSuccessSub(t.forgotSuccessSub);
+        setTab('success');
+        setTimeout(() => setTab('login'), 2000);
+      } else {
+        const tooMany = data.error === 'too many attempts, request a new code' || data.attemptsLeft === 0;
+        if (tooMany) {
+          setFErr(t.otpErrTooMany);
+        } else {
+          const left = data.attemptsLeft != null ? ` (${data.attemptsLeft})` : '';
+          setFErr(t.otpErrInvalid + left);
+        }
+      }
+    } catch {
+      setFErr(t.authErrNetwork);
+    } finally {
+      setFLoading(false);
+    }
   }
 
   // ── Login ────────────────────────────────────────────────────────────────────
@@ -290,7 +384,7 @@ export default function AuthPage({ onHome, onSuccess, defaultTab = 'login' }: Pr
   const inputCls = (err?: string) =>
     `ds-input ${err ? 'border-red-400 bg-red-50 focus:border-red-400' : ''}`;
 
-  const showTabs = tab !== 'success' && tab !== 'verify';
+  const showTabs = tab !== 'success' && tab !== 'verify' && tab !== 'forgot';
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center px-4 pt-20 pb-10" dir={isRTL ? 'rtl' : 'ltr'}>
@@ -301,6 +395,7 @@ export default function AuthPage({ onHome, onSuccess, defaultTab = 'login' }: Pr
           {tab === 'login'    && <><h2 className="text-2xl font-extrabold text-gray-900">{t.authWelcome}</h2><p className="text-sm text-gray-500 mt-1">{t.authLoginSubtitle}</p></>}
           {tab === 'register' && <><h2 className="text-2xl font-extrabold text-gray-900">{t.authRegisterTitle}</h2><p className="text-sm text-gray-500 mt-1">{t.authRegisterSubtitle}</p></>}
           {tab === 'verify'   && <><h2 className="text-2xl font-extrabold text-gray-900">{t.otpTitle}</h2><p className="text-sm text-gray-500 mt-1">{t.otpSubtitle}</p></>}
+          {tab === 'forgot'   && <><h2 className="text-2xl font-extrabold text-gray-900">{t.forgotTitle}</h2></>}
         </div>
 
         <div className="ds-card p-6">
@@ -337,7 +432,7 @@ export default function AuthPage({ onHome, onSuccess, defaultTab = 'login' }: Pr
               </div>
               <FieldError msg={lErr.global ?? ''} />
               <button className="block text-[11px] font-semibold text-gray-400 hover:text-cyan-600 mb-5 mt-1 transition-colors"
-                onClick={() => alert(t.authForgotPasswordAlert)}>
+                onClick={() => { setFId(lId); setForgotStep(1); setFCode(''); setFPw(''); setFPw2(''); setFErr(''); setFCountdown(0); setTab('forgot'); }}>
                 {t.authForgotPassword}
               </button>
               <button onClick={doLogin} disabled={lLoading} className="ds-btn-primary w-full h-12 disabled:opacity-60">
@@ -458,6 +553,78 @@ export default function AuthPage({ onHome, onSuccess, defaultTab = 'login' }: Pr
                 className="text-xs text-gray-400 hover:text-gray-600 transition-colors underline underline-offset-2"
               >
                 {t.otpSkipLink}
+              </button>
+            </div>
+          )}
+
+          {/* ── Forgot password ───────────────────────────────────────────────── */}
+          {tab === 'forgot' && (
+            <div>
+              {forgotStep === 1 && (
+                <>
+                  <div className="mb-4">
+                    <label className="ds-label">{t.authEmailOrPhone}</label>
+                    <input
+                      type="text"
+                      value={fId}
+                      onChange={e => { setFId(e.target.value); setFErr(''); }}
+                      onKeyDown={e => { if (e.key === 'Enter') doForgotSend(); }}
+                      placeholder={t.forgotIdPlaceholder}
+                      autoComplete="username"
+                      className={inputCls(fErr ? 'err' : '')}
+                      autoFocus
+                    />
+                  </div>
+                  <FieldError msg={fErr} />
+                  <button onClick={doForgotSend} disabled={fLoading}
+                    className="ds-btn-primary w-full h-12 disabled:opacity-60 mb-4">
+                    {fLoading ? '…' : t.forgotSendBtn}
+                  </button>
+                </>
+              )}
+
+              {forgotStep === 2 && (
+                <>
+                  <p className="text-sm text-gray-500 mb-4 text-center leading-relaxed">{t.forgotSentMsg}</p>
+                  <div className="mb-3">
+                    <label className="ds-label">{t.otpCodeLabel}</label>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      maxLength={6}
+                      value={fCode}
+                      onChange={e => { setFCode(e.target.value.replace(/\D/g, '')); setFErr(''); }}
+                      onKeyDown={e => { if (e.key === 'Enter') doForgotReset(); }}
+                      placeholder={t.otpCodePlaceholder}
+                      className={`ds-input text-center text-2xl font-bold tracking-[0.5em] ${fErr ? 'border-red-400 bg-red-50' : ''}`}
+                      autoComplete="one-time-code"
+                      autoFocus
+                    />
+                  </div>
+                  <div className="mb-3">
+                    <label className="ds-label">{t.forgotNewPwPlaceholder}</label>
+                    <PwInput id="fPw" value={fPw} onChange={v => { setFPw(v); setFErr(''); }} placeholder={t.forgotNewPwPlaceholder} />
+                    <StrengthMeter pw={fPw} />
+                  </div>
+                  <div className="mb-3">
+                    <label className="ds-label">{t.forgotConfirmPwPlaceholder}</label>
+                    <PwInput id="fPw2" value={fPw2} onChange={v => { setFPw2(v); setFErr(''); }} placeholder={t.forgotConfirmPwPlaceholder} onEnter={doForgotReset} />
+                  </div>
+                  <FieldError msg={fErr} />
+                  <button onClick={doForgotReset} disabled={fLoading || fCode.length < 6 || !fPw}
+                    className="ds-btn-primary w-full h-12 disabled:opacity-60 mb-3">
+                    {fLoading ? '…' : t.forgotResetBtn}
+                  </button>
+                  <button onClick={doForgotResend} disabled={fLoading || fCountdown > 0}
+                    className="w-full h-10 text-sm font-semibold text-cyan-600 hover:text-cyan-700 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors mb-2">
+                    {fCountdown > 0 ? t.otpResendIn.replace('{n}', String(fCountdown)) : t.otpResendBtn}
+                  </button>
+                </>
+              )}
+
+              <button onClick={() => { setTab('login'); }}
+                className="w-full text-xs text-gray-400 hover:text-gray-600 transition-colors underline underline-offset-2 mt-1">
+                {t.forgotBackToLogin}
               </button>
             </div>
           )}

@@ -286,6 +286,16 @@ export interface Translations {
   gateTitle: string;
   gateSubtitle: string;
   gateCancel: string;
+  forgotTitle: string;
+  forgotIdPlaceholder: string;
+  forgotSendBtn: string;
+  forgotSentMsg: string;
+  forgotNewPwPlaceholder: string;
+  forgotConfirmPwPlaceholder: string;
+  forgotResetBtn: string;
+  forgotSuccessTitle: string;
+  forgotSuccessSub: string;
+  forgotBackToLogin: string;
 
   // Shared wizard nav
   navBack: string;
@@ -995,6 +1005,16 @@ export const translations: Record<LangCode, Translations> = {
     otpErrInvalid: 'کد نادرست یا منقضی شده است', otpErrTooMany: 'تعداد تلاش بیش از حد — کد جدید درخواست کنید', otpErrSend: 'ارسال کد با خطا مواجه شد',
     otpSuccessTitle: '✓ ایمیل تأیید شد', otpSuccessSub: 'آدرس ایمیل شما با موفقیت تأیید شد. در حال انتقال...',
     gateTitle: 'تأیید ایمیل الزامی است', gateSubtitle: 'لطفاً ایمیل خود را تأیید کنید تا بتوانید ادامه دهید.', gateCancel: 'انصراف',
+    forgotTitle: 'بازیابی رمز عبور',
+    forgotIdPlaceholder: 'ایمیل یا شماره موبایل',
+    forgotSendBtn: 'ارسال کد بازیابی',
+    forgotSentMsg: 'در صورت وجود حساب کاربری، کد بازیابی به ایمیل شما ارسال شد.',
+    forgotNewPwPlaceholder: 'رمز عبور جدید',
+    forgotConfirmPwPlaceholder: 'تکرار رمز عبور جدید',
+    forgotResetBtn: 'تغییر رمز عبور',
+    forgotSuccessTitle: '✓ رمز عبور تغییر کرد',
+    forgotSuccessSub: 'اکنون می‌توانید با رمز عبور جدید وارد شوید.',
+    forgotBackToLogin: 'بازگشت به ورود',
 
     // Shared wizard nav
     navBack: 'بازگشت', navHome: 'صفحه اصلی',
@@ -1727,6 +1747,16 @@ export const translations: Record<LangCode, Translations> = {
     otpErrInvalid: 'Invalid or expired code', otpErrTooMany: 'Too many attempts — request a new code', otpErrSend: 'Failed to send code',
     otpSuccessTitle: '✓ Email verified', otpSuccessSub: 'Your email was verified successfully. Redirecting...',
     gateTitle: 'Email verification required', gateSubtitle: 'Please verify your email to continue.', gateCancel: 'Cancel',
+    forgotTitle: 'Reset your password',
+    forgotIdPlaceholder: 'Email or phone',
+    forgotSendBtn: 'Send reset code',
+    forgotSentMsg: 'If an account exists, a reset code was sent.',
+    forgotNewPwPlaceholder: 'New password',
+    forgotConfirmPwPlaceholder: 'Confirm new password',
+    forgotResetBtn: 'Reset password',
+    forgotSuccessTitle: '✓ Password reset!',
+    forgotSuccessSub: 'You can now sign in with your new password.',
+    forgotBackToLogin: 'Back to sign in',
 
     navBack: 'Back', navHome: 'Home',
     wizardStep: 'Step {n} of {m}', wizardContinue: 'Continue →', wizardPrev: '← Back',
@@ -2454,6 +2484,16 @@ export const translations: Record<LangCode, Translations> = {
     otpErrInvalid: 'Geçersiz veya süresi dolmuş kod', otpErrTooMany: 'Çok fazla deneme — yeni kod isteyin', otpErrSend: 'Kod gönderilemedi',
     otpSuccessTitle: '✓ E-posta doğrulandı', otpSuccessSub: 'E-posta adresiniz başarıyla doğrulandı. Yönlendiriliyor...',
     gateTitle: 'E-posta doğrulaması gerekli', gateSubtitle: 'Devam etmek için e-postanızı doğrulayın.', gateCancel: 'İptal',
+    forgotTitle: 'Şifrenizi sıfırlayın',
+    forgotIdPlaceholder: 'E-posta veya telefon',
+    forgotSendBtn: 'Sıfırlama kodu gönder',
+    forgotSentMsg: 'Hesap mevcut ise bir sıfırlama kodu gönderildi.',
+    forgotNewPwPlaceholder: 'Yeni şifre',
+    forgotConfirmPwPlaceholder: 'Yeni şifreyi onayla',
+    forgotResetBtn: 'Şifreyi sıfırla',
+    forgotSuccessTitle: '✓ Şifre sıfırlandı!',
+    forgotSuccessSub: 'Artık yeni şifrenizle giriş yapabilirsiniz.',
+    forgotBackToLogin: 'Girişe dön',
 
     navBack: 'Geri', navHome: 'Ana Sayfa',
     wizardStep: 'Adım {n}/{m}', wizardContinue: 'Devam →', wizardPrev: '← Geri',
@@ -3181,6 +3221,16 @@ export const translations: Record<LangCode, Translations> = {
     otpErrInvalid: 'الرمز غير صحيح أو منتهي الصلاحية', otpErrTooMany: 'عدد المحاولات كثير — اطلب رمزاً جديداً', otpErrSend: 'فشل في إرسال الرمز',
     otpSuccessTitle: '✓ تم التحقق من البريد الإلكتروني', otpSuccessSub: 'تم التحقق من بريدك الإلكتروني بنجاح. جارٍ التوجيه...',
     gateTitle: 'التحقق من البريد الإلكتروني مطلوب', gateSubtitle: 'يرجى التحقق من بريدك الإلكتروني للمتابعة.', gateCancel: 'إلغاء',
+    forgotTitle: 'إعادة تعيين كلمة المرور',
+    forgotIdPlaceholder: 'البريد الإلكتروني أو الهاتف',
+    forgotSendBtn: 'إرسال رمز الاسترداد',
+    forgotSentMsg: 'إذا كان الحساب موجوداً، فقد تم إرسال رمز استرداد.',
+    forgotNewPwPlaceholder: 'كلمة المرور الجديدة',
+    forgotConfirmPwPlaceholder: 'تأكيد كلمة المرور الجديدة',
+    forgotResetBtn: 'إعادة تعيين كلمة المرور',
+    forgotSuccessTitle: '✓ تم إعادة تعيين كلمة المرور!',
+    forgotSuccessSub: 'يمكنك الآن تسجيل الدخول بكلمة المرور الجديدة.',
+    forgotBackToLogin: 'العودة إلى تسجيل الدخول',
 
     navBack: 'رجوع', navHome: 'الرئيسية',
     wizardStep: 'الخطوة {n} من {m}', wizardContinue: 'متابعة ←', wizardPrev: '← السابق',
@@ -3907,6 +3957,16 @@ export const translations: Record<LangCode, Translations> = {
     otpErrInvalid: 'Code invalide ou expiré', otpErrTooMany: 'Trop de tentatives — demandez un nouveau code', otpErrSend: "Échec de l'envoi du code",
     otpSuccessTitle: '✓ E-mail vérifié', otpSuccessSub: 'Votre e-mail a été vérifié avec succès. Redirection...',
     gateTitle: 'Vérification e-mail requise', gateSubtitle: 'Veuillez vérifier votre e-mail pour continuer.', gateCancel: 'Annuler',
+    forgotTitle: 'Réinitialiser votre mot de passe',
+    forgotIdPlaceholder: 'E-mail ou téléphone',
+    forgotSendBtn: 'Envoyer le code de réinitialisation',
+    forgotSentMsg: 'Si un compte existe, un code de réinitialisation a été envoyé.',
+    forgotNewPwPlaceholder: 'Nouveau mot de passe',
+    forgotConfirmPwPlaceholder: 'Confirmer le nouveau mot de passe',
+    forgotResetBtn: 'Réinitialiser le mot de passe',
+    forgotSuccessTitle: '✓ Mot de passe réinitialisé !',
+    forgotSuccessSub: 'Vous pouvez maintenant vous connecter avec votre nouveau mot de passe.',
+    forgotBackToLogin: 'Retour à la connexion',
 
     navBack: 'Retour', navHome: 'Accueil',
     wizardStep: 'Étape {n}/{m}', wizardContinue: 'Continuer →', wizardPrev: '← Précédent',
@@ -4634,6 +4694,16 @@ export const translations: Record<LangCode, Translations> = {
     otpErrInvalid: '验证码无效或已过期', otpErrTooMany: '尝试次数过多，请申请新验证码', otpErrSend: '发送验证码失败',
     otpSuccessTitle: '✓ 邮箱已验证', otpSuccessSub: '您的邮箱已成功验证，正在跳转...',
     gateTitle: '需要验证邮箱', gateSubtitle: '请先验证您的邮箱以继续操作。', gateCancel: '取消',
+    forgotTitle: '重置密码',
+    forgotIdPlaceholder: '邮箱或手机号',
+    forgotSendBtn: '发送重置验证码',
+    forgotSentMsg: '如果账户存在，重置验证码已发送。',
+    forgotNewPwPlaceholder: '新密码',
+    forgotConfirmPwPlaceholder: '确认新密码',
+    forgotResetBtn: '重置密码',
+    forgotSuccessTitle: '✓ 密码已重置！',
+    forgotSuccessSub: '您现在可以使用新密码登录。',
+    forgotBackToLogin: '返回登录',
 
     navBack: '返回', navHome: '首页',
     wizardStep: '第 {n}/{m} 步', wizardContinue: '继续 →', wizardPrev: '← 上一步',
