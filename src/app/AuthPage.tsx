@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Eye, EyeOff, ArrowLeft, Mail, ShieldCheck } from 'lucide-react';
+import { Eye, EyeOff, ArrowLeft, Mail, Send } from 'lucide-react';
 import { useSession } from '../lib/SessionContext';
 import { useLang } from '../lib/LangContext';
+import { useOtpChannel, OtpChannelPanel } from '../lib/useOtpChannel';
 
 // ── Password strength ─────────────────────────────────────────────────────────
 function pwScore(pw: string): number {
@@ -86,7 +87,7 @@ type Tab = 'login' | 'register' | 'verify' | 'forgot' | 'success';
 
 const AUTH_BASE = '/api/auth';
 
-function userToSession(user: { id: string; email: string | null; phone: string | null; emailVerified?: boolean }) {
+function userToSession(user: { id: string; email: string | null; phone: string | null; emailVerified?: boolean; telegramLinked?: boolean }) {
   return {
     userId: user.id,
     firstName: '',
@@ -94,11 +95,12 @@ function userToSession(user: { id: string; email: string | null; phone: string |
     email: user.email ?? '',
     phone: user.phone ?? '',
     emailVerified: user.emailVerified ?? false,
+    telegramLinked: user.telegramLinked ?? false,
   };
 }
 
 export default function AuthPage({ onHome, onSuccess, defaultTab = 'login' }: Props) {
-  const { setSession } = useSession();
+  const { session, setSession } = useSession();
   const { t, isRTL } = useLang();
   const [tab, setTab] = useState<Tab>(defaultTab);
 
@@ -117,12 +119,7 @@ export default function AuthPage({ onHome, onSuccess, defaultTab = 'login' }: Pr
   const [rLoading, setRLoading] = useState(false);
 
   // ── Verify step state ────────────────────────────────────────────────────────
-  const [vCode,       setVCode]       = useState('');
-  const [vErr,        setVErr]        = useState('');
-  const [vLoading,    setVLoading]    = useState(false);
-  const [vSending,    setVSending]    = useState(false);
   const [vIdentifier, setVIdentifier] = useState('');
-  const [countdown,   setCountdown]   = useState(0);
 
   // ── Forgot-password / reset state ───────────────────────────────────────────
   const [forgotStep,    setForgotStep]    = useState<1 | 2>(1);
@@ -138,13 +135,6 @@ export default function AuthPage({ onHome, onSuccess, defaultTab = 'login' }: Pr
   const [successTitle, setSuccessTitle] = useState('');
   const [successSub,   setSuccessSub]   = useState('');
 
-  // Countdown ticker (verify)
-  useEffect(() => {
-    if (countdown <= 0) return;
-    const timer = setTimeout(() => setCountdown(c => c - 1), 1000);
-    return () => clearTimeout(timer);
-  }, [countdown]);
-
   // Countdown ticker (forgot)
   useEffect(() => {
     if (fCountdown <= 0) return;
@@ -152,73 +142,26 @@ export default function AuthPage({ onHome, onSuccess, defaultTab = 'login' }: Pr
     return () => clearTimeout(timer);
   }, [fCountdown]);
 
-  // ── OTP helpers ──────────────────────────────────────────────────────────────
-  async function sendOtp() {
-    const token = localStorage.getItem('cp_token');
-    if (!token) return;
-    setVSending(true);
-    setVErr('');
-    try {
-      const res  = await fetch(`${AUTH_BASE}/send-otp`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ channel: 'email' }),
-      });
-      const data = await res.json();
-      if (data.ok) {
-        setCountdown(60);
-      } else if (data.error === 'resend cooldown') {
-        setCountdown(data.cooldownLeft ?? 60);
-      } else {
-        setVErr(t.otpErrSend);
-      }
-    } catch {
-      setVErr(t.authErrNetwork);
-    } finally {
-      setVSending(false);
-    }
-  }
+  // ── OTP channel hook ─────────────────────────────────────────────────────────
+  const otpChannel = useOtpChannel({ session, setSession, onVerified: handleVerifySuccess });
 
-  async function doVerify() {
-    const code = vCode.trim();
-    if (!code) return;
+  async function handleVerifySuccess() {
     const token = localStorage.getItem('cp_token');
-    if (!token) return;
-    setVLoading(true);
-    setVErr('');
-    try {
-      const res  = await fetch(`${AUTH_BASE}/verify-otp`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ code }),
-      });
-      const data = await res.json();
-      if (data.ok) {
-        // Refresh session so emailVerified is true in cp_session
+    if (token) {
+      try {
         const meRes  = await fetch(`${AUTH_BASE}/me`, { headers: { Authorization: `Bearer ${token}` } });
         const meData = await meRes.json();
         if (meData.ok) setSession(userToSession(meData.user));
-        setSuccessTitle(t.otpSuccessTitle);
-        setSuccessSub(t.otpSuccessSub);
-        setTab('success');
-        setTimeout(onSuccess ?? onHome, 1400);
-      } else {
-        const tooMany = data.error === 'too many attempts, request a new code' || data.attemptsLeft === 0;
-        if (tooMany) {
-          setVErr(t.otpErrTooMany);
-        } else {
-          const left = data.attemptsLeft != null ? ` (${data.attemptsLeft})` : '';
-          setVErr(t.otpErrInvalid + left);
-        }
-      }
-    } catch {
-      setVErr(t.authErrNetwork);
-    } finally {
-      setVLoading(false);
+      } catch {}
     }
+    setSuccessTitle(t.otpSuccessTitle);
+    setSuccessSub(t.otpSuccessSub);
+    setTab('success');
+    setTimeout(onSuccess ?? onHome, 1400);
   }
 
   function doSkip() {
+    otpChannel.reset();
     (onSuccess ?? onHome)();
   }
 
@@ -370,10 +313,9 @@ export default function AuthPage({ onHome, onSuccess, defaultTab = 'login' }: Pr
 
       // Route through email verification
       setVIdentifier(rId.trim());
-      setVCode('');
-      setVErr('');
+      otpChannel.reset();
       setTab('verify');
-      sendOtp(); // fire-and-forget; has its own vSending state
+      otpChannel.selectChannel('email');
     } catch {
       setRErr({ global: t.authErrNetwork });
     } finally {
@@ -394,7 +336,7 @@ export default function AuthPage({ onHome, onSuccess, defaultTab = 'login' }: Pr
           <img src="/assets/chapar-logo.png" alt="چاپار" className="h-12 mx-auto mb-4" onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
           {tab === 'login'    && <><h2 className="text-2xl font-extrabold text-gray-900">{t.authWelcome}</h2><p className="text-sm text-gray-500 mt-1">{t.authLoginSubtitle}</p></>}
           {tab === 'register' && <><h2 className="text-2xl font-extrabold text-gray-900">{t.authRegisterTitle}</h2><p className="text-sm text-gray-500 mt-1">{t.authRegisterSubtitle}</p></>}
-          {tab === 'verify'   && <><h2 className="text-2xl font-extrabold text-gray-900">{t.otpTitle}</h2><p className="text-sm text-gray-500 mt-1">{t.otpSubtitle}</p></>}
+          {tab === 'verify'   && <h2 className="text-2xl font-extrabold text-gray-900">{t.otpTitle}</h2>}
           {tab === 'forgot'   && <><h2 className="text-2xl font-extrabold text-gray-900">{t.forgotTitle}</h2></>}
         </div>
 
@@ -495,65 +437,15 @@ export default function AuthPage({ onHome, onSuccess, defaultTab = 'login' }: Pr
             </div>
           )}
 
-          {/* ── Verify email ──────────────────────────────────────────────────── */}
+          {/* ── Verify email / Telegram ───────────────────────────────────── */}
           {tab === 'verify' && (
             <div className="text-center">
-              {/* Icon */}
-              <div className="w-16 h-16 rounded-full bg-cyan-50 border-2 border-cyan-100 flex items-center justify-center mx-auto mb-4">
-                <Mail className="w-8 h-8 text-cyan-500" />
+              <div className="w-14 h-14 rounded-full bg-cyan-50 border-2 border-cyan-100 flex items-center justify-center mx-auto mb-5">
+                {otpChannel.channel === 'telegram'
+                  ? <Send className="w-7 h-7 text-[#229ED9]" />
+                  : <Mail className="w-7 h-7 text-cyan-500" />}
               </div>
-
-              {/* Destination */}
-              <p className="text-sm font-semibold text-gray-700 mb-1 break-all">{vIdentifier}</p>
-              {vSending && (
-                <p className="text-xs text-gray-400 mb-4">…</p>
-              )}
-
-              {/* Code input */}
-              <div className="text-left mt-5 mb-4">
-                <label className="ds-label">{t.otpCodeLabel}</label>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  maxLength={6}
-                  value={vCode}
-                  onChange={e => { setVCode(e.target.value.replace(/\D/g, '')); setVErr(''); }}
-                  onKeyDown={e => { if (e.key === 'Enter') doVerify(); }}
-                  placeholder={t.otpCodePlaceholder}
-                  className={`ds-input text-center text-2xl font-bold tracking-[0.5em] ${vErr ? 'border-red-400 bg-red-50' : ''}`}
-                  autoComplete="one-time-code"
-                />
-                <FieldError msg={vErr} />
-              </div>
-
-              {/* Verify button */}
-              <button
-                onClick={doVerify}
-                disabled={vLoading || vCode.length < 6}
-                className="ds-btn-primary w-full h-12 disabled:opacity-60 mb-4 flex items-center justify-center gap-2"
-              >
-                <ShieldCheck size={16} />
-                {vLoading ? '…' : t.otpVerifyBtn}
-              </button>
-
-              {/* Resend */}
-              <button
-                onClick={sendOtp}
-                disabled={countdown > 0 || vSending}
-                className="w-full h-10 text-sm font-semibold text-cyan-600 hover:text-cyan-700 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors mb-3"
-              >
-                {countdown > 0
-                  ? t.otpResendIn.replace('{n}', String(countdown))
-                  : t.otpResendBtn}
-              </button>
-
-              {/* Skip */}
-              <button
-                onClick={doSkip}
-                className="text-xs text-gray-400 hover:text-gray-600 transition-colors underline underline-offset-2"
-              >
-                {t.otpSkipLink}
-              </button>
+              <OtpChannelPanel hook={otpChannel} identifier={vIdentifier} onSkip={doSkip} />
             </div>
           )}
 

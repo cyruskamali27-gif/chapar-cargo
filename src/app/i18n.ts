@@ -297,6 +297,17 @@ export interface Translations {
   forgotSuccessSub: string;
   forgotBackToLogin: string;
 
+  // Channel picker / Telegram linking
+  channelEmail: string;
+  channelTelegram: string;
+  tgConnectTitle: string;
+  tgOpenBtn: string;
+  tgWaiting: string;
+  tgConnected: string;
+  tgManualCheck: string;
+  tgSwitchToEmail: string;
+  tgSwitchToTelegram: string;
+
   // Shared wizard nav
   navBack: string;
   navHome: string;
@@ -1015,6 +1026,16 @@ export const translations: Record<LangCode, Translations> = {
     forgotSuccessTitle: '✓ رمز عبور تغییر کرد',
     forgotSuccessSub: 'اکنون می‌توانید با رمز عبور جدید وارد شوید.',
     forgotBackToLogin: 'بازگشت به ورود',
+
+    channelEmail: 'ایمیل',
+    channelTelegram: 'تلگرام',
+    tgConnectTitle: 'اتصال تلگرام',
+    tgOpenBtn: 'باز کردن تلگرام',
+    tgWaiting: 'در انتظار اتصال…',
+    tgConnected: '✓ متصل شد',
+    tgManualCheck: 'متصل شدم',
+    tgSwitchToEmail: 'استفاده از ایمیل',
+    tgSwitchToTelegram: 'استفاده از تلگرام',
 
     // Shared wizard nav
     navBack: 'بازگشت', navHome: 'صفحه اصلی',
@@ -1758,6 +1779,16 @@ export const translations: Record<LangCode, Translations> = {
     forgotSuccessSub: 'You can now sign in with your new password.',
     forgotBackToLogin: 'Back to sign in',
 
+    channelEmail: 'Email',
+    channelTelegram: 'Telegram',
+    tgConnectTitle: 'Connect Telegram',
+    tgOpenBtn: 'Open Telegram',
+    tgWaiting: 'Waiting for connection…',
+    tgConnected: '✓ Connected',
+    tgManualCheck: "I've connected",
+    tgSwitchToEmail: 'Use Email instead',
+    tgSwitchToTelegram: 'Use Telegram instead',
+
     navBack: 'Back', navHome: 'Home',
     wizardStep: 'Step {n} of {m}', wizardContinue: 'Continue →', wizardPrev: '← Back',
 
@@ -2494,6 +2525,16 @@ export const translations: Record<LangCode, Translations> = {
     forgotSuccessTitle: '✓ Şifre sıfırlandı!',
     forgotSuccessSub: 'Artık yeni şifrenizle giriş yapabilirsiniz.',
     forgotBackToLogin: 'Girişe dön',
+
+    channelEmail: 'E-posta',
+    channelTelegram: 'Telegram',
+    tgConnectTitle: "Telegram'ı Bağla",
+    tgOpenBtn: "Telegram'ı Aç",
+    tgWaiting: 'Bağlantı bekleniyor…',
+    tgConnected: '✓ Bağlandı',
+    tgManualCheck: 'Bağlandım',
+    tgSwitchToEmail: 'E-posta kullan',
+    tgSwitchToTelegram: 'Telegram kullan',
 
     navBack: 'Geri', navHome: 'Ana Sayfa',
     wizardStep: 'Adım {n}/{m}', wizardContinue: 'Devam →', wizardPrev: '← Geri',
@@ -3232,6 +3273,16 @@ export const translations: Record<LangCode, Translations> = {
     forgotSuccessSub: 'يمكنك الآن تسجيل الدخول بكلمة المرور الجديدة.',
     forgotBackToLogin: 'العودة إلى تسجيل الدخول',
 
+    channelEmail: 'البريد الإلكتروني',
+    channelTelegram: 'تيليغرام',
+    tgConnectTitle: 'ربط تيليغرام',
+    tgOpenBtn: 'فتح تيليغرام',
+    tgWaiting: 'في انتظار الاتصال…',
+    tgConnected: '✓ تم الاتصال',
+    tgManualCheck: 'لقد اتصلت',
+    tgSwitchToEmail: 'استخدام البريد الإلكتروني',
+    tgSwitchToTelegram: 'استخدام تيليغرام',
+
     navBack: 'رجوع', navHome: 'الرئيسية',
     wizardStep: 'الخطوة {n} من {m}', wizardContinue: 'متابعة ←', wizardPrev: '← السابق',
 
@@ -3967,6 +4018,16 @@ export const translations: Record<LangCode, Translations> = {
     forgotSuccessTitle: '✓ Mot de passe réinitialisé !',
     forgotSuccessSub: 'Vous pouvez maintenant vous connecter avec votre nouveau mot de passe.',
     forgotBackToLogin: 'Retour à la connexion',
+
+    channelEmail: 'E-mail',
+    channelTelegram: 'Telegram',
+    tgConnectTitle: 'Connecter Telegram',
+    tgOpenBtn: 'Ouvrir Telegram',
+    tgWaiting: 'En attente de connexion…',
+    tgConnected: '✓ Connecté',
+    tgManualCheck: 'Je suis connecté',
+    tgSwitchToEmail: "Utiliser l'e-mail",
+    tgSwitchToTelegram: 'Utiliser Telegram',
 
     navBack: 'Retour', navHome: 'Accueil',
     wizardStep: 'Étape {n}/{m}', wizardContinue: 'Continuer →', wizardPrev: '← Précédent',
@@ -4704,6 +4765,16 @@ export const translations: Record<LangCode, Translations> = {
     forgotSuccessTitle: '✓ 密码已重置！',
     forgotSuccessSub: '您现在可以使用新密码登录。',
     forgotBackToLogin: '返回登录',
+
+    channelEmail: '邮箱',
+    channelTelegram: 'Telegram',
+    tgConnectTitle: '连接 Telegram',
+    tgOpenBtn: '打开 Telegram',
+    tgWaiting: '等待连接中…',
+    tgConnected: '✓ 已连接',
+    tgManualCheck: '我已连接',
+    tgSwitchToEmail: '改用邮箱',
+    tgSwitchToTelegram: '改用 Telegram',
 
     navBack: '返回', navHome: '首页',
     wizardStep: '第 {n}/{m} 步', wizardContinue: '继续 →', wizardPrev: '← 上一步',

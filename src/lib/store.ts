@@ -38,6 +38,7 @@ export interface Session {
   email: string;
   phone: string;
   emailVerified?: boolean;
+  telegramLinked?: boolean;
 }
 
 export interface User {
