@@ -8,7 +8,7 @@ import type { Translations } from './i18n';
 
 type Phase = 'consent' | 'starting' | 'capturing' | 'uploading' | 'analyzing' | 'result' | 'cam-denied' | 'error';
 
-interface AngleEntry {
+export interface AngleEntry {
   kind: 'video' | 'frame';
   angle?: string;
   description?: string;
@@ -17,6 +17,9 @@ interface AngleEntry {
 interface Props {
   listingId?: string;
   agreementId?: string;
+  initialJobId?: string;        // M4: pre-created job (skip creation)
+  initialAnglePlan?: AngleEntry[]; // M4: pre-set angle plan
+  overrideToken?: string;       // M4: scoped session token for handoff
   onBack: () => void;
   onHome: () => void;
 }
@@ -267,7 +270,7 @@ function drawOverlayFrame(
 
 // ── Main page ──────────────────────────────────────────────────────────────────
 
-export default function CargoScanPage({ listingId, agreementId, onBack, onHome }: Props) {
+export default function CargoScanPage({ listingId, agreementId, initialJobId, initialAnglePlan, overrideToken, onBack, onHome }: Props) {
   const { t, isRTL } = useLang();
 
   const [phase, setPhase] = useState<Phase>('consent');
@@ -306,7 +309,7 @@ export default function CargoScanPage({ listingId, agreementId, onBack, onHome }
   const totalFrames = frameAngles.length;
   const capturedCount = frames.length;
 
-  const getToken = () => localStorage.getItem('cp_token') || '';
+  const getToken = () => overrideToken || localStorage.getItem('cp_token') || '';
 
   // ── Cleanup on unmount ───────────────────────────────────────────────────────
   useEffect(() => {
@@ -429,10 +432,18 @@ export default function CargoScanPage({ listingId, agreementId, onBack, onHome }
     }
   }
 
-  // ── Consent accepted → create job → start camera ─────────────────────────────
+  // ── Consent accepted → create job (or use pre-set) → start camera ───────────
   async function handleConsent() {
     setPhase('starting');
     try {
+      if (initialJobId && initialAnglePlan) {
+        // M4 handoff: job already created, skip creation
+        setJobId(initialJobId);
+        setAnglePlan(initialAnglePlan);
+        await startCamera();
+        return;
+      }
+
       const body: Record<string, string> = {};
       if (agreementId) body.agreementId = agreementId;
       else if (listingId) body.listingId = listingId;

@@ -797,6 +797,11 @@ export interface Translations {
   scanAngleCorner: string; scanAngleSpread: string; scanAngleQuantity: string;
   scanAnglePartNum: string; scanAngleHallmark: string;
   scanVideoRecording: string;
+  // M4 — Desktop→Mobile QR handoff
+  scanHandoffBtn: string; scanHandoffDesc: string;
+  scanHandoffWaiting: string; scanHandoffDone: string;
+  scanHandoffErrExpired: string; scanHandoffErrUsed: string;
+  scanHandoffErrFailed: string; scanHandoffOpenPhone: string;
 }
 
 export const translations: Record<LangCode, Translations> = {
@@ -1586,6 +1591,10 @@ export const translations: Record<LangCode, Translations> = {
     scanAngleCorner: 'گوشه نزدیک', scanAngleSpread: 'پهن‌شده',
     scanAngleQuantity: 'تصویر تعداد', scanAnglePartNum: 'نزدیک شماره قطعه',
     scanAngleHallmark: 'نزدیک عیار/سریال', scanVideoRecording: '● ضبط',
+    scanHandoffBtn: 'اسکن با گوشی', scanHandoffDesc: 'این کد QR را با گوشی خود اسکن کنید تا کالا را ثبت کنید',
+    scanHandoffWaiting: 'در انتظار تکمیل اسکن توسط گوشی…', scanHandoffDone: 'اسکن گوشی کامل شد',
+    scanHandoffErrExpired: 'کد QR منقضی شده است. دوباره تلاش کنید.', scanHandoffErrUsed: 'کد QR قبلاً استفاده شده است.',
+    scanHandoffErrFailed: 'ایجاد QR ناموفق بود. دوباره تلاش کنید.', scanHandoffOpenPhone: 'باز کردن روی گوشی',
   },
 
   en: {
@@ -2368,6 +2377,10 @@ export const translations: Record<LangCode, Translations> = {
     scanAngleCorner: 'Corner close-up', scanAngleSpread: 'Full spread',
     scanAngleQuantity: 'Quantity shot', scanAnglePartNum: 'Part-number close-up',
     scanAngleHallmark: 'Hallmark / serial close-up', scanVideoRecording: '● REC',
+    scanHandoffBtn: 'Scan with your phone', scanHandoffDesc: 'Scan this QR code with your phone to capture cargo',
+    scanHandoffWaiting: 'Waiting for phone to complete scan…', scanHandoffDone: 'Phone scan complete',
+    scanHandoffErrExpired: 'QR code expired. Try again.', scanHandoffErrUsed: 'QR code already used.',
+    scanHandoffErrFailed: 'Could not create QR code. Try again.', scanHandoffOpenPhone: 'Open on phone',
   },
 
   tr: {
@@ -3150,6 +3163,10 @@ export const translations: Record<LangCode, Translations> = {
     scanAngleCorner: 'Köşe yakın çekim', scanAngleSpread: 'Tam yayılış',
     scanAngleQuantity: 'Miktar çekimi', scanAnglePartNum: 'Parça numarası yakın çekim',
     scanAngleHallmark: 'Ayar/seri yakın çekim', scanVideoRecording: '● KAY',
+    scanHandoffBtn: 'Telefonunuzla tarayın', scanHandoffDesc: 'Kargoyu yakalamak için bu QR kodu telefonunuzla tarayın',
+    scanHandoffWaiting: 'Telefon taramasının tamamlanması bekleniyor…', scanHandoffDone: 'Telefon taraması tamamlandı',
+    scanHandoffErrExpired: 'QR kodunun süresi doldu. Tekrar deneyin.', scanHandoffErrUsed: 'QR kodu zaten kullanıldı.',
+    scanHandoffErrFailed: 'QR kodu oluşturulamadı. Tekrar deneyin.', scanHandoffOpenPhone: 'Telefonda aç',
   },
 
   ar: {
@@ -3931,6 +3948,10 @@ export const translations: Record<LangCode, Translations> = {
     scanAngleCorner: 'الزاوية عن قرب', scanAngleSpread: 'بالكامل ممدود',
     scanAngleQuantity: 'صورة الكمية', scanAnglePartNum: 'رقم القطعة عن قرب',
     scanAngleHallmark: 'العيار/الرقم التسلسلي عن قرب', scanVideoRecording: '● تسجيل',
+    scanHandoffBtn: 'المسح بالهاتف', scanHandoffDesc: 'امسح هذا الرمز QR بهاتفك لالتقاط صور البضاعة',
+    scanHandoffWaiting: 'في انتظار اكتمال المسح على الهاتف…', scanHandoffDone: 'اكتمل مسح الهاتف',
+    scanHandoffErrExpired: 'انتهت صلاحية رمز QR. حاول مجدداً.', scanHandoffErrUsed: 'رمز QR مستخدم بالفعل.',
+    scanHandoffErrFailed: 'تعذّر إنشاء رمز QR. حاول مجدداً.', scanHandoffOpenPhone: 'فتح على الهاتف',
   },
 
   fr: {
@@ -4713,6 +4734,10 @@ export const translations: Record<LangCode, Translations> = {
     scanAngleCorner: 'Coin gros plan', scanAngleSpread: 'Entièrement déployé',
     scanAngleQuantity: 'Photo quantité', scanAnglePartNum: 'Numéro de pièce gros plan',
     scanAngleHallmark: 'Poinçon/numéro de série gros plan', scanVideoRecording: '● ENR',
+    scanHandoffBtn: 'Scanner avec votre téléphone', scanHandoffDesc: 'Scannez ce QR code avec votre téléphone pour capturer le cargo',
+    scanHandoffWaiting: 'En attente que le téléphone termine le scan…', scanHandoffDone: 'Scan téléphone terminé',
+    scanHandoffErrExpired: 'Code QR expiré. Réessayez.', scanHandoffErrUsed: 'Code QR déjà utilisé.',
+    scanHandoffErrFailed: 'Impossible de créer le QR. Réessayez.', scanHandoffOpenPhone: 'Ouvrir sur téléphone',
   },
 
   zh: {
@@ -5488,5 +5513,9 @@ export const translations: Record<LangCode, Translations> = {
     scanAngleCorner: '角落特写', scanAngleSpread: '完全展开',
     scanAngleQuantity: '数量照', scanAnglePartNum: '零件编号特写',
     scanAngleHallmark: '印记/序列号特写', scanVideoRecording: '● 录制',
+    scanHandoffBtn: '用手机扫描', scanHandoffDesc: '用您的手机扫描此二维码以拍摄货物',
+    scanHandoffWaiting: '等待手机完成扫描…', scanHandoffDone: '手机扫描完成',
+    scanHandoffErrExpired: '二维码已过期，请重试。', scanHandoffErrUsed: '二维码已被使用。',
+    scanHandoffErrFailed: '无法创建二维码，请重试。', scanHandoffOpenPhone: '在手机上打开',
   },
 };

@@ -1,11 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
-import { Mail, Send } from 'lucide-react';
+import { Mail, Send, Smartphone, MessageCircle } from 'lucide-react';
 import { useLang } from './LangContext';
 import type { Session } from './store';
 
 const AUTH_BASE = '/api/auth';
 
-export type OtpChannel = 'email' | 'telegram';
+export type OtpChannel = 'email' | 'telegram' | 'sms' | 'whatsapp';
 export type OtpStep   = 'pick' | 'link' | 'code';
 
 export interface OtpChannelState {
@@ -19,11 +19,13 @@ export interface OtpChannelState {
   loading:          boolean;
   sending:          boolean;
   countdown:        number;
+  hasPhone:         boolean;
   selectChannel:    (ch: OtpChannel) => void;
   checkLinked:      () => void;
   verify:           () => void;
   resend:           () => void;
   reset:            () => void;
+  backToPick:       () => void;
 }
 
 export function useOtpChannel({
@@ -50,6 +52,8 @@ export function useOtpChannel({
   const pollCount  = useRef(0);
   const sessionRef = useRef(session);
   sessionRef.current = session;
+
+  const hasPhone = !!(session?.phone);
 
   useEffect(() => {
     if (countdown <= 0) return;
@@ -164,10 +168,14 @@ export function useOtpChannel({
     setErr('');
     if (ch === 'email') {
       void doSendOtp('email');
-    } else if (sessionRef.current?.telegramLinked) {
-      void doSendOtp('telegram');
+    } else if (ch === 'telegram') {
+      if (sessionRef.current?.telegramLinked) {
+        void doSendOtp('telegram');
+      } else {
+        void startLinking();
+      }
     } else {
-      void startLinking();
+      void doSendOtp(ch); // sms | whatsapp
     }
   }
 
@@ -189,7 +197,7 @@ export function useOtpChannel({
         if (data.ok) {
           stopPolling();
           onVerified();
-          return; // stay loading=true; parent switches tab/closes modal
+          return;
         }
         const tooMany = data.error === 'too many attempts, request a new code' || data.attemptsLeft === 0;
         setErr(tooMany ? t.otpErrTooMany : t.otpErrInvalid + (data.attemptsLeft != null ? ` (${data.attemptsLeft})` : ''));
@@ -202,6 +210,13 @@ export function useOtpChannel({
 
   function resend() {
     void doSendOtp(channel);
+  }
+
+  function backToPick() {
+    stopPolling();
+    setStep('pick');
+    setCode('');
+    setErr('');
   }
 
   function reset() {
@@ -218,8 +233,8 @@ export function useOtpChannel({
 
   return {
     channel, step, deepLink, pollingLinked,
-    code, setCode, err, loading, sending, countdown,
-    selectChannel, checkLinked, verify, resend, reset,
+    code, setCode, err, loading, sending, countdown, hasPhone,
+    selectChannel, checkLinked, verify, resend, reset, backToPick,
   };
 }
 
@@ -238,39 +253,66 @@ export function OtpChannelPanel({
   const { t } = useLang();
   const {
     channel, step, deepLink, pollingLinked,
-    code, setCode, err, loading, sending, countdown,
-    selectChannel, checkLinked, verify, resend,
+    code, setCode, err, loading, sending, countdown, hasPhone,
+    selectChannel, checkLinked, verify, resend, backToPick,
   } = hook;
 
-  const other: OtpChannel = channel === 'email' ? 'telegram' : 'email';
+  const btnClass = (ch: OtpChannel) =>
+    `flex-1 h-9 rounded-xl text-sm font-bold flex items-center justify-center gap-1.5 transition-all ${
+      channel === ch
+        ? ch === 'email'     ? 'bg-cyan-600 text-white shadow-sm'
+        : ch === 'telegram'  ? 'bg-[#229ED9] text-white shadow-sm'
+        : ch === 'sms'       ? 'bg-green-600 text-white shadow-sm'
+        :                      'bg-[#25D366] text-white shadow-sm'
+        : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+    }`;
+
+  const channelLabel =
+    channel === 'email'    ? (identifier ?? '') :
+    channel === 'telegram' ? t.channelTelegram  :
+    channel === 'sms'      ? t.channelSms       :
+                             t.channelWhatsapp;
 
   return (
     <div>
-      {/* Channel picker */}
-      <div className="flex gap-2 mb-5">
+      {/* Channel picker — row 1: Email + Telegram */}
+      <div className="flex gap-2 mb-2">
         <button
           onClick={() => selectChannel('email')}
           disabled={sending || loading}
-          className={`flex-1 h-9 rounded-xl text-sm font-bold flex items-center justify-center gap-1.5 transition-all ${
-            channel === 'email'
-              ? 'bg-cyan-600 text-white shadow-sm'
-              : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
-          }`}
+          className={btnClass('email')}
         >
           <Mail size={13} />{t.channelEmail}
         </button>
         <button
           onClick={() => selectChannel('telegram')}
           disabled={sending || loading}
-          className={`flex-1 h-9 rounded-xl text-sm font-bold flex items-center justify-center gap-1.5 transition-all ${
-            channel === 'telegram'
-              ? 'bg-[#229ED9] text-white shadow-sm'
-              : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
-          }`}
+          className={btnClass('telegram')}
         >
           <Send size={13} />{t.channelTelegram}
         </button>
       </div>
+
+      {/* Channel picker — row 2: SMS + WhatsApp (phone required) */}
+      {hasPhone && (
+        <div className="flex gap-2 mb-5">
+          <button
+            onClick={() => selectChannel('sms')}
+            disabled={sending || loading}
+            className={btnClass('sms')}
+          >
+            <Smartphone size={13} />{t.channelSms}
+          </button>
+          <button
+            onClick={() => selectChannel('whatsapp')}
+            disabled={sending || loading}
+            className={btnClass('whatsapp')}
+          >
+            <MessageCircle size={13} />{t.channelWhatsapp}
+          </button>
+        </div>
+      )}
+      {!hasPhone && <div className="mb-5" />}
 
       {/* Initial send spinner (pick step while first OTP fires) */}
       {sending && step === 'pick' && (
@@ -319,9 +361,7 @@ export function OtpChannelPanel({
       {/* Code entry step */}
       {step === 'code' && (
         <div>
-          <p className="text-xs text-gray-500 mb-3 text-center break-all">
-            {channel === 'email' ? (identifier ?? '') : t.channelTelegram}
-          </p>
+          <p className="text-xs text-gray-500 mb-3 text-center break-all">{channelLabel}</p>
           <input
             type="text"
             inputMode="numeric"
@@ -352,11 +392,11 @@ export function OtpChannelPanel({
               : sending ? '…' : t.otpResendBtn}
           </button>
           <button
-            onClick={() => selectChannel(other)}
+            onClick={() => selectChannel(channel === 'email' ? 'telegram' : 'email')}
             disabled={sending || loading}
             className="w-full text-xs text-gray-400 hover:text-gray-600 disabled:opacity-40 transition-colors py-1 mt-1"
           >
-            {other === 'telegram' ? t.tgSwitchToTelegram : t.tgSwitchToEmail}
+            {channel === 'email' ? t.tgSwitchToTelegram : t.tgSwitchToEmail}
           </button>
           {onSkip && (
             <button

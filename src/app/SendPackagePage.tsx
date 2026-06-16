@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { motion } from 'motion/react';
-import { ArrowLeft, Home, CheckCircle } from 'lucide-react';
+import { ArrowLeft, Home, CheckCircle, Smartphone, RefreshCw, Clock } from 'lucide-react';
+import QRCode from 'react-qr-code';
 import AirportCityAutocomplete, { type AirportOption } from './AirportCityAutocomplete';
 import { getAirportByIata } from './airports';
 import { IdentityVerification, CargoVerification } from './VerificationModules';
@@ -263,7 +264,17 @@ export default function SendPackagePage({ onHome, cargoType = 'personal', onNavi
   const [publishing, setPublishing] = useState(false);
   const [trackId,    setTrackId]    = useState<string|null>(null);
 
+  // M4 — Desktop QR handoff state
+  const [qrUrl,        setQrUrl]        = useState<string | null>(null);
+  const [qrStatus,     setQrStatus]     = useState<'idle' | 'creating' | 'waiting' | 'done' | 'error'>('idle');
+  const [qrErrMsg,     setQrErrMsg]     = useState('');
+  const [qrScanResult, setQrScanResult] = useState<string>('');
+  const qrPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
   const [err, setErr] = useState('');
+
+  // Cleanup QR poll on unmount
+  useEffect(() => () => { if (qrPollRef.current) clearInterval(qrPollRef.current); }, []);
 
   const today = new Date().toISOString().split('T')[0];
 
@@ -637,6 +648,65 @@ export default function SendPackagePage({ onHome, cargoType = 'personal', onNavi
 
   if (!session) return null;
 
+  // ── M4: Desktop QR handoff helpers ────────────────────────────────────────
+  function stopQrPoll() {
+    if (qrPollRef.current) { clearInterval(qrPollRef.current); qrPollRef.current = null; }
+  }
+
+  async function handleScanWithPhone(listingId: string) {
+    setQrStatus('creating');
+    setQrErrMsg('');
+    setQrUrl(null);
+    setQrJobId(null);
+    stopQrPoll();
+    try {
+      const token = localStorage.getItem('cp_token') || '';
+      const hdr   = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` };
+
+      // 1. Create scan job
+      const createRes = await fetch('/api/scan/create', {
+        method: 'POST', headers: hdr,
+        body: JSON.stringify({ listingId }),
+      });
+      if (!createRes.ok) {
+        const d = await createRes.json().catch(() => ({})) as { error?: string };
+        throw new Error(d.error || `HTTP ${createRes.status}`);
+      }
+      const { jobId } = await createRes.json() as { jobId: string };
+
+      // 2. Mint handoff token
+      const hoRes = await fetch(`/api/scan/${jobId}/handoff`, {
+        method: 'POST', headers: hdr,
+      });
+      if (!hoRes.ok) {
+        const d = await hoRes.json().catch(() => ({})) as { error?: string };
+        throw new Error(d.error || `HTTP ${hoRes.status}`);
+      }
+      const { url } = await hoRes.json() as { url: string };
+
+      setQrUrl(url);
+      setQrStatus('waiting');
+
+      // 3. Poll for phone completion
+      qrPollRef.current = setInterval(async () => {
+        try {
+          const r = await fetch(`/api/scan/${jobId}`, { headers: { Authorization: `Bearer ${token}` } });
+          if (!r.ok) return;
+          const d = await r.json() as { job: { status: string } };
+          const st = d.job.status;
+          if (st === 'verified' || st === 'flagged' || st === 'rejected' || st === 'analysis_failed') {
+            stopQrPoll();
+            setQrScanResult(st);
+            setQrStatus('done');
+          }
+        } catch {}
+      }, 2500);
+    } catch (err) {
+      setQrErrMsg(err instanceof Error ? err.message : t.scanHandoffErrFailed);
+      setQrStatus('error');
+    }
+  }
+
   // ── Step 9 — Success ──────────────────────────────────────────────────────
   if (step === 9 && trackId) {
     return (
@@ -655,19 +725,72 @@ export default function SendPackagePage({ onHome, cargoType = 'personal', onNavi
               <div className="text-xl font-extrabold text-gray-900 tracking-wider font-mono">{trackId}</div>
             </div>
             <div className="flex flex-col gap-3">
+              {/* ── M4: Desktop→Phone QR handoff ── */}
               {onVerifyCargo && trackId && (
-                <button
-                  onClick={() => onVerifyCargo(trackId)}
-                  className="ds-btn-primary py-3 w-full"
-                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, height: 48 }}
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-                  </svg>
-                  {t.scanVerifyCargo || 'Verify Cargo'}
-                </button>
+                <>
+                  {/* Same-device scan (M3) */}
+                  <button
+                    onClick={() => onVerifyCargo(trackId)}
+                    className="ds-btn-primary py-3 w-full"
+                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, height: 48 }}
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    {t.scanVerifyCargo}
+                  </button>
+
+                  {/* Phone handoff QR button */}
+                  {qrStatus === 'idle' || qrStatus === 'error' ? (
+                    <button
+                      onClick={() => handleScanWithPhone(trackId)}
+                      className="w-full py-3 flex items-center justify-center gap-2 border-2 border-cyan-500/40 text-cyan-700 bg-cyan-50 hover:bg-cyan-100 font-semibold rounded-xl transition-colors text-sm"
+                      style={{ height: 48 }}
+                    >
+                      <Smartphone className="w-4 h-4" />
+                      {t.scanHandoffBtn}
+                    </button>
+                  ) : qrStatus === 'creating' ? (
+                    <div className="w-full py-3 flex items-center justify-center gap-2 border border-gray-200 rounded-xl text-gray-400 text-sm">
+                      <div className="w-4 h-4 border-2 border-cyan-500 border-t-transparent rounded-full animate-spin" />
+                      {t.scanHandoffBtn}
+                    </div>
+                  ) : qrStatus === 'waiting' && qrUrl ? (
+                    <div className="border border-cyan-200 rounded-2xl p-5 bg-cyan-50/60 text-center">
+                      <p className="text-xs font-semibold text-cyan-700 uppercase tracking-wider mb-3">{t.scanHandoffDesc}</p>
+                      <div className="inline-flex p-3 bg-white rounded-xl shadow-sm border border-cyan-100 mb-3">
+                        <QRCode value={qrUrl} size={160} />
+                      </div>
+                      <div className="flex items-center justify-center gap-2 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mt-2">
+                        <Clock className="w-4 h-4 flex-shrink-0" />
+                        <span>{t.scanHandoffWaiting}</span>
+                        <div className="w-3 h-3 border-2 border-amber-500 border-t-transparent rounded-full animate-spin flex-shrink-0" />
+                      </div>
+                      <button
+                        onClick={() => { stopQrPoll(); setQrStatus('idle'); setQrUrl(null); }}
+                        className="mt-3 text-xs text-gray-400 hover:text-gray-600 transition-colors flex items-center gap-1 mx-auto"
+                      >
+                        <RefreshCw className="w-3 h-3" /> {t.scanRetryAnalysis}
+                      </button>
+                    </div>
+                  ) : qrStatus === 'done' ? (
+                    <div className={`border rounded-xl px-4 py-3 text-sm font-semibold flex items-center gap-2 ${
+                      qrScanResult === 'verified'
+                        ? 'bg-green-50 border-green-200 text-green-700'
+                        : 'bg-amber-50 border-amber-200 text-amber-700'
+                    }`}>
+                      <CheckCircle className="w-4 h-4 flex-shrink-0" />
+                      {qrScanResult === 'verified' ? t.scanResultVerified : t.scanResultUnderReview}
+                    </div>
+                  ) : null}
+
+                  {qrStatus === 'error' && qrErrMsg && (
+                    <p className="text-xs text-red-500 text-center">{qrErrMsg}</p>
+                  )}
+                </>
               )}
+
               <button onClick={() => onNavigate ? onNavigate('marketplace') : window.location.href = '/'}
                  className={onVerifyCargo ? 'ds-btn-secondary py-3 w-full' : 'ds-btn-primary py-3 w-full'}
                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 48 }}>

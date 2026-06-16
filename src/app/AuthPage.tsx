@@ -169,6 +169,7 @@ export default function AuthPage({ onHome, onSuccess, defaultTab = 'login' }: Pr
   const [fErr,          setFErr]          = useState('');
   const [fLoading,      setFLoading]      = useState(false);
   const [fCountdown,    setFCountdown]    = useState(0);
+  const [fChannel,      setFChannel]      = useState<'email' | 'telegram'>('email');
 
   // ── Shared success state ─────────────────────────────────────────────────────
   const [successTitle, setSuccessTitle] = useState('');
@@ -214,7 +215,7 @@ export default function AuthPage({ onHome, onSuccess, defaultTab = 'login' }: Pr
       await fetch(`${AUTH_BASE}/forgot-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ identifier: id }),
+        body: JSON.stringify({ identifier: id, channel: fChannel }),
       });
       // Always treat as success (anti-enumeration: server always returns ok:true)
       setForgotStep(2);
@@ -235,7 +236,7 @@ export default function AuthPage({ onHome, onSuccess, defaultTab = 'login' }: Pr
       await fetch(`${AUTH_BASE}/forgot-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ identifier: id }),
+        body: JSON.stringify({ identifier: id, channel: fChannel }),
       });
       setFCountdown(60);
     } catch {
@@ -256,7 +257,7 @@ export default function AuthPage({ onHome, onSuccess, defaultTab = 'login' }: Pr
       const res  = await fetch(`${AUTH_BASE}/reset-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ identifier: fId.trim(), code, newPassword: fPw }),
+        body: JSON.stringify({ identifier: fId.trim(), code, newPassword: fPw, channel: fChannel }),
       });
       const data = await res.json();
       if (data.ok) {
@@ -448,7 +449,7 @@ export default function AuthPage({ onHome, onSuccess, defaultTab = 'login' }: Pr
               </div>
               <FieldError msg={lErr.global ?? ''} />
               <button className="block text-[11px] font-semibold text-gray-400 hover:text-cyan-600 mb-5 mt-1 transition-colors"
-                onClick={() => { setFId(lId); setForgotStep(1); setFCode(''); setFPw(''); setFPw2(''); setFErr(''); setFCountdown(0); setTab('forgot'); }}>
+                onClick={() => { setFId(lId); setForgotStep(1); setFCode(''); setFPw(''); setFPw2(''); setFErr(''); setFCountdown(0); setFChannel('email'); setTab('forgot'); }}>
                 {t.authForgotPassword}
               </button>
               <button onClick={doLogin} disabled={lLoading} className="ds-btn-primary w-full h-12 disabled:opacity-60">
@@ -555,6 +556,26 @@ export default function AuthPage({ onHome, onSuccess, defaultTab = 'login' }: Pr
                       autoFocus
                     />
                   </div>
+                  <div className="flex gap-2 mb-4">
+                    <button
+                      onClick={() => setFChannel('email')}
+                      disabled={fLoading}
+                      className={`flex-1 h-9 rounded-xl text-sm font-bold flex items-center justify-center gap-1.5 transition-all ${
+                        fChannel === 'email' ? 'bg-cyan-600 text-white shadow-sm' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                      }`}
+                    >
+                      <Mail size={13} />{t.channelEmail}
+                    </button>
+                    <button
+                      onClick={() => setFChannel('telegram')}
+                      disabled={fLoading}
+                      className={`flex-1 h-9 rounded-xl text-sm font-bold flex items-center justify-center gap-1.5 transition-all ${
+                        fChannel === 'telegram' ? 'bg-[#229ED9] text-white shadow-sm' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                      }`}
+                    >
+                      <Send size={13} />{t.channelTelegram}
+                    </button>
+                  </div>
                   <FieldError msg={fErr} />
                   <button onClick={doForgotSend} disabled={fLoading}
                     className="ds-btn-primary w-full h-12 disabled:opacity-60 mb-4">
@@ -565,7 +586,9 @@ export default function AuthPage({ onHome, onSuccess, defaultTab = 'login' }: Pr
 
               {forgotStep === 2 && (
                 <>
-                  <p className="text-sm text-gray-500 mb-4 text-center leading-relaxed">{t.forgotSentMsg}</p>
+                  <p className="text-sm text-gray-500 mb-4 text-center leading-relaxed">
+                    {fChannel === 'telegram' ? t.forgotSentMsgTg : t.forgotSentMsg}
+                  </p>
                   <div className="mb-3">
                     <label className="ds-label">{t.otpCodeLabel}</label>
                     <input

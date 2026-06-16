@@ -1,6 +1,7 @@
-import { Shield, MapPin, Scan, Globe, Users, TrendingUp, CheckCircle, Package, ArrowRight, ChevronDown, Star, Lock, Zap, Clock, CreditCard, Award, BadgeCheck, Sparkles, Activity, Plane, DollarSign, Eye, FileCheck, Building2, Verified, Trophy, Target, BarChart3, Rocket, ArrowLeft, Home } from 'lucide-react';
+import { Shield, MapPin, Scan, Globe, Users, TrendingUp, CheckCircle, Package, ArrowRight, ChevronDown, Star, Lock, Zap, Clock, CreditCard, Award, BadgeCheck, Sparkles, Activity, Plane, DollarSign, Eye, FileCheck, Building2, Verified, Trophy, Target, BarChart3, Rocket, ArrowLeft, Home, AlertCircle } from 'lucide-react';
 import AuthPage from './AuthPage';
 import CargoScanPage from './CargoScanPage';
+import type { AngleEntry } from './CargoScanPage';
 import TravelerPageFull from './TravelerPage';
 import SendPackagePage from './SendPackagePage';
 import MyOrdersPage from './MyOrdersPage';
@@ -1857,10 +1858,90 @@ function NavTrackingPanel({ onClose }: { onClose: () => void }) {
   );
 }
 
+// ─── ScanHandoffEntry ─────────────────────────────────────────────────────────
+// Mobile entry point: redeems a handoff token then mounts CargoScanPage with the
+// scoped session, skipping job creation.
+function ScanHandoffEntry({ token, onHome, onBack }: { token: string; onHome: () => void; onBack: () => void }) {
+  const { t } = useLang();
+  const [phase, setPhase] = useState<'redeeming' | 'ready' | 'error'>('redeeming');
+  const [errMsg, setErrMsg] = useState('');
+  const [sessionData, setSessionData] = useState<{ sessionToken: string; jobId: string; anglePlan: AngleEntry[] } | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch('/api/scan/handoff/redeem', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token }),
+        });
+        if (cancelled) return;
+        if (!res.ok) {
+          const d = await res.json().catch(() => ({})) as { error?: string };
+          const msg = d.error || '';
+          if (msg.includes('expired'))    throw new Error(t.scanHandoffErrExpired);
+          if (msg.includes('already used')) throw new Error(t.scanHandoffErrUsed);
+          throw new Error(msg || t.scanHandoffErrFailed);
+        }
+        const data = await res.json() as { sessionToken: string; jobId: string; anglePlan: AngleEntry[] };
+        if (!cancelled) { setSessionData(data); setPhase('ready'); }
+      } catch (err) {
+        if (!cancelled) { setErrMsg(err instanceof Error ? err.message : t.scanHandoffErrFailed); setPhase('error'); }
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [token]);
+
+  if (phase === 'redeeming') {
+    return (
+      <div className="min-h-screen bg-[#050810] flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 border-2 border-cyan-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-gray-400 text-sm">{t.scanHandoffOpenPhone}</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (phase === 'error') {
+    return (
+      <div className="min-h-screen bg-[#050810] flex flex-col items-center justify-center px-6">
+        <AlertCircle className="w-12 h-12 text-red-400 mb-4" />
+        <p className="text-white font-bold text-center mb-2">{t.scanHandoffErrFailed}</p>
+        <p className="text-gray-400 text-sm text-center mb-6">{errMsg}</p>
+        <button onClick={onHome} className="px-6 py-3 border border-white/15 text-gray-400 rounded-xl hover:bg-white/5 transition-colors text-sm">
+          {t.navHome}
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <CargoScanPage
+      initialJobId={sessionData!.jobId}
+      initialAnglePlan={sessionData!.anglePlan}
+      overrideToken={sessionData!.sessionToken}
+      onBack={onBack}
+      onHome={onHome}
+    />
+  );
+}
+
 // ─── App ──────────────────────────────────────────────────────────────────────
 export default function App() {
   const { lang, setLang, t, isRTL } = useLang();
+  // Detect mobile handoff URL: /scan?handoff=<token>
+  const [mobileHandoffToken] = useState<string | null>(() => {
+    if (window.location.pathname === '/scan') {
+      return new URLSearchParams(window.location.search).get('handoff');
+    }
+    return null;
+  });
   const [currentPage, setCurrentPage] = useState<Page>(() => {
+    if (window.location.pathname === '/scan' && new URLSearchParams(window.location.search).get('handoff')) {
+      return 'cargo-scan';
+    }
     const p = new URLSearchParams(window.location.search).get('page');
     const valid: Page[] = ['home','buy-for-me','send-package','traveler','marketplace','trust-safety','investors','faq','auth','my-orders','wallet','receipt','profile','notifications','traveler-dashboard','smart-tester','cargo-scan'];
     return valid.includes(p as Page) ? (p as Page) : 'home';
@@ -1899,13 +1980,15 @@ export default function App() {
   }, [currentPage]);
 
   // Redirect logged-out users away from protected pages directly to auth (no interstitial)
+  // Exception: cargo-scan in handoff mode — phone has no session, uses scoped token
   useEffect(() => {
     const protected_pages: Page[] = ['send-package', 'traveler', 'buy-for-me', 'my-orders', 'wallet', 'profile', 'traveler-dashboard', 'cargo-scan'];
-    if (!session && protected_pages.includes(currentPage)) {
+    const isHandoffScan = currentPage === 'cargo-scan' && mobileHandoffToken !== null;
+    if (!session && protected_pages.includes(currentPage) && !isHandoffScan) {
       returnPageRef.current = currentPage;
       setCurrentPage('auth');
     }
-  }, [currentPage, session]);
+  }, [currentPage, session, mobileHandoffToken]);
 
   // Sync React state with browser back/forward buttons
   useEffect(() => {
@@ -1919,13 +2002,13 @@ export default function App() {
   const fontStyle = isRTL ? { fontFamily: "'Vazirmatn', Tahoma, Arial, sans-serif" } : {};
 
   // Synchronous auth gate — determines effective page to render without a flash.
-  // The useEffect below still runs to sync currentPage/history, but the render
-  // already shows AuthPage on the very first frame so there is no white interstitial.
+  // Exception: cargo-scan in handoff mode (phone redeems via scoped token, no session needed).
   const AUTH_PROTECTED: Page[] = ['send-package', 'traveler', 'buy-for-me', 'my-orders', 'wallet', 'profile', 'traveler-dashboard', 'cargo-scan'];
-  if (!session && AUTH_PROTECTED.includes(currentPage)) {
-    returnPageRef.current = currentPage; // store intended destination
+  const isHandoffScan = currentPage === 'cargo-scan' && mobileHandoffToken !== null;
+  if (!session && AUTH_PROTECTED.includes(currentPage) && !isHandoffScan) {
+    returnPageRef.current = currentPage;
   }
-  const renderPage: Page = (!session && AUTH_PROTECTED.includes(currentPage)) ? 'auth' : currentPage;
+  const renderPage: Page = (!session && AUTH_PROTECTED.includes(currentPage) && !isHandoffScan) ? 'auth' : currentPage;
 
   return (
     <div dir={isRTL ? 'rtl' : 'ltr'} className="relative min-h-screen bg-[#050810]" style={fontStyle}>
@@ -2199,7 +2282,11 @@ export default function App() {
           {renderPage === 'notifications' && <NotificationsPage onBack={() => setCurrentPage('home')} onHome={() => setCurrentPage('home')} t={t} onNavigate={(p) => setCurrentPage(p as Page)} />}
           {renderPage === 'traveler-dashboard' && <TravelerDashboardPage onBack={() => setCurrentPage('home')} onHome={() => setCurrentPage('home')} t={t} onNewTrip={() => setCurrentPage('traveler')} onNavigate={(p) => setCurrentPage(p as Page)} />}
           {renderPage === 'smart-tester' && <SmartTester onHome={() => setCurrentPage('home')} />}
-          {renderPage === 'cargo-scan' && <CargoScanPage listingId={scanListingId} onBack={() => setCurrentPage('send-package')} onHome={() => setCurrentPage('home')} />}
+          {renderPage === 'cargo-scan' && (
+            mobileHandoffToken
+              ? <ScanHandoffEntry token={mobileHandoffToken} onBack={() => setCurrentPage('home')} onHome={() => setCurrentPage('home')} />
+              : <CargoScanPage listingId={scanListingId} onBack={() => setCurrentPage('send-package')} onHome={() => setCurrentPage('home')} />
+          )}
         </motion.div>
       </AnimatePresence>
     </div>
