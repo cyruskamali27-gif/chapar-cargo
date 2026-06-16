@@ -1,5 +1,6 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { ArrowLeft, Home } from 'lucide-react';
+import GuidedCapture from './GuidedCapture';
 import { Store, genId } from '../lib/store';
 import { useSession } from '../lib/SessionContext';
 import { useLang } from '../lib/LangContext';
@@ -92,10 +93,10 @@ export default function TravelerDashboardPage({ onHome, onNewTrip, onNavigate }:
   const [etMinPx, setEtMinPx]   = useState('');
 
   // Photo modal state
-  const [photoMode, setPhotoMode] = useState<'pickup'|'delivery'|null>(null);
-  const [photoOrd, setPhotoOrd]   = useState('');
-  const [photoData, setPhotoData] = useState<string|null>(null);
-  const fileRef                   = useRef<HTMLInputElement>(null);
+  const [photoMode, setPhotoMode]   = useState<'pickup'|'delivery'|null>(null);
+  const [photoOrd, setPhotoOrd]     = useState('');
+  const [photoData, setPhotoData]   = useState<string|null>(null);
+  const [photoCamOpen, setPhotoCamOpen] = useState(false);
 
   const showToast = (msg: string, ok = true) => {
     setToast(msg); setToastOk(ok); setTimeout(() => setToast(''), 3000);
@@ -241,17 +242,8 @@ export default function TravelerDashboardPage({ onHome, onNewTrip, onNavigate }:
     setEditTrip(null); showToast(t.tdashTripEdited); loadData();
   }
 
-  function openPickup(ordId: string)   { setPhotoMode('pickup');   setPhotoOrd(ordId); setPhotoData(null); }
-  function openDelivery(ordId: string) { setPhotoMode('delivery'); setPhotoOrd(ordId); setPhotoData(null); }
-
-  function onFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (!file.type.startsWith('image/')) { showToast(t.tdashErrImage, false); return; }
-    const reader = new FileReader();
-    reader.onload = ev => setPhotoData(ev.target?.result as string);
-    reader.readAsDataURL(file);
-  }
+  function openPickup(ordId: string)   { setPhotoMode('pickup');   setPhotoOrd(ordId); setPhotoData(null); setPhotoCamOpen(false); }
+  function openDelivery(ordId: string) { setPhotoMode('delivery'); setPhotoOrd(ordId); setPhotoData(null); setPhotoCamOpen(false); }
 
   function submitPhoto() {
     if (!photoData) { showToast(t.tdashErrPhoto, false); return; }
@@ -676,13 +668,23 @@ export default function TravelerDashboardPage({ onHome, onNewTrip, onNavigate }:
               </div>
             ) : (
               <div className="bg-blue-50 border-2 border-dashed border-blue-300 rounded-xl p-7 text-center cursor-pointer mb-4 mt-3"
-                onClick={() => fileRef.current?.click()}>
+                onClick={() => setPhotoCamOpen(true)}>
                 <div className="text-4xl mb-2">📷</div>
                 <div className="text-sm font-bold text-blue-700">{t.tdashTakePhoto}</div>
-                <div className="text-xs text-gray-400 mt-1">{t.tdashDragFile}</div>
               </div>
             )}
-            <input type="file" ref={fileRef} accept="image/*" capture="environment" className="hidden" onChange={onFileChange} />
+            {photoCamOpen && (
+              <GuidedCapture
+                mode="photo"
+                onBack={() => setPhotoCamOpen(false)}
+                onHome={() => { setPhotoCamOpen(false); setPhotoMode(null); }}
+                onComplete={result => {
+                  const blob = result.frames[0]?.blob;
+                  if (blob) setPhotoData(URL.createObjectURL(blob));
+                  setPhotoCamOpen(false);
+                }}
+              />
+            )}
             <div className="flex gap-2">
               <button onClick={() => setPhotoMode(null)} className="flex-1 ds-btn-secondary py-2.5">{t.tdashCancel}</button>
               <button onClick={submitPhoto} disabled={!photoData}

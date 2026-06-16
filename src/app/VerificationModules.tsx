@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { BadgeCheck, Camera, Phone, Cpu, Upload, Package, FileText, AlertCircle, CheckCircle, Clock, XCircle } from 'lucide-react';
 import type { VerificationStatus } from './shipmentTypes';
 import { useLang } from '../lib/LangContext';
+import GuidedCapture, { type CaptureMode } from './GuidedCapture';
 
 // ─── Status badge ──────────────────────────────────────────────────────────────
 export function StatusBadge({ status }: { status: VerificationStatus }) {
@@ -20,7 +21,7 @@ export function StatusBadge({ status }: { status: VerificationStatus }) {
   );
 }
 
-// ─── File upload stub ──────────────────────────────────────────────────────────
+// ─── Genuine file-upload stub (PDFs, video, receipts) ─────────────────────────
 function FileUploadStub({ label, accept, icon: Icon }: { label: string; accept: string; icon: React.FC<{ className?: string }> }) {
   const [file, setFile] = useState<string | null>(null);
   return (
@@ -41,6 +42,47 @@ function FileUploadStub({ label, accept, icon: Icon }: { label: string; accept: 
   );
 }
 
+// ─── Camera capture trigger (photo-capture replacements) ──────────────────────
+function CameraCaptureTrigger({ label, mode, icon: Icon }: {
+  label: string;
+  mode: CaptureMode;
+  icon: React.FC<{ className?: string }>;
+}) {
+  const [open,     setOpen]     = useState(false);
+  const [captured, setCaptured] = useState(false);
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-gray-200 rounded-xl p-4 w-full hover:border-cyan-300 hover:bg-cyan-50/30 transition-all"
+      >
+        {captured ? (
+          <div className="flex items-center gap-2 text-green-600">
+            <CheckCircle className="w-4 h-4" />
+            <span className="text-sm font-medium">{label}</span>
+          </div>
+        ) : (
+          <>
+            <Icon className="w-6 h-6 text-gray-400" />
+            <span className="text-xs text-gray-500 text-center">{label}</span>
+          </>
+        )}
+      </button>
+
+      {open && (
+        <GuidedCapture
+          mode={mode}
+          onBack={() => setOpen(false)}
+          onHome={() => setOpen(false)}
+          onComplete={() => { setCaptured(true); setOpen(false); }}
+        />
+      )}
+    </>
+  );
+}
+
 // ─── Identity Verification ─────────────────────────────────────────────────────
 interface IdentityVerificationProps {
   enabled: boolean;
@@ -52,7 +94,6 @@ export function IdentityVerification({ enabled, onToggle, status }: IdentityVeri
   const { t } = useLang();
   return (
     <div className="border border-gray-200 rounded-xl overflow-hidden">
-      {/* Header toggle */}
       <button
         type="button"
         onClick={() => onToggle(!enabled)}
@@ -75,12 +116,13 @@ export function IdentityVerification({ enabled, onToggle, status }: IdentityVeri
         </div>
       </button>
 
-      {/* Expanded content */}
       {enabled && (
         <div className="border-t border-gray-100 px-5 py-5 bg-slate-50 space-y-4">
           <div className="grid grid-cols-2 gap-3">
+            {/* Document upload: accepts PDF → genuine file upload, left as-is */}
             <FileUploadStub label={t.verDocUpload} accept="image/*,.pdf" icon={FileText} />
-            <FileUploadStub label={t.verSelfieUpload} accept="image/*" icon={Camera} />
+            {/* Selfie: image capture only → camera */}
+            <CameraCaptureTrigger label={t.verSelfieUpload} mode="face" icon={Camera} />
           </div>
 
           <div className="flex items-center justify-between bg-white border border-gray-200 rounded-xl px-4 py-3">
@@ -99,9 +141,7 @@ export function IdentityVerification({ enabled, onToggle, status }: IdentityVeri
             <StatusBadge status={status} />
           </div>
 
-          <p className="text-xs text-gray-400 leading-relaxed">
-            {t.verIdentityNote}
-          </p>
+          <p className="text-xs text-gray-400 leading-relaxed">{t.verIdentityNote}</p>
         </div>
       )}
     </div>
@@ -122,7 +162,6 @@ export function CargoVerification({ enabled, onToggle, status }: CargoVerificati
 
   return (
     <div className="border border-gray-200 rounded-xl overflow-hidden">
-      {/* Header toggle */}
       <button
         type="button"
         onClick={() => onToggle(!enabled)}
@@ -145,13 +184,15 @@ export function CargoVerification({ enabled, onToggle, status }: CargoVerificati
         </div>
       </button>
 
-      {/* Expanded content */}
       {enabled && (
         <div className="border-t border-gray-100 px-5 py-5 bg-slate-50 space-y-4">
           <div className="grid grid-cols-2 gap-3">
-            <FileUploadStub label={t.verCargoPhotos} accept="image/*" icon={Camera} />
+            {/* Cargo photos: image capture only → camera */}
+            <CameraCaptureTrigger label={t.verCargoPhotos} mode="photo" icon={Camera} />
+            {/* Video: video file upload → genuine file upload, left as-is */}
             <FileUploadStub label={t.verCargoVideo} accept="video/*" icon={Upload} />
           </div>
+          {/* Receipt: accepts PDF → genuine file upload, left as-is */}
           <FileUploadStub label={t.verCargoReceipt} accept="image/*,.pdf" icon={FileText} />
 
           <div className="grid grid-cols-2 gap-3">
@@ -175,9 +216,7 @@ export function CargoVerification({ enabled, onToggle, status }: CargoVerificati
             <StatusBadge status={status} />
           </div>
 
-          <p className="text-xs text-gray-400 leading-relaxed">
-            {t.verCargoNote}
-          </p>
+          <p className="text-xs text-gray-400 leading-relaxed">{t.verCargoNote}</p>
         </div>
       )}
     </div>

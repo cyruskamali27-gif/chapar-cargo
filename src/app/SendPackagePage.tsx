@@ -5,6 +5,7 @@ import QRCode from 'react-qr-code';
 import AirportCityAutocomplete, { type AirportOption } from './AirportCityAutocomplete';
 import { getAirportByIata } from './airports';
 import { IdentityVerification, CargoVerification } from './VerificationModules';
+import GuidedCapture from './GuidedCapture';
 import { useSession } from '../lib/SessionContext';
 import { useLang } from '../lib/LangContext';
 import { useVerifyGate } from '../lib/useVerifyGate';
@@ -244,6 +245,8 @@ export default function SendPackagePage({ onHome, cargoType = 'personal', onNavi
   const [recEmail,      setRecEmail]      = useState('');
   const [recAddress,    setRecAddress]    = useState('');
   const [recDocCapture, setRecDocCapture] = useState(false);
+  const [recDocCamOpen, setRecDocCamOpen] = useState(false);
+  const [docCamSlot,    setDocCamSlot]    = useState<'front'|'back'|'selfie'|null>(null);
   const [recConfirmSentVia, setRecConfirmSentVia] = useState<string | null>(null);
 
   const [docType,       setDocType]       = useState<string|null>(null);
@@ -1280,16 +1283,26 @@ export default function SendPackagePage({ onHome, cargoType = 'personal', onNavi
             {highValue && (
               <div className="mb-4">
                 <div className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">{t.spRecDocTitle}</div>
-                <label className={`flex items-center gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all
-                  ${recDocCapture ? 'border-green-400 bg-green-50' : 'border-dashed border-gray-300 bg-gray-50 hover:border-cyan-400'}`}>
+                <button
+                  type="button"
+                  onClick={() => setRecDocCamOpen(true)}
+                  className={`w-full flex items-center gap-3 p-4 rounded-xl border-2 text-start transition-all
+                    ${recDocCapture ? 'border-green-400 bg-green-50' : 'border-dashed border-gray-300 bg-gray-50 hover:border-cyan-400'}`}
+                >
                   <span className="text-2xl">{recDocCapture ? '✅' : '🪪'}</span>
                   <div className="flex-1">
                     <div className="text-sm font-bold text-gray-700">{t.spRecDocCapture}</div>
                     <div className="text-xs text-gray-400">{t.spRecDocSubtitle}</div>
                   </div>
-                  <input type="file" accept="image/*" capture="environment" className="hidden"
-                    onChange={e => { if (e.target.files?.[0]) setRecDocCapture(true); }} />
-                </label>
+                </button>
+                {recDocCamOpen && (
+                  <GuidedCapture
+                    mode="document"
+                    onBack={() => setRecDocCamOpen(false)}
+                    onHome={() => setRecDocCamOpen(false)}
+                    onComplete={() => { setRecDocCapture(true); setRecDocCamOpen(false); }}
+                  />
+                )}
               </div>
             )}
 
@@ -1334,24 +1347,32 @@ export default function SendPackagePage({ onHome, cargoType = 'personal', onNavi
                   <span>💡</span><span>{t.spDocEdgeHint}</span>
                 </div>
                 {[
-                  { key: 'front' as const, icon: '📄', label: t.spDocFrontLabel, hint: t.spDocFrontHint, capture: 'environment' as const },
+                  { key: 'front'  as const, icon: '📄', label: t.spDocFrontLabel,  hint: t.spDocFrontHint,  camMode: 'document' as const },
                   ...(DOC_TYPES.find(d => d.key === docType)?.needBack
-                    ? [{ key: 'back' as const, icon: '📄', label: t.spDocBackLabel, hint: t.spDocFrontHint, capture: 'environment' as const }]
+                    ? [{ key: 'back' as const, icon: '📄', label: t.spDocBackLabel, hint: t.spDocFrontHint, camMode: 'document' as const }]
                     : []),
-                  { key: 'selfie' as const, icon: '🤳', label: t.spDocSelfieLabel, hint: t.spDocSelfieHint, capture: 'user' as const },
+                  { key: 'selfie' as const, icon: '🤳', label: t.spDocSelfieLabel, hint: t.spDocSelfieHint, camMode: 'face'     as const },
                 ].map(slot => (
-                  <label key={slot.key}
-                    className={`flex items-center gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all
+                  <button key={slot.key}
+                    type="button"
+                    onClick={() => setDocCamSlot(slot.key)}
+                    className={`w-full flex items-center gap-3 p-4 rounded-xl border-2 text-start transition-all
                       ${docCaptures[slot.key] ? 'border-green-400 bg-green-50' : 'border-gray-200 bg-white hover:border-cyan-400'}`}>
                     <span className="text-2xl">{docCaptures[slot.key] ? '✅' : slot.icon}</span>
                     <div className="flex-1">
                       <div className="text-sm font-bold text-gray-700">{slot.label}</div>
                       <div className="text-xs text-gray-400">{slot.hint}</div>
                     </div>
-                    <input type="file" accept="image/*" capture={slot.capture} className="hidden"
-                      onChange={e => { if (e.target.files?.[0]) onDocCapture(slot.key); }} />
-                  </label>
+                  </button>
                 ))}
+                {docCamSlot && (
+                  <GuidedCapture
+                    mode={docCamSlot === 'selfie' ? 'face' : 'document'}
+                    onBack={() => setDocCamSlot(null)}
+                    onHome={() => setDocCamSlot(null)}
+                    onComplete={() => { onDocCapture(docCamSlot); setDocCamSlot(null); }}
+                  />
+                )}
               </div>
             )}
 

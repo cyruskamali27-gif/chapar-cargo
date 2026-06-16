@@ -6,7 +6,7 @@ import type { Translations } from './i18n';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
-export type CaptureMode = 'cargo' | 'face' | 'document';
+export type CaptureMode = 'cargo' | 'face' | 'document' | 'photo';
 
 type Phase = 'consent' | 'starting' | 'capturing' | 'uploading' | 'analyzing' | 'result' | 'cam-denied' | 'error';
 
@@ -32,7 +32,7 @@ export interface GuidedCaptureResult {
 
 export interface GuidedCaptureProps {
   mode: CaptureMode;
-  // cargo-specific (scan job creation)
+  // cargo-specific
   listingId?: string;
   agreementId?: string;
   initialJobId?: string;
@@ -44,15 +44,11 @@ export interface GuidedCaptureProps {
   onComplete?: (result: GuidedCaptureResult) => void;
 }
 
-// ── Mode-specific angle plans (face/document bypass scan server) ───────────────
+// ── Mode-specific angle plans ──────────────────────────────────────────────────
 
-const FACE_ANGLE_PLAN: AngleEntry[] = [
-  { kind: 'frame', angle: 'selfie', description: 'straight-on selfie' },
-];
-
-const DOC_ANGLE_PLAN: AngleEntry[] = [
-  { kind: 'frame', angle: 'doc-front', description: 'passport bio page' },
-];
+const FACE_ANGLE_PLAN: AngleEntry[]  = [{ kind: 'frame', angle: 'selfie',    description: 'straight-on selfie' }];
+const DOC_ANGLE_PLAN: AngleEntry[]   = [{ kind: 'frame', angle: 'doc-front', description: 'passport bio page'  }];
+const PHOTO_ANGLE_PLAN: AngleEntry[] = [{ kind: 'frame', angle: 'photo',     description: 'single photo'       }];
 
 // ── Angle label helper ─────────────────────────────────────────────────────────
 
@@ -87,7 +83,7 @@ function angleLabel(angle: string, t: Translations): string {
   return angle.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 }
 
-// ── Quality gate (extended with glare for document mode) ──────────────────────
+// ── Quality gate ───────────────────────────────────────────────────────────────
 
 function checkQuality(
   video: HTMLVideoElement,
@@ -102,7 +98,6 @@ function checkQuality(
     ctx.drawImage(video, 0, 0, W, H);
     const data = ctx.getImageData(0, 0, W, H).data;
 
-    // Brightness
     let bright = 0;
     const n = W * H;
     for (let i = 0; i < data.length; i += 4) {
@@ -110,7 +105,6 @@ function checkQuality(
     }
     if (bright / n < 38) return 'dark';
 
-    // Glare (document mode only)
     if (mode === 'document') {
       let glare = 0;
       for (let i = 0; i < data.length; i += 4) {
@@ -119,7 +113,6 @@ function checkQuality(
       if (glare / n > 0.06) return 'glare';
     }
 
-    // Laplacian variance
     const g = new Float32Array(n);
     for (let i = 0; i < n; i++) {
       g[i] = 0.299 * data[i * 4] + 0.587 * data[i * 4 + 1] + 0.114 * data[i * 4 + 2];
@@ -140,7 +133,7 @@ function checkQuality(
   }
 }
 
-// ── Edge detection (cargo only) ───────────────────────────────────────────────
+// ── Edge detection (cargo only) ────────────────────────────────────────────────
 
 function detectEdgeBox(
   video: HTMLVideoElement,
@@ -238,29 +231,23 @@ function AngleRing({ total, captured, active, size = 120 }: {
 
 // ── Canvas overlays ────────────────────────────────────────────────────────────
 
-function drawCargoOverlay(
+// Shared corner-bracket helper (cargo + photo use this)
+function drawCornerBrackets(
   canvas: HTMLCanvasElement,
   quality: Quality,
   edgeBox: { x: number; y: number; w: number; h: number } | null,
+  frameW: number, frameH: number, fx: number, fy: number,
+  cornerLen: number, borderR: number,
 ) {
   const cw = canvas.width, ch = canvas.height;
   const ctx = canvas.getContext('2d');
   if (!ctx) return;
   ctx.clearRect(0, 0, cw, ch);
 
-  const frameW = Math.min(cw, ch) * 0.74;
-  const frameH = frameW * 0.78;
-  const fx = (cw - frameW) / 2;
-  const fy = (ch - frameH) / 2;
-  const cornerLen = frameW * 0.11;
-  const borderR = 18;
-
   const strokeColor =
-    quality === 'ok'
-      ? 'rgba(6,182,212,0.95)'
-      : quality === 'blur' || quality === 'dark'
-      ? 'rgba(239,68,68,0.88)'
-      : 'rgba(255,255,255,0.55)';
+    quality === 'ok' ? 'rgba(6,182,212,0.95)'
+    : quality !== null ? 'rgba(239,68,68,0.88)'
+    : 'rgba(255,255,255,0.55)';
 
   if (edgeBox) {
     const bx = fx + edgeBox.x * frameW;
@@ -295,14 +282,33 @@ function drawCargoOverlay(
   }
 }
 
+function drawCargoOverlay(
+  canvas: HTMLCanvasElement,
+  quality: Quality,
+  edgeBox: { x: number; y: number; w: number; h: number } | null,
+) {
+  const cw = canvas.width, ch = canvas.height;
+  const frameW = Math.min(cw, ch) * 0.74;
+  const frameH = frameW * 0.78;
+  drawCornerBrackets(canvas, quality, edgeBox, frameW, frameH,
+    (cw - frameW) / 2, (ch - frameH) / 2, frameW * 0.11, 18);
+}
+
+function drawPhotoOverlay(canvas: HTMLCanvasElement, quality: Quality) {
+  const cw = canvas.width, ch = canvas.height;
+  const frameW = Math.min(cw, ch) * 0.80;
+  const frameH = frameW * 0.80;
+  drawCornerBrackets(canvas, quality, null, frameW, frameH,
+    (cw - frameW) / 2, (ch - frameH) / 2, frameW * 0.09, 14);
+}
+
 function drawFaceOverlay(canvas: HTMLCanvasElement, quality: Quality) {
   const cw = canvas.width, ch = canvas.height;
   const ctx = canvas.getContext('2d');
   if (!ctx) return;
   ctx.clearRect(0, 0, cw, ch);
 
-  const cx = cw / 2;
-  const cy = ch * 0.46;
+  const cx = cw / 2, cy = ch * 0.46;
   const rx = Math.min(cw, ch) * 0.30;
   const ry = rx * 1.32;
 
@@ -320,45 +326,18 @@ function drawFaceOverlay(canvas: HTMLCanvasElement, quality: Quality) {
 
 function drawDocOverlay(canvas: HTMLCanvasElement, quality: Quality) {
   const cw = canvas.width, ch = canvas.height;
-  const ctx = canvas.getContext('2d');
-  if (!ctx) return;
-  ctx.clearRect(0, 0, cw, ch);
 
-  // Passport bio page: landscape 3:2 proportions
   const frameW = Math.min(cw * 0.88, ch * 1.48);
   const frameH = frameW * 0.67;
   const fx = (cw - frameW) / 2;
   const fy = (ch - frameH) / 2;
-  const cornerLen = frameW * 0.08;
-  const borderR = 12;
 
-  const strokeColor =
-    quality === 'ok' ? 'rgba(6,182,212,0.95)'
-    : quality !== null ? 'rgba(239,68,68,0.88)'
-    : 'rgba(255,255,255,0.55)';
+  drawCornerBrackets(canvas, quality, null, frameW, frameH, fx, fy, frameW * 0.08, 12);
 
-  // Corner brackets
-  ctx.strokeStyle = strokeColor;
-  ctx.lineWidth = 3;
-  ctx.setLineDash([]);
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
 
-  const corners = [
-    [fx, fy + cornerLen, fx, fy + borderR, fx + borderR, fy, fx + cornerLen, fy],
-    [fx + frameW - cornerLen, fy, fx + frameW - borderR, fy, fx + frameW, fy + borderR, fx + frameW, fy + cornerLen],
-    [fx + frameW, fy + frameH - cornerLen, fx + frameW, fy + frameH - borderR, fx + frameW - borderR, fy + frameH, fx + frameW - cornerLen, fy + frameH],
-    [fx + cornerLen, fy + frameH, fx + borderR, fy + frameH, fx, fy + frameH - borderR, fx, fy + frameH - cornerLen],
-  ] as const;
-
-  for (const [x1, y1, cpx, cpy, x2, y2, x3, y3] of corners) {
-    ctx.beginPath();
-    ctx.moveTo(x1, y1);
-    ctx.lineTo(cpx, cpy);
-    ctx.arcTo(cpx, cpy, x2, y2, borderR);
-    ctx.lineTo(x3, y3);
-    ctx.stroke();
-  }
-
-  // MRZ region indicator (bottom 22% of frame)
+  // MRZ strip indicator
   const mrzH = frameH * 0.22;
   const mrzY = fy + frameH - mrzH;
   ctx.strokeStyle = 'rgba(255,220,50,0.45)';
@@ -379,9 +358,21 @@ function drawOverlay(
   edgeBox: { x: number; y: number; w: number; h: number } | null,
   mode: CaptureMode,
 ) {
-  if (mode === 'cargo') drawCargoOverlay(canvas, quality, edgeBox);
-  else if (mode === 'face') drawFaceOverlay(canvas, quality);
-  else drawDocOverlay(canvas, quality);
+  if (mode === 'cargo')    drawCargoOverlay(canvas, quality, edgeBox);
+  else if (mode === 'face')     drawFaceOverlay(canvas, quality);
+  else if (mode === 'document') drawDocOverlay(canvas, quality);
+  else                          drawPhotoOverlay(canvas, quality);  // 'photo'
+}
+
+// ── Full-screen wrapper for non-capturing phases ───────────────────────────────
+// Ensures GuidedCapture always overlays parent content when used as a modal.
+
+function FullScreen({ children, dir }: { children: React.ReactNode; dir?: string }) {
+  return (
+    <div className="fixed inset-0 z-[9999] bg-[#050810] overflow-y-auto flex flex-col" dir={dir}>
+      {children}
+    </div>
+  );
 }
 
 // ── Main component ─────────────────────────────────────────────────────────────
@@ -398,6 +389,7 @@ export default function GuidedCapture({
   onComplete,
 }: GuidedCaptureProps) {
   const { t, isRTL } = useLang();
+  const dir = isRTL ? 'rtl' : 'ltr';
 
   const [phase, setPhase] = useState<Phase>('consent');
   const [jobId, setJobId] = useState<string | null>(null);
@@ -413,25 +405,25 @@ export default function GuidedCapture({
   const [isRecording, setIsRecording] = useState(false);
   const [capturing, setCapturing] = useState(false);
 
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const qCanvasRef = useRef<HTMLCanvasElement>(null);
+  const videoRef    = useRef<HTMLVideoElement>(null);
+  const qCanvasRef  = useRef<HTMLCanvasElement>(null);
   const edgeCanvasRef = useRef<HTMLCanvasElement>(null);
-  const overlayRef = useRef<HTMLCanvasElement>(null);
-  const streamRef = useRef<MediaStream | null>(null);
+  const overlayRef  = useRef<HTMLCanvasElement>(null);
+  const streamRef   = useRef<MediaStream | null>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
-  const chunksRef = useRef<Blob[]>([]);
-  const qualityRafRef = useRef<number | null>(null);
-  const edgeTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const edgeBoxRef = useRef<typeof edgeBox>(null);
-  const qualityRef = useRef<Quality>(null);
-  const overlayRafRef = useRef<number | null>(null);
+  const chunksRef   = useRef<Blob[]>([]);
+  const qualityRafRef  = useRef<number | null>(null);
+  const edgeTimerRef   = useRef<ReturnType<typeof setInterval> | null>(null);
+  const pollRef        = useRef<ReturnType<typeof setInterval> | null>(null);
+  const edgeBoxRef     = useRef<typeof edgeBox>(null);
+  const qualityRef     = useRef<Quality>(null);
+  const overlayRafRef  = useRef<number | null>(null);
 
-  edgeBoxRef.current = edgeBox;
-  qualityRef.current = quality;
+  edgeBoxRef.current  = edgeBox;
+  qualityRef.current  = quality;
 
-  const frameAngles = anglePlan.filter(a => a.kind === 'frame');
-  const totalFrames = frameAngles.length;
+  const frameAngles  = anglePlan.filter(a => a.kind === 'frame');
+  const totalFrames  = frameAngles.length;
   const capturedCount = frames.length;
 
   const getToken = () => overrideToken || localStorage.getItem('cp_token') || '';
@@ -439,7 +431,7 @@ export default function GuidedCapture({
   useEffect(() => {
     return () => {
       stopCamera();
-      if (pollRef.current) clearInterval(pollRef.current);
+      if (pollRef.current)     clearInterval(pollRef.current);
       if (edgeTimerRef.current) clearInterval(edgeTimerRef.current);
       if (overlayRafRef.current) cancelAnimationFrame(overlayRafRef.current);
     };
@@ -451,7 +443,7 @@ export default function GuidedCapture({
       if (canvas) {
         const parent = canvas.parentElement;
         if (parent && (canvas.width !== parent.clientWidth || canvas.height !== parent.clientHeight)) {
-          canvas.width = parent.clientWidth;
+          canvas.width  = parent.clientWidth;
           canvas.height = parent.clientHeight;
         }
         drawOverlay(canvas, qualityRef.current, edgeBoxRef.current, mode);
@@ -462,15 +454,12 @@ export default function GuidedCapture({
   }, [mode]);
 
   const stopOverlayLoop = () => {
-    if (overlayRafRef.current) {
-      cancelAnimationFrame(overlayRafRef.current);
-      overlayRafRef.current = null;
-    }
+    if (overlayRafRef.current) { cancelAnimationFrame(overlayRafRef.current); overlayRafRef.current = null; }
   };
 
   const startQualityPoll = useCallback(() => {
     const poll = () => {
-      const video = videoRef.current;
+      const video  = videoRef.current;
       const canvas = qCanvasRef.current;
       if (video && canvas) setQuality(checkQuality(video, canvas, mode));
       qualityRafRef.current = requestAnimationFrame(poll);
@@ -484,7 +473,7 @@ export default function GuidedCapture({
 
   const startEdgePoll = useCallback(() => {
     edgeTimerRef.current = setInterval(() => {
-      const video = videoRef.current;
+      const video  = videoRef.current;
       const canvas = edgeCanvasRef.current;
       if (video && canvas) setEdgeBox(detectEdgeBox(video, canvas));
     }, 1000);
@@ -516,7 +505,7 @@ export default function GuidedCapture({
         await videoRef.current.play();
       }
 
-      // Video recording only for cargo
+      // Video recording: cargo only
       if (mode === 'cargo') {
         const mimeType = MediaRecorder.isTypeSupported('video/mp4;codecs=h264')
           ? 'video/mp4;codecs=h264'
@@ -579,9 +568,12 @@ export default function GuidedCapture({
         const data = await res.json() as { jobId: string; anglePlan: AngleEntry[] };
         setJobId(data.jobId);
         setAnglePlan(data.anglePlan);
+      } else if (mode === 'face') {
+        setAnglePlan(FACE_ANGLE_PLAN);
+      } else if (mode === 'document') {
+        setAnglePlan(DOC_ANGLE_PLAN);
       } else {
-        // face/document: hardcoded single-frame plan, no scan job
-        setAnglePlan(mode === 'face' ? FACE_ANGLE_PLAN : DOC_ANGLE_PLAN);
+        setAnglePlan(PHOTO_ANGLE_PLAN);
       }
       await startCamera();
     } catch (err) {
@@ -592,7 +584,7 @@ export default function GuidedCapture({
 
   async function handleCapture() {
     if (capturing) return;
-    const video = videoRef.current;
+    const video  = videoRef.current;
     const qCanvas = qCanvasRef.current;
     if (!video || !qCanvas) return;
 
@@ -603,7 +595,7 @@ export default function GuidedCapture({
     setCapturing(true);
     try {
       const fc = document.createElement('canvas');
-      fc.width = video.videoWidth || 1280;
+      fc.width  = video.videoWidth  || 1280;
       fc.height = video.videoHeight || 720;
       const fctx = fc.getContext('2d');
       if (!fctx) return;
@@ -631,7 +623,7 @@ export default function GuidedCapture({
   }
 
   async function finishCapture(capturedFrames: CapturedFrame[]) {
-    // face/document: local capture only — no upload to scan server
+    // face / document / photo: local capture only — no upload
     if (mode !== 'cargo') {
       stopCamera();
       setPhase('result');
@@ -639,15 +631,12 @@ export default function GuidedCapture({
       return;
     }
 
-    // cargo: existing upload → analyze → poll
+    // cargo: upload → analyze → poll
     let vBlob: Blob | null = null;
     if (recorderRef.current && recorderRef.current.state !== 'inactive') {
       vBlob = await new Promise<Blob>(resolve => {
         const recorder = recorderRef.current!;
-        recorder.onstop = () => {
-          const b = new Blob(chunksRef.current, { type: recorder.mimeType });
-          resolve(b);
-        };
+        recorder.onstop = () => resolve(new Blob(chunksRef.current, { type: recorder.mimeType }));
         recorder.stop();
       });
       setVideoBlob(vBlob);
@@ -662,7 +651,6 @@ export default function GuidedCapture({
       const files: { kind: string; angle?: string }[] = [];
       if (vBlob) files.push({ kind: 'video' });
       for (const f of capturedFrames) files.push({ kind: 'frame', angle: f.angle });
-
       setUploadProgress({ done: 0, total: files.length });
 
       const urlRes = await fetch(`/api/scan/${jobId}/upload-urls`, {
@@ -675,21 +663,14 @@ export default function GuidedCapture({
 
       const mediaKeys: string[] = [];
       let done = 0;
-
       for (const entry of urls) {
         let blob: Blob | undefined;
-        if (entry.kind === 'video') {
-          blob = vBlob ?? undefined;
-        } else {
-          blob = capturedFrames.find(f => f.angle === entry.angle)?.blob;
-        }
+        if (entry.kind === 'video') { blob = vBlob ?? undefined; }
+        else { blob = capturedFrames.find(f => f.angle === entry.angle)?.blob; }
         if (!blob) continue;
-
         const contentType = entry.kind === 'video' ? 'video/mp4' : 'image/jpeg';
         const putRes = await fetch(entry.uploadUrl, {
-          method: 'PUT',
-          headers: { 'Content-Type': contentType },
-          body: blob,
+          method: 'PUT', headers: { 'Content-Type': contentType }, body: blob,
         });
         if (!putRes.ok) throw new Error(`PUT ${entry.key} → HTTP ${putRes.status}`);
         mediaKeys.push(entry.key);
@@ -716,9 +697,7 @@ export default function GuidedCapture({
     if (!jobId) return;
     pollRef.current = setInterval(async () => {
       try {
-        const res = await fetch(`/api/scan/${jobId}`, {
-          headers: { Authorization: `Bearer ${getToken()}` },
-        });
+        const res = await fetch(`/api/scan/${jobId}`, { headers: { Authorization: `Bearer ${getToken()}` } });
         if (!res.ok) return;
         const data = await res.json() as { job: { status: string } };
         const st = data.job.status;
@@ -738,8 +717,7 @@ export default function GuidedCapture({
     setPhase('analyzing');
     try {
       await fetch(`/api/scan/${jobId}/analyze`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${getToken()}` },
+        method: 'POST', headers: { Authorization: `Bearer ${getToken()}` },
       });
       startPolling();
     } catch {
@@ -747,32 +725,43 @@ export default function GuidedCapture({
     }
   }
 
-  // ── Consent screen content by mode ──────────────────────────────────────────
-  const consentTitle = mode === 'face' ? t.gcFaceConsentTitle : mode === 'document' ? t.gcDocConsentTitle : t.scanConsentTitle;
-  const consentBody  = mode === 'face' ? t.gcFaceConsentBody  : mode === 'document' ? t.gcDocConsentBody  : t.scanConsentBody;
+  // ── Mode-specific consent content ────────────────────────────────────────────
+  const consentTitle = mode === 'face'     ? t.gcFaceConsentTitle
+    : mode === 'document' ? t.gcDocConsentTitle
+    : mode === 'photo'    ? t.gcPhotoConsentTitle
+    : t.scanConsentTitle;
+
+  const consentBody = mode === 'face'      ? t.gcFaceConsentBody
+    : mode === 'document' ? t.gcDocConsentBody
+    : mode === 'photo'    ? t.gcPhotoConsentBody
+    : t.scanConsentBody;
+
   const consentItems = mode === 'face'
     ? [t.gcFaceConsentItem1, t.gcFaceConsentItem2, t.gcFaceConsentItem3]
     : mode === 'document'
     ? [t.gcDocConsentItem1, t.gcDocConsentItem2, t.gcDocConsentItem3]
+    : mode === 'photo'
+    ? [t.gcPhotoConsentItem1, t.gcPhotoConsentItem2, t.gcPhotoConsentItem3]
     : [t.scanConsentItem1, t.scanConsentItem2, t.scanConsentItem3];
-  const consentIcon = mode === 'face' ? <User className="w-8 h-8 text-cyan-400" /> : mode === 'document' ? <FileText className="w-8 h-8 text-cyan-400" /> : <Shield className="w-8 h-8 text-cyan-400" />;
 
-  // ── Quality hint ────────────────────────────────────────────────────────────
+  const consentIcon = mode === 'face'     ? <User    className="w-8 h-8 text-cyan-400" />
+    : mode === 'document' ? <FileText className="w-8 h-8 text-cyan-400" />
+    : mode === 'photo'    ? <Camera   className="w-8 h-8 text-cyan-400" />
+    : <Shield className="w-8 h-8 text-cyan-400" />;
+
+  // ── Quality hint ─────────────────────────────────────────────────────────────
   const qualityHint =
     quality === 'blur'  ? t.scanQualityBlur :
     quality === 'dark'  ? t.scanQualityDark :
     quality === 'glare' ? t.gcDocQualityGlare :
-    quality === 'ok'    ? t.scanQualityOk   : '';
+    quality === 'ok'    ? t.scanQualityOk : '';
 
-  const qualityColor =
-    quality === 'ok'  ? 'text-cyan-400' :
-    quality === 'blur' || quality === 'dark' || quality === 'glare' ? 'text-red-400' :
-    'text-gray-400';
+  const qualityColor = quality === 'ok' ? 'text-cyan-400' : quality !== null ? 'text-red-400' : 'text-gray-400';
 
   // ── CONSENT ──────────────────────────────────────────────────────────────────
   if (phase === 'consent') {
     return (
-      <div className="min-h-screen bg-[#050810] flex flex-col" dir={isRTL ? 'rtl' : 'ltr'}>
+      <FullScreen dir={dir}>
         <div className="flex items-center justify-between px-4 pt-6 pb-4">
           <button onClick={onBack} className="p-2 rounded-xl bg-white/5 border border-white/10 text-white hover:bg-white/10 transition-colors">
             <ArrowLeft className="w-5 h-5" />
@@ -811,48 +800,54 @@ export default function GuidedCapture({
             </button>
           </motion.div>
         </div>
-      </div>
+      </FullScreen>
     );
   }
 
   // ── STARTING ─────────────────────────────────────────────────────────────────
   if (phase === 'starting') {
     return (
-      <div className="min-h-screen bg-[#050810] flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-12 h-12 border-2 border-cyan-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-gray-400 text-sm">…</p>
+      <FullScreen>
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <div className="w-12 h-12 border-2 border-cyan-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+            <p className="text-gray-400 text-sm">…</p>
+          </div>
         </div>
-      </div>
+      </FullScreen>
     );
   }
 
   // ── CAMERA DENIED ─────────────────────────────────────────────────────────────
   if (phase === 'cam-denied') {
     return (
-      <div className="min-h-screen bg-[#050810] flex flex-col items-center justify-center px-6" dir={isRTL ? 'rtl' : 'ltr'}>
-        <div className="w-16 h-16 bg-red-500/15 border border-red-500/30 rounded-2xl flex items-center justify-center mb-6">
-          <Camera className="w-8 h-8 text-red-400" />
+      <FullScreen dir={dir}>
+        <div className="flex-1 flex flex-col items-center justify-center px-6">
+          <div className="w-16 h-16 bg-red-500/15 border border-red-500/30 rounded-2xl flex items-center justify-center mb-6">
+            <Camera className="w-8 h-8 text-red-400" />
+          </div>
+          <h2 className="text-xl font-bold text-white text-center mb-2">{t.scanCamDeniedTitle}</h2>
+          <p className="text-gray-400 text-sm text-center mb-4 leading-relaxed">{t.scanCamDeniedDesc}</p>
+          <div className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 mb-8 text-sm text-gray-400 text-center">
+            {t.scanCamDeniedHow}
+          </div>
+          <button onClick={onBack} className="ds-btn-secondary">{t.navBack}</button>
         </div>
-        <h2 className="text-xl font-bold text-white text-center mb-2">{t.scanCamDeniedTitle}</h2>
-        <p className="text-gray-400 text-sm text-center mb-4 leading-relaxed">{t.scanCamDeniedDesc}</p>
-        <div className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 mb-8 text-sm text-gray-400 text-center">
-          {t.scanCamDeniedHow}
-        </div>
-        <button onClick={onBack} className="ds-btn-secondary">{t.navBack}</button>
-      </div>
+      </FullScreen>
     );
   }
 
   // ── ERROR ─────────────────────────────────────────────────────────────────────
   if (phase === 'error') {
     return (
-      <div className="min-h-screen bg-[#050810] flex flex-col items-center justify-center px-6" dir={isRTL ? 'rtl' : 'ltr'}>
-        <AlertCircle className="w-12 h-12 text-red-400 mb-4" />
-        <h2 className="text-lg font-bold text-white text-center mb-2">{t.scanResultFailed}</h2>
-        <p className="text-gray-400 text-sm text-center mb-6">{errMsg}</p>
-        <button onClick={onBack} className="ds-btn-secondary">{t.navBack}</button>
-      </div>
+      <FullScreen dir={dir}>
+        <div className="flex-1 flex flex-col items-center justify-center px-6">
+          <AlertCircle className="w-12 h-12 text-red-400 mb-4" />
+          <h2 className="text-lg font-bold text-white text-center mb-2">{t.scanResultFailed}</h2>
+          <p className="text-gray-400 text-sm text-center mb-6">{errMsg}</p>
+          <button onClick={onBack} className="ds-btn-secondary">{t.navBack}</button>
+        </div>
+      </FullScreen>
     );
   }
 
@@ -860,105 +855,113 @@ export default function GuidedCapture({
   if (phase === 'uploading') {
     const pct = uploadProgress.total > 0 ? Math.round((uploadProgress.done / uploadProgress.total) * 100) : 0;
     return (
-      <div className="min-h-screen bg-[#050810] flex flex-col items-center justify-center px-6" dir={isRTL ? 'rtl' : 'ltr'}>
-        <div className="w-full max-w-xs text-center">
-          <div className="w-12 h-12 border-2 border-cyan-500 border-t-transparent rounded-full animate-spin mx-auto mb-6" />
-          <p className="text-white font-semibold mb-4">{t.scanUploading}</p>
-          <div className="h-2 bg-white/10 rounded-full overflow-hidden">
-            <motion.div
-              className="h-full bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full"
-              initial={{ width: 0 }}
-              animate={{ width: `${pct}%` }}
-              transition={{ ease: 'linear' }}
-            />
+      <FullScreen dir={dir}>
+        <div className="flex-1 flex flex-col items-center justify-center px-6">
+          <div className="w-full max-w-xs text-center">
+            <div className="w-12 h-12 border-2 border-cyan-500 border-t-transparent rounded-full animate-spin mx-auto mb-6" />
+            <p className="text-white font-semibold mb-4">{t.scanUploading}</p>
+            <div className="h-2 bg-white/10 rounded-full overflow-hidden">
+              <motion.div
+                className="h-full bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full"
+                initial={{ width: 0 }}
+                animate={{ width: `${pct}%` }}
+                transition={{ ease: 'linear' }}
+              />
+            </div>
+            <p className="text-gray-500 text-xs mt-2">{pct}%</p>
           </div>
-          <p className="text-gray-500 text-xs mt-2">{pct}%</p>
         </div>
-      </div>
+      </FullScreen>
     );
   }
 
   // ── ANALYZING ─────────────────────────────────────────────────────────────────
   if (phase === 'analyzing') {
     return (
-      <div className="min-h-screen bg-[#050810] flex flex-col items-center justify-center px-6" dir={isRTL ? 'rtl' : 'ltr'}>
-        <div className="relative w-20 h-20 mb-8">
-          <div className="absolute inset-0 rounded-full border-2 border-cyan-500/20 animate-ping" />
-          <div className="w-20 h-20 rounded-full bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center">
-            <div className="w-8 h-8 border-2 border-cyan-500 border-t-transparent rounded-full animate-spin" />
+      <FullScreen dir={dir}>
+        <div className="flex-1 flex flex-col items-center justify-center px-6">
+          <div className="relative w-20 h-20 mb-8">
+            <div className="absolute inset-0 rounded-full border-2 border-cyan-500/20 animate-ping" />
+            <div className="w-20 h-20 rounded-full bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center">
+              <div className="w-8 h-8 border-2 border-cyan-500 border-t-transparent rounded-full animate-spin" />
+            </div>
           </div>
+          <p className="text-white font-semibold text-center mb-2">{t.scanAnalyzing}</p>
+          <p className="text-gray-500 text-xs text-center">Job: {jobId}</p>
         </div>
-        <p className="text-white font-semibold text-center mb-2">{t.scanAnalyzing}</p>
-        <p className="text-gray-500 text-xs text-center">Job: {jobId}</p>
-      </div>
+      </FullScreen>
     );
   }
 
   // ── RESULT ────────────────────────────────────────────────────────────────────
   if (phase === 'result') {
-    // face/document: simple success screen
+    // face / document / photo: simple success screen
     if (mode !== 'cargo') {
       return (
-        <div className="min-h-screen bg-[#050810] flex flex-col items-center justify-center px-6" dir={isRTL ? 'rtl' : 'ltr'}>
+        <FullScreen dir={dir}>
+          <div className="flex-1 flex flex-col items-center justify-center px-6">
+            <motion.div initial={{ opacity: 0, scale: 0.92 }} animate={{ opacity: 1, scale: 1 }} className="w-full max-w-sm text-center">
+              <div className="w-20 h-20 bg-green-500/15 border border-green-500/30 rounded-full flex items-center justify-center mx-auto mb-6">
+                <CheckCircle className="w-10 h-10 text-green-400" />
+              </div>
+              <h2 className="text-2xl font-extrabold text-white mb-3">{t.gcCaptureDone}</h2>
+              <p className="text-gray-400 text-sm leading-relaxed mb-8">{t.gcCaptureDoneDesc}</p>
+              <button onClick={onHome} className="w-full py-3 border border-white/15 text-gray-400 rounded-xl hover:bg-white/5 transition-colors text-sm">
+                {t.navHome}
+              </button>
+            </motion.div>
+          </div>
+        </FullScreen>
+      );
+    }
+
+    // cargo: verified / failed / under-review
+    const isVerified = jobStatus === 'verified';
+    const isFailed   = jobStatus === 'analysis_failed';
+
+    return (
+      <FullScreen dir={dir}>
+        <div className="flex-1 flex flex-col items-center justify-center px-6">
           <motion.div initial={{ opacity: 0, scale: 0.92 }} animate={{ opacity: 1, scale: 1 }} className="w-full max-w-sm text-center">
-            <div className="w-20 h-20 bg-green-500/15 border border-green-500/30 rounded-full flex items-center justify-center mx-auto mb-6">
-              <CheckCircle className="w-10 h-10 text-green-400" />
-            </div>
-            <h2 className="text-2xl font-extrabold text-white mb-3">{t.gcCaptureDone}</h2>
-            <p className="text-gray-400 text-sm leading-relaxed mb-8">{t.gcCaptureDoneDesc}</p>
+            {isVerified ? (
+              <>
+                <div className="w-20 h-20 bg-green-500/15 border border-green-500/30 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <CheckCircle className="w-10 h-10 text-green-400" />
+                </div>
+                <h2 className="text-2xl font-extrabold text-white mb-3">{t.scanResultVerified}</h2>
+                <p className="text-gray-400 text-sm leading-relaxed mb-8">{t.scanResultVerifiedDesc}</p>
+              </>
+            ) : isFailed ? (
+              <>
+                <div className="w-20 h-20 bg-red-500/15 border border-red-500/30 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <AlertCircle className="w-10 h-10 text-red-400" />
+                </div>
+                <h2 className="text-xl font-bold text-white mb-3">{t.scanResultFailed}</h2>
+                <p className="text-gray-400 text-sm mb-6">{t.scanErrNetwork}</p>
+                <motion.button
+                  whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
+                  onClick={handleRetryAnalysis}
+                  className="flex items-center justify-center gap-2 w-full py-3 bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold rounded-xl mb-3"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                  {t.scanRetryAnalysis}
+                </motion.button>
+              </>
+            ) : (
+              <>
+                <div className="w-20 h-20 bg-amber-500/15 border border-amber-500/30 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <Info className="w-10 h-10 text-amber-400" />
+                </div>
+                <h2 className="text-xl font-bold text-white mb-3">{t.scanResultUnderReview}</h2>
+                <p className="text-gray-400 text-sm leading-relaxed mb-8">{t.scanResultUnderReviewDesc}</p>
+              </>
+            )}
             <button onClick={onHome} className="w-full py-3 border border-white/15 text-gray-400 rounded-xl hover:bg-white/5 transition-colors text-sm">
               {t.navHome}
             </button>
           </motion.div>
         </div>
-      );
-    }
-
-    // cargo: existing verified / failed / under-review
-    const isVerified = jobStatus === 'verified';
-    const isFailed   = jobStatus === 'analysis_failed';
-
-    return (
-      <div className="min-h-screen bg-[#050810] flex flex-col items-center justify-center px-6" dir={isRTL ? 'rtl' : 'ltr'}>
-        <motion.div initial={{ opacity: 0, scale: 0.92 }} animate={{ opacity: 1, scale: 1 }} className="w-full max-w-sm text-center">
-          {isVerified ? (
-            <>
-              <div className="w-20 h-20 bg-green-500/15 border border-green-500/30 rounded-full flex items-center justify-center mx-auto mb-6">
-                <CheckCircle className="w-10 h-10 text-green-400" />
-              </div>
-              <h2 className="text-2xl font-extrabold text-white mb-3">{t.scanResultVerified}</h2>
-              <p className="text-gray-400 text-sm leading-relaxed mb-8">{t.scanResultVerifiedDesc}</p>
-            </>
-          ) : isFailed ? (
-            <>
-              <div className="w-20 h-20 bg-red-500/15 border border-red-500/30 rounded-full flex items-center justify-center mx-auto mb-6">
-                <AlertCircle className="w-10 h-10 text-red-400" />
-              </div>
-              <h2 className="text-xl font-bold text-white mb-3">{t.scanResultFailed}</h2>
-              <p className="text-gray-400 text-sm mb-6">{t.scanErrNetwork}</p>
-              <motion.button
-                whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
-                onClick={handleRetryAnalysis}
-                className="flex items-center justify-center gap-2 w-full py-3 bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold rounded-xl mb-3"
-              >
-                <RefreshCw className="w-4 h-4" />
-                {t.scanRetryAnalysis}
-              </motion.button>
-            </>
-          ) : (
-            <>
-              <div className="w-20 h-20 bg-amber-500/15 border border-amber-500/30 rounded-full flex items-center justify-center mx-auto mb-6">
-                <Info className="w-10 h-10 text-amber-400" />
-              </div>
-              <h2 className="text-xl font-bold text-white mb-3">{t.scanResultUnderReview}</h2>
-              <p className="text-gray-400 text-sm leading-relaxed mb-8">{t.scanResultUnderReviewDesc}</p>
-            </>
-          )}
-          <button onClick={onHome} className="w-full py-3 border border-white/15 text-gray-400 rounded-xl hover:bg-white/5 transition-colors text-sm">
-            {t.navHome}
-          </button>
-        </motion.div>
-      </div>
+      </FullScreen>
     );
   }
 
@@ -967,17 +970,18 @@ export default function GuidedCapture({
   const currentLabel = currentAngle ? angleLabel(currentAngle.angle ?? '', t) : '';
   const allDone = capturedCount >= totalFrames && totalFrames > 0;
 
-  // Prompt text for each mode
-  const capturePrompt = mode === 'face'
-    ? t.gcFacePrompt
-    : mode === 'document'
-    ? t.gcDocPrompt
+  const capturePrompt = mode === 'face'     ? t.gcFacePrompt
+    : mode === 'document' ? t.gcDocPrompt
+    : mode === 'photo'    ? t.gcPhotoPrompt
     : `${t.scanCaptureTap} — ${currentLabel}`;
 
-  return (
-    <div className="fixed inset-0 bg-black flex flex-col" dir={isRTL ? 'rtl' : 'ltr'} style={{ zIndex: 9999 }}>
+  // suppress unused warning (videoBlob used by upload path, referenced here to keep linter happy)
+  void videoBlob;
 
-      <canvas ref={qCanvasRef} className="hidden" />
+  return (
+    <div className="fixed inset-0 bg-black flex flex-col" dir={dir} style={{ zIndex: 9999 }}>
+
+      <canvas ref={qCanvasRef}    className="hidden" />
       <canvas ref={edgeCanvasRef} className="hidden" />
 
       {/* Top HUD */}
@@ -993,21 +997,19 @@ export default function GuidedCapture({
         </button>
 
         {/* Angle counter (cargo only) */}
-        {mode === 'cargo' && (
+        {mode === 'cargo' ? (
           <div className="text-white text-sm font-semibold bg-black/40 backdrop-blur-sm px-3 py-1.5 rounded-full border border-white/15">
             {t.scanAngleLabel} {Math.min(capturedCount + 1, totalFrames)} {t.scanAngleOf} {totalFrames}
           </div>
-        )}
-        {mode !== 'cargo' && <div />}
+        ) : <div />}
 
         {/* REC indicator (cargo only) */}
-        {mode === 'cargo' && isRecording && (
+        {mode === 'cargo' && isRecording ? (
           <div className="flex items-center gap-1.5 bg-black/40 backdrop-blur-sm px-3 py-1.5 rounded-full border border-red-500/40">
             <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
             <span className="text-red-400 text-xs font-bold">{t.scanVideoRecording}</span>
           </div>
-        )}
-        {(mode !== 'cargo' || !isRecording) && <div className="w-9" />}
+        ) : <div className="w-9" />}
       </div>
 
       {/* Angle ring (cargo only) */}
@@ -1015,11 +1017,9 @@ export default function GuidedCapture({
         <div className="relative z-20 flex flex-col items-center -mt-2 mb-1 pointer-events-none">
           <AngleRing total={totalFrames} captured={capturedCount} active={currentIdx} size={100} />
           <div className="text-center mt-1 px-4">
-            {allDone ? (
-              <span className="text-cyan-400 text-sm font-bold">{t.scanAllCaptured}</span>
-            ) : (
-              <span className="text-white text-sm font-semibold">{currentLabel}</span>
-            )}
+            {allDone
+              ? <span className="text-cyan-400 text-sm font-bold">{t.scanAllCaptured}</span>
+              : <span className="text-white text-sm font-semibold">{currentLabel}</span>}
           </div>
         </div>
       )}
@@ -1050,12 +1050,10 @@ export default function GuidedCapture({
           <p className="text-gray-300 text-sm text-center font-medium">{capturePrompt}</p>
         )}
 
-        {/* Edge fallback hint (cargo only) */}
         {mode === 'cargo' && !edgeBox && (
           <p className="text-gray-500 text-xs text-center">{t.scanOutlineFallback}</p>
         )}
 
-        {/* Capture button */}
         <motion.button
           whileHover={{ scale: 1.06 }}
           whileTap={{ scale: 0.92 }}

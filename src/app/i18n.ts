@@ -825,6 +825,10 @@ export interface Translations {
   gcDocConsentItem1: string; gcDocConsentItem2: string; gcDocConsentItem3: string;
   gcDocPrompt: string; gcDocQualityGlare: string;
   gcCaptureDone: string; gcCaptureDoneDesc: string;
+  // GuidedCapture photo mode
+  gcPhotoConsentTitle: string; gcPhotoConsentBody: string;
+  gcPhotoConsentItem1: string; gcPhotoConsentItem2: string; gcPhotoConsentItem3: string;
+  gcPhotoPrompt: string;
 }
 
 export const translations: Record<LangCode, Translations> = {
@@ -1640,6 +1644,9 @@ export const translations: Record<LangCode, Translations> = {
     gcDocPrompt: 'سند را در کادر راهنما بیاورید',
     gcDocQualityGlare: 'بازتاب نور — زاویه دوربین را تغییر دهید',
     gcCaptureDone: 'تصویر ثبت شد', gcCaptureDoneDesc: 'تصویر شما با موفقیت گرفته شد.',
+    gcPhotoConsentTitle: 'گرفتن عکس', gcPhotoConsentBody: 'یک عکس واضح با دوربین پشت بگیرید.',
+    gcPhotoConsentItem1: 'سوژه را در کادر قرار دهید', gcPhotoConsentItem2: 'دوربین را ثابت نگه دارید', gcPhotoConsentItem3: 'از نور کافی مطمئن شوید',
+    gcPhotoPrompt: 'برای گرفتن عکس ضربه بزنید',
   },
 
   en: {
@@ -2448,6 +2455,9 @@ export const translations: Record<LangCode, Translations> = {
     gcDocPrompt: 'Align the document within the frame',
     gcDocQualityGlare: 'Glare detected — tilt the camera slightly',
     gcCaptureDone: 'Captured', gcCaptureDoneDesc: 'Your image has been captured successfully.',
+    gcPhotoConsentTitle: 'Take a photo', gcPhotoConsentBody: 'Take a clear photo using the rear camera.',
+    gcPhotoConsentItem1: 'Position the subject in the frame', gcPhotoConsentItem2: 'Keep the camera steady', gcPhotoConsentItem3: 'Ensure you have good lighting',
+    gcPhotoPrompt: 'Tap to capture',
   },
 
   tr: {
@@ -3256,6 +3266,9 @@ export const translations: Record<LangCode, Translations> = {
     gcDocPrompt: 'Belgeyi çerçeveyle hizalayın',
     gcDocQualityGlare: 'Yansıma tespit edildi — kamerayı hafifçe eğin',
     gcCaptureDone: 'Çekildi', gcCaptureDoneDesc: 'Görüntünüz başarıyla çekildi.',
+    gcPhotoConsentTitle: 'Fotoğraf çek', gcPhotoConsentBody: 'Arka kamerayı kullanarak net bir fotoğraf çekin.',
+    gcPhotoConsentItem1: 'Konuyu çerçeve içine yerleştirin', gcPhotoConsentItem2: 'Kamerayı sabit tutun', gcPhotoConsentItem3: 'İyi bir aydınlatma sağlayın',
+    gcPhotoPrompt: 'Çekmek için dokun',
   },
 
   ar: {
@@ -4063,6 +4076,9 @@ export const translations: Record<LangCode, Translations> = {
     gcDocPrompt: 'محاذاة المستند داخل الإطار',
     gcDocQualityGlare: 'تم اكتشاف وهج — أمِل الكاميرا قليلاً',
     gcCaptureDone: 'تم الالتقاط', gcCaptureDoneDesc: 'تم التقاط صورتك بنجاح.',
+    gcPhotoConsentTitle: 'التقط صورة', gcPhotoConsentBody: 'التقط صورة واضحة باستخدام الكاميرا الخلفية.',
+    gcPhotoConsentItem1: 'ضع الموضوع في الإطار', gcPhotoConsentItem2: 'ثبّت الكاميرا', gcPhotoConsentItem3: 'تأكد من الإضاءة الجيدة',
+    gcPhotoPrompt: 'انقر للالتقاط',
   },
 
   fr: {
@@ -4871,6 +4887,9 @@ export const translations: Record<LangCode, Translations> = {
     gcDocPrompt: 'Alignez le document dans le cadre',
     gcDocQualityGlare: 'Reflet détecté — inclinez légèrement la caméra',
     gcCaptureDone: 'Capturé', gcCaptureDoneDesc: 'Votre image a été capturée avec succès.',
+    gcPhotoConsentTitle: 'Prendre une photo', gcPhotoConsentBody: 'Prenez une photo nette avec la caméra arrière.',
+    gcPhotoConsentItem1: 'Placez le sujet dans le cadre', gcPhotoConsentItem2: 'Tenez la caméra immobile', gcPhotoConsentItem3: "Assurez-vous d'avoir un bon éclairage",
+    gcPhotoPrompt: 'Appuyez pour capturer',
   },
 
   zh: {
@@ -5672,5 +5691,8 @@ export const translations: Record<LangCode, Translations> = {
     gcDocPrompt: '将证件对准框架',
     gcDocQualityGlare: '检测到反光 — 稍微倾斜相机',
     gcCaptureDone: '已拍摄', gcCaptureDoneDesc: '您的图像已成功拍摄。',
+    gcPhotoConsentTitle: '拍摄照片', gcPhotoConsentBody: '使用后置摄像头拍摄清晰的照片。',
+    gcPhotoConsentItem1: '将拍摄对象置于框内', gcPhotoConsentItem2: '保持相机稳定', gcPhotoConsentItem3: '确保光线充足',
+    gcPhotoPrompt: '点击拍摄',
   },
 };
