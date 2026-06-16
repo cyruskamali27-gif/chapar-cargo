@@ -14,6 +14,7 @@ import HowtoPage from "./pages/HowtoPage.tsx";
 import VerifyPage from "./pages/VerifyPage.tsx";
 import OrderPage from "./pages/OrderPage.tsx";
 import PaymentPage from "./pages/PaymentPage.tsx";
+import ConfirmPage from "./pages/ConfirmPage.tsx";
 import { SessionProvider } from "./lib/SessionContext.tsx";
 import { LangProvider } from "./lib/LangContext.tsx";
 
@@ -44,6 +45,8 @@ if (path.startsWith('/google-earth-preview')) {
   element = <SupportPage />;
 } else if (path.startsWith('/howto')) {
   element = <HowtoPage />;
+} else if (path.startsWith('/confirm')) {
+  element = <ConfirmPage />;
 } else if (path.startsWith('/verify') && !path.endsWith('.html')) {
   element = <VerifyPage />;
 } else if (path.startsWith('/order') && !path.endsWith('.html')) {

@@ -241,8 +241,10 @@ export default function SendPackagePage({ onHome, cargoType = 'personal', onNavi
   const [recFirst,      setRecFirst]      = useState('');
   const [recLast,       setRecLast]       = useState('');
   const [recPhone,      setRecPhone]      = useState('');
+  const [recEmail,      setRecEmail]      = useState('');
   const [recAddress,    setRecAddress]    = useState('');
   const [recDocCapture, setRecDocCapture] = useState(false);
+  const [recConfirmSentVia, setRecConfirmSentVia] = useState<string | null>(null);
 
   const [docType,       setDocType]       = useState<string|null>(null);
   const [docCaptures,   setDocCaptures]   = useState({ front: false, back: false, selfie: false });
@@ -310,6 +312,7 @@ export default function SendPackagePage({ onHome, cargoType = 'personal', onNavi
     if (d.recFirst)      setRecFirst(d.recFirst);
     if (d.recLast)       setRecLast(d.recLast);
     if (d.recPhone)      setRecPhone(d.recPhone);
+    if (d.recEmail)      setRecEmail(d.recEmail);
     if (d.recAddress)    setRecAddress(d.recAddress);
     if (d.docType)       setDocType(d.docType);
     if (d.idVerified)    setDocVerified(true);
@@ -602,7 +605,9 @@ export default function SendPackagePage({ onHome, cargoType = 'personal', onNavi
       recFirstName:         recFirst.trim(),
       recLastName:          recLast.trim(),
       recPhone:             recPhone.trim(),
+      recEmail:             recEmail.trim() || null,
       recAddress:           recAddress.trim(),
+      recipientConfirmation: 'pending',
       dimensions:           dims,
       payMethod:            selectedPay,
       phone:                session.phone,
@@ -633,6 +638,22 @@ export default function SendPackagePage({ onHome, cargoType = 'personal', onNavi
         body: JSON.stringify({ type: 'cargo_listing', refId: order.trackId, payload: order }),
       });
     } catch { /* non-fatal */ }
+
+    // Fire-and-forget: send recipient confirmation (non-blocking, does not affect shipment creation)
+    fetch('/api/auth/confirm/create', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        shipmentId:     order.trackId,
+        recipientPhone: order.recPhone || null,
+        recipientEmail: order.recEmail || null,
+        senderName:     [session.firstName, session.lastName].filter(Boolean).join(' ') || session.email || '',
+        destCity:       dest.city,
+      }),
+    })
+      .then(r => r.json())
+      .then(d => { if (d.ok) setRecConfirmSentVia(d.sentVia); })
+      .catch(() => { /* non-fatal */ });
 
     const users = Store.get<Array<Record<string,unknown>>>('users') ?? [];
     const idx = users.findIndex(u => u.userId === session.userId);
@@ -722,9 +743,25 @@ export default function SendPackagePage({ onHome, cargoType = 'personal', onNavi
               <span>⏳</span><span>{t.spSuccessPending}</span>
             </div>
             <p className="text-gray-500 text-sm leading-relaxed mb-6">{t.spSuccessDesc}</p>
-            <div className="bg-cyan-50 border border-cyan-200 rounded-xl px-6 py-4 mb-6">
+            <div className="bg-cyan-50 border border-cyan-200 rounded-xl px-6 py-4 mb-4">
               <div className="text-xs font-bold text-cyan-600 uppercase tracking-wider mb-1">{t.spTrackingCode}</div>
               <div className="text-xl font-extrabold text-gray-900 tracking-wider font-mono">{trackId}</div>
+            </div>
+            <div className="flex items-center justify-center gap-2 text-sm mb-6">
+              <span className="text-gray-500 font-semibold">{t.spRecConfirmStatus}:</span>
+              {recConfirmSentVia === null ? (
+                <span className="inline-flex items-center gap-1 bg-amber-50 border border-amber-200 text-amber-700 font-bold rounded-lg px-3 py-1">
+                  ⏳ {t.spRecConfirmPending}
+                </span>
+              ) : recConfirmSentVia === 'email' ? (
+                <span className="inline-flex items-center gap-1 bg-cyan-50 border border-cyan-200 text-cyan-700 font-bold rounded-lg px-3 py-1">
+                  ✉️ {t.spRecConfirmEmailSent}
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 bg-yellow-50 border border-yellow-200 text-yellow-700 font-bold rounded-lg px-3 py-1">
+                  📱 {t.spRecConfirmSmsPending}
+                </span>
+              )}
             </div>
             <div className="flex flex-col gap-3">
               {/* ── M4: Desktop→Phone QR handoff ── */}
@@ -1221,6 +1258,17 @@ export default function SendPackagePage({ onHome, cargoType = 'personal', onNavi
                 onChange={v => { setRecPhone(v); setErr(''); }}
                 defaultCountry={(isRTL ? 'IR' : 'CA') as Country}
                 placeholder={t.phonePlaceholder}
+              />
+            </div>
+            <div className="mb-4">
+              <label className="ds-label">{t.spRecEmail}</label>
+              <input
+                type="email"
+                className="ds-input"
+                placeholder={t.spRecEmailPlaceholder}
+                value={recEmail}
+                onChange={e => { setRecEmail(e.target.value); setErr(''); }}
+                style={{ direction: 'ltr' }}
               />
             </div>
             <div className="mb-4">

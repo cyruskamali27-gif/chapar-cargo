@@ -364,7 +364,10 @@ export interface Translations {
   spIrrWarning: string; spUsdEquiv: string; spCurrencyModal: string;
   spStep6Title: string; spStep6Desc: string;
   spRecFirstName: string; spRecLastName: string;
-  spRecPhone: string; spRecAddress: string; spRecAddressPlaceholder: string;
+  spRecPhone: string; spRecEmail: string; spRecEmailPlaceholder: string;
+  spRecAddress: string; spRecAddressPlaceholder: string;
+  spRecConfirmStatus: string; spRecConfirmPending: string; spRecConfirmConfirmed: string;
+  spRecConfirmEmailSent: string; spRecConfirmSmsPending: string;
   spHighValueTitle: string; spHighValueDesc: string;
   spRecDocTitle: string; spRecDocCapture: string; spRecDocSubtitle: string;
   spStep7Title: string; spStep7Desc: string; spDocTypeLabel: string;
@@ -809,6 +812,11 @@ export interface Translations {
   scanAttestProhibited: string; scanAttestValue: string;
   scanAttestSigned: string; scanAttestSignOk: string; scanAttestSignFail: string;
   scanAttestMediaFiles: string; scanAttestCreatedAt: string; scanAttestReviewer: string;
+  // Phase R — Recipient confirmation page
+  confirmTitle: string; confirmSubtitle: string;
+  confirmSenderLabel: string; confirmDestLabel: string;
+  confirmBtn: string; confirmDone: string;
+  confirmExpired: string; confirmInvalid: string; confirmAlreadyDone: string; confirmLoading: string;
 }
 
 export const translations: Record<LangCode, Translations> = {
@@ -1140,7 +1148,10 @@ export const translations: Record<LangCode, Translations> = {
     spUsdEquiv: 'معادل تقریبی:', spCurrencyModal: 'انتخاب ارز',
     spStep6Title: 'اطلاعات گیرنده', spStep6Desc: 'اطلاعات شخصی که کالا را دریافت می‌کند',
     spRecFirstName: 'نام گیرنده', spRecLastName: 'نام خانوادگی گیرنده',
-    spRecPhone: 'تلفن گیرنده', spRecAddress: 'شهر/منطقه تحویل',
+    spRecPhone: 'تلفن گیرنده', spRecEmail: 'ایمیل گیرنده (اختیاری)', spRecEmailPlaceholder: 'recipient@example.com',
+    spRecConfirmStatus: 'تأیید گیرنده', spRecConfirmPending: 'در انتظار', spRecConfirmConfirmed: 'تأیید شد',
+    spRecConfirmEmailSent: 'درخواست تأیید به ایمیل گیرنده ارسال شد', spRecConfirmSmsPending: 'پیامک ارسال خواهد شد پس از راه‌اندازی خط',
+    spRecAddress: 'شهر/منطقه تحویل',
     spRecAddressPlaceholder: 'مثال: تورنتو، انتاریو',
     spHighValueTitle: 'تأیید هویت گیرنده لازم است',
     spHighValueDesc: 'به دلیل ارزش بالای کالا، تصویر مدرک هویتی گیرنده لازم است.',
@@ -1608,6 +1619,11 @@ export const translations: Record<LangCode, Translations> = {
     scanAttestProhibited: 'بررسی ممنوعه', scanAttestValue: 'ارزش',
     scanAttestSigned: 'مهر تأیید', scanAttestSignOk: 'امضا تأیید شد', scanAttestSignFail: 'امضا نادرست — احتمال دستکاری',
     scanAttestMediaFiles: 'تعداد رسانه', scanAttestCreatedAt: 'زمان گواهی', scanAttestReviewer: 'بررسی‌کننده',
+    confirmTitle: 'بسته در راه است', confirmSubtitle: 'یک بسته از طریق چاپار برای شما ارسال شده است. لطفاً تأیید کنید که منتظر دریافت آن هستید.',
+    confirmSenderLabel: 'فرستنده', confirmDestLabel: 'مقصد',
+    confirmBtn: 'تأیید می‌کنم — منتظر بسته هستم', confirmDone: 'تأیید شد! ممنون از شما.',
+    confirmExpired: 'این لینک منقضی شده یا قبلاً استفاده شده است.', confirmInvalid: 'لینک تأیید نامعتبر است.',
+    confirmAlreadyDone: 'این بسته قبلاً تأیید شده است.', confirmLoading: 'در حال بارگذاری…',
   },
 
   en: {
@@ -1934,7 +1950,10 @@ export const translations: Record<LangCode, Translations> = {
     spUsdEquiv: 'Approx. USD:', spCurrencyModal: 'Select Currency',
     spStep6Title: 'Receiver Info', spStep6Desc: 'Details of the person receiving the item',
     spRecFirstName: 'Receiver First Name', spRecLastName: 'Receiver Last Name',
-    spRecPhone: 'Receiver Phone', spRecAddress: 'Delivery City/Region',
+    spRecPhone: 'Receiver Phone', spRecEmail: 'Receiver Email (optional)', spRecEmailPlaceholder: 'recipient@example.com',
+    spRecConfirmStatus: 'Recipient confirmation', spRecConfirmPending: 'Pending', spRecConfirmConfirmed: 'Confirmed',
+    spRecConfirmEmailSent: 'Confirmation request sent to recipient email', spRecConfirmSmsPending: 'SMS will be sent once Twilio number is provisioned',
+    spRecAddress: 'Delivery City/Region',
     spRecAddressPlaceholder: 'e.g. Toronto, Ontario',
     spHighValueTitle: 'Receiver ID Verification Required',
     spHighValueDesc: 'Due to high item value, receiver ID document photo is required.',
@@ -2400,6 +2419,11 @@ export const translations: Record<LangCode, Translations> = {
     scanAttestProhibited: 'Prohibited check', scanAttestValue: 'Value check',
     scanAttestSigned: 'Tamper-evident', scanAttestSignOk: 'Signature verified', scanAttestSignFail: 'Signature mismatch — possible tampering',
     scanAttestMediaFiles: 'Media files', scanAttestCreatedAt: 'Attested at', scanAttestReviewer: 'Reviewer',
+    confirmTitle: 'Package on the way', confirmSubtitle: 'A package is being sent to you via Chapar. Please confirm you are expecting it.',
+    confirmSenderLabel: 'Sender', confirmDestLabel: 'Destination',
+    confirmBtn: 'Confirm — I\'m expecting this package', confirmDone: 'Confirmed! Thank you.',
+    confirmExpired: 'This link has expired or has already been used.', confirmInvalid: 'Invalid confirmation link.',
+    confirmAlreadyDone: 'This package has already been confirmed.', confirmLoading: 'Loading…',
   },
 
   tr: {
@@ -2726,7 +2750,10 @@ export const translations: Record<LangCode, Translations> = {
     spUsdEquiv: 'Yaklaşık USD:', spCurrencyModal: 'Para Birimi Seç',
     spStep6Title: 'Alıcı Bilgileri', spStep6Desc: 'Ürünü teslim alacak kişinin bilgileri',
     spRecFirstName: 'Alıcı Adı', spRecLastName: 'Alıcı Soyadı',
-    spRecPhone: 'Alıcı Telefonu', spRecAddress: 'Teslimat Şehri/Bölgesi',
+    spRecPhone: 'Alıcı Telefonu', spRecEmail: 'Alıcı E-postası (isteğe bağlı)', spRecEmailPlaceholder: 'recipient@example.com',
+    spRecConfirmStatus: 'Alıcı onayı', spRecConfirmPending: 'Bekliyor', spRecConfirmConfirmed: 'Onaylandı',
+    spRecConfirmEmailSent: 'Onay isteği alıcı e-postasına gönderildi', spRecConfirmSmsPending: 'SMS, Twilio hattı sağlandıktan sonra gönderilecek',
+    spRecAddress: 'Teslimat Şehri/Bölgesi',
     spRecAddressPlaceholder: 'ör. Toronto, Ontario',
     spHighValueTitle: 'Alıcı Kimlik Doğrulaması Gerekli',
     spHighValueDesc: 'Yüksek ürün değeri nedeniyle alıcı kimlik belgesi fotoğrafı gereklidir.',
@@ -3192,6 +3219,11 @@ export const translations: Record<LangCode, Translations> = {
     scanAttestProhibited: 'Yasaklı kontrolü', scanAttestValue: 'Değer kontrolü',
     scanAttestSigned: 'Değişmez kayıt', scanAttestSignOk: 'İmza doğrulandı', scanAttestSignFail: 'İmza uyuşmuyor — olası müdahale',
     scanAttestMediaFiles: 'Medya dosyaları', scanAttestCreatedAt: 'Tasdik tarihi', scanAttestReviewer: 'İnceleyici',
+    confirmTitle: 'Paket yolda', confirmSubtitle: 'Chapar üzerinden size bir paket gönderilmektedir. Lütfen beklediğinizi onaylayın.',
+    confirmSenderLabel: 'Gönderen', confirmDestLabel: 'Hedef',
+    confirmBtn: 'Onaylıyorum — Bu paketi bekliyorum', confirmDone: 'Onaylandı! Teşekkürler.',
+    confirmExpired: 'Bu bağlantı süresi dolmuş veya zaten kullanılmış.', confirmInvalid: 'Geçersiz onay bağlantısı.',
+    confirmAlreadyDone: 'Bu paket zaten onaylandı.', confirmLoading: 'Yükleniyor…',
   },
 
   ar: {
@@ -3518,7 +3550,10 @@ export const translations: Record<LangCode, Translations> = {
     spUsdEquiv: 'ما يعادل بالدولار:', spCurrencyModal: 'اختر العملة',
     spStep6Title: 'معلومات المستلم', spStep6Desc: 'بيانات الشخص الذي سيستلم الغرض',
     spRecFirstName: 'اسم المستلم', spRecLastName: 'اسم عائلة المستلم',
-    spRecPhone: 'هاتف المستلم', spRecAddress: 'مدينة/منطقة التسليم',
+    spRecPhone: 'هاتف المستلم', spRecEmail: 'بريد المستلم (اختياري)', spRecEmailPlaceholder: 'recipient@example.com',
+    spRecConfirmStatus: 'تأكيد المستلم', spRecConfirmPending: 'قيد الانتظار', spRecConfirmConfirmed: 'تم التأكيد',
+    spRecConfirmEmailSent: 'تم إرسال طلب التأكيد إلى بريد المستلم', spRecConfirmSmsPending: 'سيُرسَل الرسائل النصية بعد تفعيل خط Twilio',
+    spRecAddress: 'مدينة/منطقة التسليم',
     spRecAddressPlaceholder: 'مثال: دبي، الإمارات',
     spHighValueTitle: 'مطلوب التحقق من هوية المستلم',
     spHighValueDesc: 'نظراً لقيمة الغرض المرتفعة، يلزم تقديم صورة وثيقة هوية المستلم.',
@@ -3983,6 +4018,11 @@ export const translations: Record<LangCode, Translations> = {
     scanAttestProhibited: 'فحص المحظورات', scanAttestValue: 'فحص القيمة',
     scanAttestSigned: 'سجل محمي', scanAttestSignOk: 'التوقيع مُتحقَّق منه', scanAttestSignFail: 'عدم تطابق التوقيع — احتمال تلاعب',
     scanAttestMediaFiles: 'ملفات الوسائط', scanAttestCreatedAt: 'وقت الإقرار', scanAttestReviewer: 'المراجع',
+    confirmTitle: 'الطرد في الطريق', confirmSubtitle: 'يجري إرسال طرد إليك عبر چاپار. يرجى تأكيد توقعك استلامه.',
+    confirmSenderLabel: 'المُرسِل', confirmDestLabel: 'الوجهة',
+    confirmBtn: 'أؤكد — أتوقع هذا الطرد', confirmDone: 'تم التأكيد! شكراً لك.',
+    confirmExpired: 'انتهت صلاحية هذا الرابط أو سبق استخدامه.', confirmInvalid: 'رابط التأكيد غير صالح.',
+    confirmAlreadyDone: 'تم تأكيد هذا الطرد بالفعل.', confirmLoading: 'جارٍ التحميل…',
   },
 
   fr: {
@@ -4309,7 +4349,10 @@ export const translations: Record<LangCode, Translations> = {
     spUsdEquiv: 'Equiv. USD :', spCurrencyModal: 'Choisir devise',
     spStep6Title: 'Infos destinataire', spStep6Desc: 'Détails de la personne qui reçoit le colis',
     spRecFirstName: 'Prénom du destinataire', spRecLastName: 'Nom du destinataire',
-    spRecPhone: 'Téléphone du destinataire', spRecAddress: 'Ville/région de livraison',
+    spRecPhone: 'Téléphone du destinataire', spRecEmail: 'E-mail du destinataire (optionnel)', spRecEmailPlaceholder: 'recipient@example.com',
+    spRecConfirmStatus: 'Confirmation du destinataire', spRecConfirmPending: 'En attente', spRecConfirmConfirmed: 'Confirmé',
+    spRecConfirmEmailSent: 'Demande de confirmation envoyée à l\'e-mail du destinataire', spRecConfirmSmsPending: 'SMS envoyé dès que le numéro Twilio est activé',
+    spRecAddress: 'Ville/région de livraison',
     spRecAddressPlaceholder: 'ex. Paris, France',
     spHighValueTitle: 'Vérification ID du destinataire requise',
     spHighValueDesc: 'En raison de la valeur élevée, une photo de la pièce d\'identité du destinataire est requise.',
@@ -4775,6 +4818,11 @@ export const translations: Record<LangCode, Translations> = {
     scanAttestProhibited: 'Vérification interdit', scanAttestValue: 'Vérification valeur',
     scanAttestSigned: 'Registre inviolable', scanAttestSignOk: 'Signature vérifiée', scanAttestSignFail: 'Signature incorrecte — possible falsification',
     scanAttestMediaFiles: 'Fichiers médias', scanAttestCreatedAt: 'Attesté le', scanAttestReviewer: 'Réviseur',
+    confirmTitle: 'Colis en route', confirmSubtitle: 'Un colis vous est envoyé via Chapar. Veuillez confirmer que vous l\'attendez.',
+    confirmSenderLabel: 'Expéditeur', confirmDestLabel: 'Destination',
+    confirmBtn: 'Je confirme — j\'attends ce colis', confirmDone: 'Confirmé ! Merci.',
+    confirmExpired: 'Ce lien a expiré ou a déjà été utilisé.', confirmInvalid: 'Lien de confirmation invalide.',
+    confirmAlreadyDone: 'Ce colis a déjà été confirmé.', confirmLoading: 'Chargement…',
   },
 
   zh: {
@@ -5101,7 +5149,10 @@ export const translations: Record<LangCode, Translations> = {
     spUsdEquiv: '约合美元：', spCurrencyModal: '选择货币',
     spStep6Title: '收件人信息', spStep6Desc: '接收物品人员的详细信息',
     spRecFirstName: '收件人名字', spRecLastName: '收件人姓氏',
-    spRecPhone: '收件人电话', spRecAddress: '配送城市/地区',
+    spRecPhone: '收件人电话', spRecEmail: '收件人邮箱（可选）', spRecEmailPlaceholder: 'recipient@example.com',
+    spRecConfirmStatus: '收件人确认', spRecConfirmPending: '待确认', spRecConfirmConfirmed: '已确认',
+    spRecConfirmEmailSent: '确认请求已发送至收件人邮箱', spRecConfirmSmsPending: 'Twilio号码开通后将发送短信',
+    spRecAddress: '配送城市/地区',
     spRecAddressPlaceholder: '例如：上海，中国',
     spHighValueTitle: '需要收件人身份验证',
     spHighValueDesc: '由于物品价值较高，需要提供收件人身份证件照片。',
@@ -5560,5 +5611,10 @@ export const translations: Record<LangCode, Translations> = {
     scanAttestProhibited: '违禁品检查', scanAttestValue: '价值核查',
     scanAttestSigned: '防篡改记录', scanAttestSignOk: '签名已验证', scanAttestSignFail: '签名不匹配 — 可能遭篡改',
     scanAttestMediaFiles: '媒体文件', scanAttestCreatedAt: '证明时间', scanAttestReviewer: '审核员',
+    confirmTitle: '包裹在途', confirmSubtitle: '有人通过Chapar向您发送了包裹，请确认您正在等待接收。',
+    confirmSenderLabel: '发件人', confirmDestLabel: '目的地',
+    confirmBtn: '确认 — 我在等待此包裹', confirmDone: '已确认！谢谢您。',
+    confirmExpired: '此链接已过期或已被使用。', confirmInvalid: '无效的确认链接。',
+    confirmAlreadyDone: '此包裹已被确认。', confirmLoading: '加载中…',
   },
 };
