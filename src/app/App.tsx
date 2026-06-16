@@ -1,5 +1,6 @@
 import { Shield, MapPin, Scan, Globe, Users, TrendingUp, CheckCircle, Package, ArrowRight, ChevronDown, Star, Lock, Zap, Clock, CreditCard, Award, BadgeCheck, Sparkles, Activity, Plane, DollarSign, Eye, FileCheck, Building2, Verified, Trophy, Target, BarChart3, Rocket, ArrowLeft, Home } from 'lucide-react';
 import AuthPage from './AuthPage';
+import CargoScanPage from './CargoScanPage';
 import TravelerPageFull from './TravelerPage';
 import SendPackagePage from './SendPackagePage';
 import MyOrdersPage from './MyOrdersPage';
@@ -58,7 +59,7 @@ import { useLang } from '../lib/LangContext';
 
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-type Page = 'home' | 'buy-for-me' | 'send-package' | 'traveler' | 'marketplace' | 'trust-safety' | 'investors' | 'faq' | 'auth' | 'my-orders' | 'wallet' | 'receipt' | 'profile' | 'notifications' | 'traveler-dashboard' | 'smart-tester';
+type Page = 'home' | 'buy-for-me' | 'send-package' | 'traveler' | 'marketplace' | 'trust-safety' | 'investors' | 'faq' | 'auth' | 'my-orders' | 'wallet' | 'receipt' | 'profile' | 'notifications' | 'traveler-dashboard' | 'smart-tester' | 'cargo-scan';
 
 // ─── CountUpAnimation ─────────────────────────────────────────────────────────
 function CountUpAnimation({ end, suffix = '', prefix = '', duration = 2 }: { end: number; suffix?: string; prefix?: string; duration?: number }) {
@@ -1861,10 +1862,11 @@ export default function App() {
   const { lang, setLang, t, isRTL } = useLang();
   const [currentPage, setCurrentPage] = useState<Page>(() => {
     const p = new URLSearchParams(window.location.search).get('page');
-    const valid: Page[] = ['home','buy-for-me','send-package','traveler','marketplace','trust-safety','investors','faq','auth','my-orders','wallet','receipt','profile','notifications','traveler-dashboard','smart-tester'];
+    const valid: Page[] = ['home','buy-for-me','send-package','traveler','marketplace','trust-safety','investors','faq','auth','my-orders','wallet','receipt','profile','notifications','traveler-dashboard','smart-tester','cargo-scan'];
     return valid.includes(p as Page) ? (p as Page) : 'home';
   });
   const [receiptId, setReceiptId] = useState<string | null>(null);
+  const [scanListingId, setScanListingId] = useState<string | undefined>(undefined);
   const [isScrolled, setIsScrolled] = useState(false);
   const [showAICopilot, setShowAICopilot] = useState(false);
   const [showSmartTester, setShowSmartTester] = useState(false);
@@ -1898,7 +1900,7 @@ export default function App() {
 
   // Redirect logged-out users away from protected pages directly to auth (no interstitial)
   useEffect(() => {
-    const protected_pages: Page[] = ['send-package', 'traveler', 'buy-for-me', 'my-orders', 'wallet', 'profile', 'traveler-dashboard'];
+    const protected_pages: Page[] = ['send-package', 'traveler', 'buy-for-me', 'my-orders', 'wallet', 'profile', 'traveler-dashboard', 'cargo-scan'];
     if (!session && protected_pages.includes(currentPage)) {
       returnPageRef.current = currentPage;
       setCurrentPage('auth');
@@ -1919,7 +1921,7 @@ export default function App() {
   // Synchronous auth gate — determines effective page to render without a flash.
   // The useEffect below still runs to sync currentPage/history, but the render
   // already shows AuthPage on the very first frame so there is no white interstitial.
-  const AUTH_PROTECTED: Page[] = ['send-package', 'traveler', 'buy-for-me', 'my-orders', 'wallet', 'profile', 'traveler-dashboard'];
+  const AUTH_PROTECTED: Page[] = ['send-package', 'traveler', 'buy-for-me', 'my-orders', 'wallet', 'profile', 'traveler-dashboard', 'cargo-scan'];
   if (!session && AUTH_PROTECTED.includes(currentPage)) {
     returnPageRef.current = currentPage; // store intended destination
   }
@@ -2183,7 +2185,7 @@ export default function App() {
         <motion.div key={renderPage} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.25 }}>
           {renderPage === 'home' && <HomePage t={t} setPage={setCurrentPage} isRTL={isRTL} />}
           {renderPage === 'buy-for-me' && <BuyForMePage onBack={() => setCurrentPage('home')} onHome={() => setCurrentPage('home')} t={t} onNavigate={(p) => { setCurrentPage(p as Page); }} />}
-          {renderPage === 'send-package' && <SendPackagePage onBack={() => setCurrentPage('home')} onHome={() => setCurrentPage('home')} t={t} onNavigate={(p) => { setCurrentPage(p as Page); }} />}
+          {renderPage === 'send-package' && <SendPackagePage onBack={() => setCurrentPage('home')} onHome={() => setCurrentPage('home')} t={t} onNavigate={(p) => { setCurrentPage(p as Page); }} onVerifyCargo={(id) => { setScanListingId(id); setCurrentPage('cargo-scan'); }} />}
           {renderPage === 'traveler' && <TravelerPage onBack={() => setCurrentPage('home')} onHome={() => setCurrentPage('home')} t={t} onNavigate={(p) => { setCurrentPage(p as Page); }} />}
           {renderPage === 'marketplace' && <MarketplacePage onBack={() => setCurrentPage('home')} onHome={() => setCurrentPage('home')} t={t} onBook={() => setCurrentPage('send-package')} />}
           {renderPage === 'trust-safety' && <TrustSafetyPage onBack={() => setCurrentPage('home')} onHome={() => setCurrentPage('home')} t={t} />}
@@ -2197,6 +2199,7 @@ export default function App() {
           {renderPage === 'notifications' && <NotificationsPage onBack={() => setCurrentPage('home')} onHome={() => setCurrentPage('home')} t={t} onNavigate={(p) => setCurrentPage(p as Page)} />}
           {renderPage === 'traveler-dashboard' && <TravelerDashboardPage onBack={() => setCurrentPage('home')} onHome={() => setCurrentPage('home')} t={t} onNewTrip={() => setCurrentPage('traveler')} onNavigate={(p) => setCurrentPage(p as Page)} />}
           {renderPage === 'smart-tester' && <SmartTester onHome={() => setCurrentPage('home')} />}
+          {renderPage === 'cargo-scan' && <CargoScanPage listingId={scanListingId} onBack={() => setCurrentPage('send-package')} onHome={() => setCurrentPage('home')} />}
         </motion.div>
       </AnimatePresence>
     </div>

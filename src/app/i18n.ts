@@ -290,6 +290,7 @@ export interface Translations {
   forgotIdPlaceholder: string;
   forgotSendBtn: string;
   forgotSentMsg: string;
+  forgotSentMsgTg: string;
   forgotNewPwPlaceholder: string;
   forgotConfirmPwPlaceholder: string;
   forgotResetBtn: string;
@@ -300,6 +301,8 @@ export interface Translations {
   // Channel picker / Telegram linking
   channelEmail: string;
   channelTelegram: string;
+  channelSms: string;
+  channelWhatsapp: string;
   tgConnectTitle: string;
   tgOpenBtn: string;
   tgWaiting: string;
@@ -772,6 +775,28 @@ export interface Translations {
   tdepToastMetaMask: string; tdepToastApproveUsdc: string; tdepToastDepositPoly: string;
   tdepToastCopied: string; tdepToastDepOk: string; tdepToastTrustConn: string; tdepToastTronTransfer: string;
   tdepWalletLoading: string; tdepWalletInsufLabel: string;
+
+  // M3 — Cargo scan
+  scanVerifyCargo: string; scanVerifyCargoDesc: string;
+  scanTitle: string; scanSubtitle: string;
+  scanConsentTitle: string; scanConsentBody: string;
+  scanConsentItem1: string; scanConsentItem2: string; scanConsentItem3: string;
+  scanConsentAccept: string; scanConsentDecline: string;
+  scanAngleLabel: string; scanAngleOf: string; scanCaptureTap: string;
+  scanQualityBlur: string; scanQualityDark: string; scanQualityOk: string;
+  scanOutlineFallback: string; scanAllCaptured: string;
+  scanUploading: string; scanAnalyzing: string;
+  scanResultVerified: string; scanResultVerifiedDesc: string;
+  scanResultUnderReview: string; scanResultUnderReviewDesc: string;
+  scanResultFailed: string; scanRetryAnalysis: string;
+  scanCamDeniedTitle: string; scanCamDeniedDesc: string; scanCamDeniedHow: string;
+  scanErrCreate: string; scanErrNetwork: string;
+  scanAngleFront: string; scanAngleBack: string; scanAngleLeft: string; scanAngleRight: string;
+  scanAnglePoweredOn: string; scanAngleCloseup: string; scanAngleOverall: string;
+  scanAngleSeal: string; scanAngleFlatFront: string; scanAngleFlatBack: string;
+  scanAngleCorner: string; scanAngleSpread: string; scanAngleQuantity: string;
+  scanAnglePartNum: string; scanAngleHallmark: string;
+  scanVideoRecording: string;
 }
 
 export const translations: Record<LangCode, Translations> = {
@@ -1025,6 +1050,7 @@ export const translations: Record<LangCode, Translations> = {
     forgotIdPlaceholder: 'ایمیل یا شماره موبایل',
     forgotSendBtn: 'ارسال کد بازیابی',
     forgotSentMsg: 'در صورت وجود حساب کاربری، کد بازیابی به ایمیل شما ارسال شد.',
+    forgotSentMsgTg: 'در صورت وجود حساب کاربری با تلگرام متصل، کد بازیابی از طریق تلگرام ارسال شد.',
     forgotNewPwPlaceholder: 'رمز عبور جدید',
     forgotConfirmPwPlaceholder: 'تکرار رمز عبور جدید',
     forgotResetBtn: 'تغییر رمز عبور',
@@ -1034,6 +1060,8 @@ export const translations: Record<LangCode, Translations> = {
 
     channelEmail: 'ایمیل',
     channelTelegram: 'تلگرام',
+    channelSms: 'پیامک',
+    channelWhatsapp: 'واتس‌اپ',
     tgConnectTitle: 'اتصال تلگرام',
     tgOpenBtn: 'باز کردن تلگرام',
     tgWaiting: 'در انتظار اتصال…',
@@ -1530,6 +1558,34 @@ export const translations: Record<LangCode, Translations> = {
     tdepSuccessTrackBtn: '📦 پیگیری سفارش', tdepSuccessHomeBtn: 'صفحه اصلی',
     tdepErrNoOrder: 'سفارش یافت نشد', tdepErrNoSession: 'ابتدا وارد شوید', tdepErrNotTraveler: 'شما مسافر این سفارش نیستید',
     tdepErrWalletLow: 'موجودی کیف پول کافی نیست', tdepErrTimeout: 'خطا در ارتباط با سرور. دوباره تلاش کنید.',
+    scanVerifyCargo: 'تأیید بار', scanVerifyCargoDesc: 'ثبت تصویر کالا برای تحلیل هوش مصنوعی',
+    scanTitle: 'تأیید کالا', scanSubtitle: 'عکسبرداری راهنما از زوایای مختلف',
+    scanConsentTitle: 'قبل از شروع',
+    scanConsentBody: 'در جریان این فرآیند تصاویر و ویدیو از کالای شما گرفته می‌شود:',
+    scanConsentItem1: 'تصاویر از دستگاه خارج شده و توسط هوش مصنوعی تحلیل می‌شوند',
+    scanConsentItem2: 'داده‌ها به عنوان مدرک قانونی ذخیره می‌شوند',
+    scanConsentItem3: 'ضبط ویدیو فقط پس از تأیید شما آغاز می‌شود',
+    scanConsentAccept: 'قبول می‌کنم — شروع ضبط', scanConsentDecline: 'انصراف',
+    scanAngleLabel: 'زاویه', scanAngleOf: 'از', scanCaptureTap: 'برای گرفتن عکس ضربه بزنید',
+    scanQualityBlur: 'تصویر تار است — دوربین را ثابت نگه دارید',
+    scanQualityDark: 'نور کافی نیست — محیط روشن‌تری انتخاب کنید',
+    scanQualityOk: 'کیفیت مناسب ✓',
+    scanOutlineFallback: 'کالا را در قاب نگه دارید', scanAllCaptured: 'همه زوایا ثبت شد!',
+    scanUploading: 'در حال آپلود…', scanAnalyzing: 'در حال تحلیل هوش مصنوعی…',
+    scanResultVerified: '✓ کالا تأیید شد', scanResultVerifiedDesc: 'کالای شما بررسی شد و همه چیز منظم است.',
+    scanResultUnderReview: 'در حال بررسی', scanResultUnderReviewDesc: 'محموله شما در صف بررسی قرار گرفت. نتیجه به زودی اطلاع‌رسانی می‌شود.',
+    scanResultFailed: 'تحلیل ناموفق بود', scanRetryAnalysis: 'تلاش مجدد',
+    scanCamDeniedTitle: 'دسترسی به دوربین رد شد',
+    scanCamDeniedDesc: 'برای اسکن کالا نیاز به دوربین است.',
+    scanCamDeniedHow: 'فعال‌سازی: تنظیمات مرورگر ← دوربین ← مجاز',
+    scanErrCreate: 'ایجاد کار اسکن ناموفق بود', scanErrNetwork: 'خطای شبکه. دوباره تلاش کنید.',
+    scanAngleFront: 'جلو', scanAngleBack: 'پشت', scanAngleLeft: 'چپ', scanAngleRight: 'راست',
+    scanAnglePoweredOn: 'روشن (نمایش صفحه)', scanAngleCloseup: 'نزدیک (شماره سریال/لیبل)',
+    scanAngleOverall: 'نمای کلی', scanAngleSeal: 'درپوش/مهر — نزدیک',
+    scanAngleFlatFront: 'سطح — رو', scanAngleFlatBack: 'سطح — پشت',
+    scanAngleCorner: 'گوشه نزدیک', scanAngleSpread: 'پهن‌شده',
+    scanAngleQuantity: 'تصویر تعداد', scanAnglePartNum: 'نزدیک شماره قطعه',
+    scanAngleHallmark: 'نزدیک عیار/سریال', scanVideoRecording: '● ضبط',
   },
 
   en: {
@@ -1781,6 +1837,7 @@ export const translations: Record<LangCode, Translations> = {
     forgotIdPlaceholder: 'Email or phone',
     forgotSendBtn: 'Send reset code',
     forgotSentMsg: 'If an account exists, a reset code was sent.',
+    forgotSentMsgTg: 'If an account with Telegram linked exists, a reset code was sent via Telegram.',
     forgotNewPwPlaceholder: 'New password',
     forgotConfirmPwPlaceholder: 'Confirm new password',
     forgotResetBtn: 'Reset password',
@@ -1790,6 +1847,8 @@ export const translations: Record<LangCode, Translations> = {
 
     channelEmail: 'Email',
     channelTelegram: 'Telegram',
+    channelSms: 'SMS',
+    channelWhatsapp: 'WhatsApp',
     tgConnectTitle: 'Connect Telegram',
     tgOpenBtn: 'Open Telegram',
     tgWaiting: 'Waiting for connection…',
@@ -2281,6 +2340,34 @@ export const translations: Record<LangCode, Translations> = {
     tdepSuccessTrackBtn: '📦 Track Order', tdepSuccessHomeBtn: 'Home',
     tdepErrNoOrder: 'Order not found', tdepErrNoSession: 'Please sign in first', tdepErrNotTraveler: 'You are not the traveler for this order',
     tdepErrWalletLow: 'Insufficient wallet balance', tdepErrTimeout: 'Server connection error. Please try again.',
+    scanVerifyCargo: 'Verify Cargo', scanVerifyCargoDesc: 'Capture images for AI analysis',
+    scanTitle: 'Cargo Verification', scanSubtitle: 'Guided multi-angle capture',
+    scanConsentTitle: 'Before you start',
+    scanConsentBody: 'During this process, photos and a video of your cargo will be captured:',
+    scanConsentItem1: 'Images leave your device and are analysed by AI',
+    scanConsentItem2: 'Data is stored as legal evidence',
+    scanConsentItem3: 'Video recording begins only after you accept',
+    scanConsentAccept: 'I agree — start recording', scanConsentDecline: 'Cancel',
+    scanAngleLabel: 'Angle', scanAngleOf: 'of', scanCaptureTap: 'Tap to capture',
+    scanQualityBlur: 'Too blurry — hold the camera still',
+    scanQualityDark: 'Too dark — move to better lighting',
+    scanQualityOk: 'Good quality ✓',
+    scanOutlineFallback: 'Keep the item inside the frame', scanAllCaptured: 'All angles captured!',
+    scanUploading: 'Uploading…', scanAnalyzing: 'Analysing with AI…',
+    scanResultVerified: '✓ Cargo Verified', scanResultVerifiedDesc: 'Your cargo was reviewed and everything is in order.',
+    scanResultUnderReview: 'Under Review', scanResultUnderReviewDesc: 'Your shipment has been submitted for review. You will be notified of the outcome.',
+    scanResultFailed: 'Analysis failed', scanRetryAnalysis: 'Retry',
+    scanCamDeniedTitle: 'Camera access denied',
+    scanCamDeniedDesc: 'Camera is required to scan your cargo.',
+    scanCamDeniedHow: 'To enable: Browser settings → Camera → Allow',
+    scanErrCreate: 'Failed to create scan job', scanErrNetwork: 'Network error. Please try again.',
+    scanAngleFront: 'Front', scanAngleBack: 'Back', scanAngleLeft: 'Left', scanAngleRight: 'Right',
+    scanAnglePoweredOn: 'Powered-on (screen visible)', scanAngleCloseup: 'Close-up (serial / label)',
+    scanAngleOverall: 'Overall view', scanAngleSeal: 'Seal / cap close-up',
+    scanAngleFlatFront: 'Flat — front', scanAngleFlatBack: 'Flat — back',
+    scanAngleCorner: 'Corner close-up', scanAngleSpread: 'Full spread',
+    scanAngleQuantity: 'Quantity shot', scanAnglePartNum: 'Part-number close-up',
+    scanAngleHallmark: 'Hallmark / serial close-up', scanVideoRecording: '● REC',
   },
 
   tr: {
@@ -2532,6 +2619,7 @@ export const translations: Record<LangCode, Translations> = {
     forgotIdPlaceholder: 'E-posta veya telefon',
     forgotSendBtn: 'Sıfırlama kodu gönder',
     forgotSentMsg: 'Hesap mevcut ise bir sıfırlama kodu gönderildi.',
+    forgotSentMsgTg: 'Telegram bağlı bir hesap mevcutsa, Telegram üzerinden bir sıfırlama kodu gönderildi.',
     forgotNewPwPlaceholder: 'Yeni şifre',
     forgotConfirmPwPlaceholder: 'Yeni şifreyi onayla',
     forgotResetBtn: 'Şifreyi sıfırla',
@@ -2541,6 +2629,8 @@ export const translations: Record<LangCode, Translations> = {
 
     channelEmail: 'E-posta',
     channelTelegram: 'Telegram',
+    channelSms: 'SMS',
+    channelWhatsapp: 'WhatsApp',
     tgConnectTitle: "Telegram'ı Bağla",
     tgOpenBtn: "Telegram'ı Aç",
     tgWaiting: 'Bağlantı bekleniyor…',
@@ -3032,6 +3122,34 @@ export const translations: Record<LangCode, Translations> = {
     tdepSuccessTrackBtn: '📦 Siparişi Takip Et', tdepSuccessHomeBtn: 'Ana Sayfa',
     tdepErrNoOrder: 'Sipariş bulunamadı', tdepErrNoSession: 'Önce giriş yapın', tdepErrNotTraveler: 'Bu siparişin gezgini değilsiniz',
     tdepErrWalletLow: 'Cüzdan bakiyesi yetersiz', tdepErrTimeout: 'Sunucu bağlantı hatası. Lütfen tekrar deneyin.',
+    scanVerifyCargo: 'Kargoyu Doğrula', scanVerifyCargoDesc: 'Yapay zeka analizi için görüntü alın',
+    scanTitle: 'Kargo Doğrulama', scanSubtitle: 'Rehberli çok açılı çekim',
+    scanConsentTitle: 'Başlamadan önce',
+    scanConsentBody: 'Bu süreçte kargonuzun fotoğraf ve videosu çekilecektir:',
+    scanConsentItem1: 'Görüntüler cihazınızdan çıkar ve yapay zeka ile analiz edilir',
+    scanConsentItem2: 'Veriler yasal kanıt olarak saklanır',
+    scanConsentItem3: 'Video kaydı yalnızca onayınızın ardından başlar',
+    scanConsentAccept: 'Kabul ediyorum — kaydı başlat', scanConsentDecline: 'Vazgeç',
+    scanAngleLabel: 'Açı', scanAngleOf: '/', scanCaptureTap: 'Çekmek için dokun',
+    scanQualityBlur: 'Çok bulanık — kamerayı sabit tutun',
+    scanQualityDark: 'Çok karanlık — daha aydınlık bir ortama geçin',
+    scanQualityOk: 'İyi kalite ✓',
+    scanOutlineFallback: 'Öğeyi çerçeve içinde tutun', scanAllCaptured: 'Tüm açılar yakalandı!',
+    scanUploading: 'Yükleniyor…', scanAnalyzing: 'Yapay zeka analiz ediyor…',
+    scanResultVerified: '✓ Kargo Doğrulandı', scanResultVerifiedDesc: 'Kargonuz incelendi ve her şey yolunda.',
+    scanResultUnderReview: 'İncelemede', scanResultUnderReviewDesc: 'Gönderiniz incelemeye alındı. Sonuç size bildirilecek.',
+    scanResultFailed: 'Analiz başarısız', scanRetryAnalysis: 'Tekrar dene',
+    scanCamDeniedTitle: 'Kamera erişimi reddedildi',
+    scanCamDeniedDesc: 'Kargonuzu taramak için kamera gereklidir.',
+    scanCamDeniedHow: 'Etkinleştirmek için: Tarayıcı ayarları → Kamera → İzin ver',
+    scanErrCreate: 'Tarama görevi oluşturulamadı', scanErrNetwork: 'Ağ hatası. Lütfen tekrar deneyin.',
+    scanAngleFront: 'Ön', scanAngleBack: 'Arka', scanAngleLeft: 'Sol', scanAngleRight: 'Sağ',
+    scanAnglePoweredOn: 'Açık (ekran görünür)', scanAngleCloseup: 'Yakın çekim (seri/etiket)',
+    scanAngleOverall: 'Genel görünüm', scanAngleSeal: 'Kapak/mühür yakın çekim',
+    scanAngleFlatFront: 'Düz — ön', scanAngleFlatBack: 'Düz — arka',
+    scanAngleCorner: 'Köşe yakın çekim', scanAngleSpread: 'Tam yayılış',
+    scanAngleQuantity: 'Miktar çekimi', scanAnglePartNum: 'Parça numarası yakın çekim',
+    scanAngleHallmark: 'Ayar/seri yakın çekim', scanVideoRecording: '● KAY',
   },
 
   ar: {
@@ -3283,6 +3401,7 @@ export const translations: Record<LangCode, Translations> = {
     forgotIdPlaceholder: 'البريد الإلكتروني أو الهاتف',
     forgotSendBtn: 'إرسال رمز الاسترداد',
     forgotSentMsg: 'إذا كان الحساب موجوداً، فقد تم إرسال رمز استرداد.',
+    forgotSentMsgTg: 'إذا كان الحساب موجوداً ومرتبطاً بتيليغرام، فقد تم إرسال رمز الاسترداد عبر تيليغرام.',
     forgotNewPwPlaceholder: 'كلمة المرور الجديدة',
     forgotConfirmPwPlaceholder: 'تأكيد كلمة المرور الجديدة',
     forgotResetBtn: 'إعادة تعيين كلمة المرور',
@@ -3292,6 +3411,8 @@ export const translations: Record<LangCode, Translations> = {
 
     channelEmail: 'البريد الإلكتروني',
     channelTelegram: 'تيليغرام',
+    channelSms: 'رسالة SMS',
+    channelWhatsapp: 'واتساب',
     tgConnectTitle: 'ربط تيليغرام',
     tgOpenBtn: 'فتح تيليغرام',
     tgWaiting: 'في انتظار الاتصال…',
@@ -3782,6 +3903,34 @@ export const translations: Record<LangCode, Translations> = {
     tdepSuccessTrackBtn: '📦 تتبع الطلب', tdepSuccessHomeBtn: 'الرئيسية',
     tdepErrNoOrder: 'لم يُعثر على الطلب', tdepErrNoSession: 'سجّل الدخول أولًا', tdepErrNotTraveler: 'أنت لست المسافر لهذا الطلب',
     tdepErrWalletLow: 'رصيد المحفظة غير كافٍ', tdepErrTimeout: 'خطأ في الاتصال بالخادم. يرجى المحاولة مجددًا.',
+    scanVerifyCargo: 'التحقق من البضاعة', scanVerifyCargoDesc: 'التقاط صور للتحليل بالذكاء الاصطناعي',
+    scanTitle: 'التحقق من البضاعة', scanSubtitle: 'التقاط موجّه متعدد الزوايا',
+    scanConsentTitle: 'قبل البدء',
+    scanConsentBody: 'سيتم التقاط صور وفيديو لبضاعتك خلال هذه العملية:',
+    scanConsentItem1: 'تغادر الصور جهازك وتُحلَّل بالذكاء الاصطناعي',
+    scanConsentItem2: 'تُحفظ البيانات كدليل قانوني',
+    scanConsentItem3: 'يبدأ تسجيل الفيديو فقط بعد موافقتك',
+    scanConsentAccept: 'أوافق — ابدأ التسجيل', scanConsentDecline: 'إلغاء',
+    scanAngleLabel: 'زاوية', scanAngleOf: 'من', scanCaptureTap: 'اضغط للالتقاط',
+    scanQualityBlur: 'ضبابي جدًا — ثبّت الكاميرا',
+    scanQualityDark: 'مظلم جدًا — انتقل إلى إضاءة أفضل',
+    scanQualityOk: 'جودة جيدة ✓',
+    scanOutlineFallback: 'أبقِ العنصر داخل الإطار', scanAllCaptured: 'تم التقاط جميع الزوايا!',
+    scanUploading: 'جارٍ الرفع…', scanAnalyzing: 'جارٍ التحليل بالذكاء الاصطناعي…',
+    scanResultVerified: '✓ تم التحقق من البضاعة', scanResultVerifiedDesc: 'تمت مراجعة بضاعتك وكل شيء على ما يرام.',
+    scanResultUnderReview: 'قيد المراجعة', scanResultUnderReviewDesc: 'تم إرسال شحنتك للمراجعة. سيتم إخطارك بالنتيجة.',
+    scanResultFailed: 'فشل التحليل', scanRetryAnalysis: 'إعادة المحاولة',
+    scanCamDeniedTitle: 'تم رفض الوصول إلى الكاميرا',
+    scanCamDeniedDesc: 'الكاميرا مطلوبة لمسح بضاعتك.',
+    scanCamDeniedHow: 'للتفعيل: إعدادات المتصفح ← الكاميرا ← السماح',
+    scanErrCreate: 'فشل إنشاء مهمة المسح', scanErrNetwork: 'خطأ في الشبكة. يرجى المحاولة مجددًا.',
+    scanAngleFront: 'أمام', scanAngleBack: 'خلف', scanAngleLeft: 'يسار', scanAngleRight: 'يمين',
+    scanAnglePoweredOn: 'مُشغَّل (الشاشة مرئية)', scanAngleCloseup: 'تقريب (الرقم التسلسلي/الملصق)',
+    scanAngleOverall: 'نظرة عامة', scanAngleSeal: 'الغطاء/الختم عن قرب',
+    scanAngleFlatFront: 'مسطح — أمام', scanAngleFlatBack: 'مسطح — خلف',
+    scanAngleCorner: 'الزاوية عن قرب', scanAngleSpread: 'بالكامل ممدود',
+    scanAngleQuantity: 'صورة الكمية', scanAnglePartNum: 'رقم القطعة عن قرب',
+    scanAngleHallmark: 'العيار/الرقم التسلسلي عن قرب', scanVideoRecording: '● تسجيل',
   },
 
   fr: {
@@ -4033,6 +4182,7 @@ export const translations: Record<LangCode, Translations> = {
     forgotIdPlaceholder: 'E-mail ou téléphone',
     forgotSendBtn: 'Envoyer le code de réinitialisation',
     forgotSentMsg: 'Si un compte existe, un code de réinitialisation a été envoyé.',
+    forgotSentMsgTg: 'Si un compte avec Telegram lié existe, un code de réinitialisation a été envoyé via Telegram.',
     forgotNewPwPlaceholder: 'Nouveau mot de passe',
     forgotConfirmPwPlaceholder: 'Confirmer le nouveau mot de passe',
     forgotResetBtn: 'Réinitialiser le mot de passe',
@@ -4042,6 +4192,8 @@ export const translations: Record<LangCode, Translations> = {
 
     channelEmail: 'E-mail',
     channelTelegram: 'Telegram',
+    channelSms: 'SMS',
+    channelWhatsapp: 'WhatsApp',
     tgConnectTitle: 'Connecter Telegram',
     tgOpenBtn: 'Ouvrir Telegram',
     tgWaiting: 'En attente de connexion…',
@@ -4533,6 +4685,34 @@ export const translations: Record<LangCode, Translations> = {
     tdepSuccessTrackBtn: '📦 Suivre la commande', tdepSuccessHomeBtn: 'Accueil',
     tdepErrNoOrder: 'Commande introuvable', tdepErrNoSession: 'Connectez-vous d\'abord', tdepErrNotTraveler: 'Vous n\'êtes pas le voyageur de cette commande',
     tdepErrWalletLow: 'Solde du portefeuille insuffisant', tdepErrTimeout: 'Erreur de connexion au serveur. Veuillez réessayer.',
+    scanVerifyCargo: 'Vérifier la marchandise', scanVerifyCargoDesc: "Capturer des images pour l'analyse IA",
+    scanTitle: 'Vérification de la marchandise', scanSubtitle: 'Capture guidée multi-angles',
+    scanConsentTitle: 'Avant de commencer',
+    scanConsentBody: 'Pendant ce processus, des photos et une vidéo de votre marchandise seront capturées :',
+    scanConsentItem1: "Les images quittent votre appareil et sont analysées par l'IA",
+    scanConsentItem2: 'Les données sont stockées comme preuve légale',
+    scanConsentItem3: "L'enregistrement vidéo commence uniquement après votre accord",
+    scanConsentAccept: "J'accepte — démarrer l'enregistrement", scanConsentDecline: 'Annuler',
+    scanAngleLabel: 'Angle', scanAngleOf: 'sur', scanCaptureTap: 'Appuyer pour capturer',
+    scanQualityBlur: 'Trop flou — tenez la caméra immobile',
+    scanQualityDark: "Trop sombre — déplacez-vous vers un meilleur éclairage",
+    scanQualityOk: 'Bonne qualité ✓',
+    scanOutlineFallback: "Gardez l'objet dans le cadre", scanAllCaptured: 'Tous les angles capturés !',
+    scanUploading: 'Téléversement…', scanAnalyzing: 'Analyse par IA…',
+    scanResultVerified: '✓ Marchandise vérifiée', scanResultVerifiedDesc: "Votre marchandise a été examinée et tout est en ordre.",
+    scanResultUnderReview: "En cours d'examen", scanResultUnderReviewDesc: 'Votre envoi a été soumis pour examen. Vous serez informé du résultat.',
+    scanResultFailed: "Échec de l'analyse", scanRetryAnalysis: 'Réessayer',
+    scanCamDeniedTitle: 'Accès à la caméra refusé',
+    scanCamDeniedDesc: 'La caméra est requise pour scanner votre marchandise.',
+    scanCamDeniedHow: 'Pour activer : Paramètres du navigateur → Caméra → Autoriser',
+    scanErrCreate: 'Impossible de créer la tâche de scan', scanErrNetwork: 'Erreur réseau. Veuillez réessayer.',
+    scanAngleFront: 'Devant', scanAngleBack: 'Derrière', scanAngleLeft: 'Gauche', scanAngleRight: 'Droite',
+    scanAnglePoweredOn: 'Allumé (écran visible)', scanAngleCloseup: 'Gros plan (numéro de série/étiquette)',
+    scanAngleOverall: 'Vue générale', scanAngleSeal: 'Joint/capuchon gros plan',
+    scanAngleFlatFront: 'Plat — avant', scanAngleFlatBack: 'Plat — arrière',
+    scanAngleCorner: 'Coin gros plan', scanAngleSpread: 'Entièrement déployé',
+    scanAngleQuantity: 'Photo quantité', scanAnglePartNum: 'Numéro de pièce gros plan',
+    scanAngleHallmark: 'Poinçon/numéro de série gros plan', scanVideoRecording: '● ENR',
   },
 
   zh: {
@@ -4784,6 +4964,7 @@ export const translations: Record<LangCode, Translations> = {
     forgotIdPlaceholder: '邮箱或手机号',
     forgotSendBtn: '发送重置验证码',
     forgotSentMsg: '如果账户存在，重置验证码已发送。',
+    forgotSentMsgTg: '如果存在已关联 Telegram 的账户，重置验证码已通过 Telegram 发送。',
     forgotNewPwPlaceholder: '新密码',
     forgotConfirmPwPlaceholder: '确认新密码',
     forgotResetBtn: '重置密码',
@@ -4793,6 +4974,8 @@ export const translations: Record<LangCode, Translations> = {
 
     channelEmail: '邮箱',
     channelTelegram: 'Telegram',
+    channelSms: '短信',
+    channelWhatsapp: 'WhatsApp',
     tgConnectTitle: '连接 Telegram',
     tgOpenBtn: '打开 Telegram',
     tgWaiting: '等待连接中…',
@@ -5277,5 +5460,33 @@ export const translations: Record<LangCode, Translations> = {
     tdepSuccessTrackBtn: '📦 追踪订单', tdepSuccessHomeBtn: '首页',
     tdepErrNoOrder: '未找到订单', tdepErrNoSession: '请先登录', tdepErrNotTraveler: '您不是此订单的旅行者',
     tdepErrWalletLow: '钱包余额不足', tdepErrTimeout: '服务器连接错误，请重试。',
+    scanVerifyCargo: '验证货物', scanVerifyCargoDesc: '拍摄图像进行AI分析',
+    scanTitle: '货物验证', scanSubtitle: '多角度引导拍摄',
+    scanConsentTitle: '开始前',
+    scanConsentBody: '在此过程中，将拍摄您货物的照片和视频：',
+    scanConsentItem1: '图像将离开您的设备并由AI分析',
+    scanConsentItem2: '数据作为法律证据存储',
+    scanConsentItem3: '只有在您同意后才开始录制视频',
+    scanConsentAccept: '我同意 — 开始录制', scanConsentDecline: '取消',
+    scanAngleLabel: '角度', scanAngleOf: '/', scanCaptureTap: '点击拍摄',
+    scanQualityBlur: '太模糊 — 请保持相机稳定',
+    scanQualityDark: '太暗 — 请移至光线更好的地方',
+    scanQualityOk: '质量良好 ✓',
+    scanOutlineFallback: '将物品保持在框内', scanAllCaptured: '所有角度已拍摄！',
+    scanUploading: '上传中…', scanAnalyzing: 'AI分析中…',
+    scanResultVerified: '✓ 货物已验证', scanResultVerifiedDesc: '您的货物已审核，一切正常。',
+    scanResultUnderReview: '审核中', scanResultUnderReviewDesc: '您的货物已提交审核，审核结果将通知您。',
+    scanResultFailed: '分析失败', scanRetryAnalysis: '重试',
+    scanCamDeniedTitle: '相机访问被拒绝',
+    scanCamDeniedDesc: '扫描货物需要相机。',
+    scanCamDeniedHow: '启用方法：浏览器设置 → 相机 → 允许',
+    scanErrCreate: '创建扫描任务失败', scanErrNetwork: '网络错误，请重试。',
+    scanAngleFront: '正面', scanAngleBack: '背面', scanAngleLeft: '左面', scanAngleRight: '右面',
+    scanAnglePoweredOn: '开机（屏幕可见）', scanAngleCloseup: '特写（序列号/标签）',
+    scanAngleOverall: '整体视图', scanAngleSeal: '密封盖特写',
+    scanAngleFlatFront: '平铺 — 正面', scanAngleFlatBack: '平铺 — 背面',
+    scanAngleCorner: '角落特写', scanAngleSpread: '完全展开',
+    scanAngleQuantity: '数量照', scanAnglePartNum: '零件编号特写',
+    scanAngleHallmark: '印记/序列号特写', scanVideoRecording: '● 录制',
   },
 };
