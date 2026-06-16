@@ -817,6 +817,14 @@ export interface Translations {
   confirmSenderLabel: string; confirmDestLabel: string;
   confirmBtn: string; confirmDone: string;
   confirmExpired: string; confirmInvalid: string; confirmAlreadyDone: string; confirmLoading: string;
+  // Phase P1 — GuidedCapture face/document modes
+  gcFaceConsentTitle: string; gcFaceConsentBody: string;
+  gcFaceConsentItem1: string; gcFaceConsentItem2: string; gcFaceConsentItem3: string;
+  gcFacePrompt: string;
+  gcDocConsentTitle: string; gcDocConsentBody: string;
+  gcDocConsentItem1: string; gcDocConsentItem2: string; gcDocConsentItem3: string;
+  gcDocPrompt: string; gcDocQualityGlare: string;
+  gcCaptureDone: string; gcCaptureDoneDesc: string;
 }
 
 export const translations: Record<LangCode, Translations> = {
@@ -1624,6 +1632,14 @@ export const translations: Record<LangCode, Translations> = {
     confirmBtn: 'تأیید می‌کنم — منتظر بسته هستم', confirmDone: 'تأیید شد! ممنون از شما.',
     confirmExpired: 'این لینک منقضی شده یا قبلاً استفاده شده است.', confirmInvalid: 'لینک تأیید نامعتبر است.',
     confirmAlreadyDone: 'این بسته قبلاً تأیید شده است.', confirmLoading: 'در حال بارگذاری…',
+    gcFaceConsentTitle: 'تصویر سلفی', gcFaceConsentBody: 'یک عکس سلفی واضح برای تأیید هویت می‌گیریم.',
+    gcFaceConsentItem1: 'دوربین جلو استفاده می‌شود', gcFaceConsentItem2: 'صورت خود را در کادر بیضی نگه دارید', gcFaceConsentItem3: 'نور کافی داشته باشید',
+    gcFacePrompt: 'صورت خود را در بیضی بیاورید',
+    gcDocConsentTitle: 'اسکن سند', gcDocConsentBody: 'از صفحه بیوگرافی گذرنامه یا کارت شناسایی خود عکس بگیرید.',
+    gcDocConsentItem1: 'دوربین پشت استفاده می‌شود', gcDocConsentItem2: 'سند را در داخل کادر راهنما قرار دهید', gcDocConsentItem3: 'از سایه و بازتاب نور روی سند جلوگیری کنید',
+    gcDocPrompt: 'سند را در کادر راهنما بیاورید',
+    gcDocQualityGlare: 'بازتاب نور — زاویه دوربین را تغییر دهید',
+    gcCaptureDone: 'تصویر ثبت شد', gcCaptureDoneDesc: 'تصویر شما با موفقیت گرفته شد.',
   },
 
   en: {
@@ -2424,6 +2440,14 @@ export const translations: Record<LangCode, Translations> = {
     confirmBtn: 'Confirm — I\'m expecting this package', confirmDone: 'Confirmed! Thank you.',
     confirmExpired: 'This link has expired or has already been used.', confirmInvalid: 'Invalid confirmation link.',
     confirmAlreadyDone: 'This package has already been confirmed.', confirmLoading: 'Loading…',
+    gcFaceConsentTitle: 'Selfie capture', gcFaceConsentBody: "We'll take a clear selfie to verify your identity.",
+    gcFaceConsentItem1: 'Front camera will be used', gcFaceConsentItem2: 'Keep your face inside the oval guide', gcFaceConsentItem3: 'Make sure you have good lighting',
+    gcFacePrompt: 'Position your face in the oval',
+    gcDocConsentTitle: 'Document scan', gcDocConsentBody: 'Take a photo of your passport bio page or ID card.',
+    gcDocConsentItem1: 'Rear camera will be used', gcDocConsentItem2: 'Place the document inside the frame guide', gcDocConsentItem3: 'Avoid shadows and glare on the document',
+    gcDocPrompt: 'Align the document within the frame',
+    gcDocQualityGlare: 'Glare detected — tilt the camera slightly',
+    gcCaptureDone: 'Captured', gcCaptureDoneDesc: 'Your image has been captured successfully.',
   },
 
   tr: {
@@ -3224,6 +3248,14 @@ export const translations: Record<LangCode, Translations> = {
     confirmBtn: 'Onaylıyorum — Bu paketi bekliyorum', confirmDone: 'Onaylandı! Teşekkürler.',
     confirmExpired: 'Bu bağlantı süresi dolmuş veya zaten kullanılmış.', confirmInvalid: 'Geçersiz onay bağlantısı.',
     confirmAlreadyDone: 'Bu paket zaten onaylandı.', confirmLoading: 'Yükleniyor…',
+    gcFaceConsentTitle: 'Selfie çekimi', gcFaceConsentBody: 'Kimliğinizi doğrulamak için net bir selfie çekeceğiz.',
+    gcFaceConsentItem1: 'Ön kamera kullanılacak', gcFaceConsentItem2: 'Yüzünüzü oval rehberin içinde tutun', gcFaceConsentItem3: 'İyi bir aydınlatma sağlayın',
+    gcFacePrompt: 'Yüzünüzü oval içine yerleştirin',
+    gcDocConsentTitle: 'Belge tarama', gcDocConsentBody: 'Pasaportunuzun biyografik sayfasının veya kimlik kartınızın fotoğrafını çekin.',
+    gcDocConsentItem1: 'Arka kamera kullanılacak', gcDocConsentItem2: 'Belgeyi çerçeve kılavuzuna yerleştirin', gcDocConsentItem3: 'Belge üzerindeki gölge ve yansımalardan kaçının',
+    gcDocPrompt: 'Belgeyi çerçeveyle hizalayın',
+    gcDocQualityGlare: 'Yansıma tespit edildi — kamerayı hafifçe eğin',
+    gcCaptureDone: 'Çekildi', gcCaptureDoneDesc: 'Görüntünüz başarıyla çekildi.',
   },
 
   ar: {
@@ -4023,6 +4055,14 @@ export const translations: Record<LangCode, Translations> = {
     confirmBtn: 'أؤكد — أتوقع هذا الطرد', confirmDone: 'تم التأكيد! شكراً لك.',
     confirmExpired: 'انتهت صلاحية هذا الرابط أو سبق استخدامه.', confirmInvalid: 'رابط التأكيد غير صالح.',
     confirmAlreadyDone: 'تم تأكيد هذا الطرد بالفعل.', confirmLoading: 'جارٍ التحميل…',
+    gcFaceConsentTitle: 'التقاط صورة سيلفي', gcFaceConsentBody: 'سنلتقط صورة سيلفي واضحة للتحقق من هويتك.',
+    gcFaceConsentItem1: 'ستُستخدم الكاميرا الأمامية', gcFaceConsentItem2: 'ضع وجهك داخل الدليل البيضاوي', gcFaceConsentItem3: 'تأكد من وجود إضاءة جيدة',
+    gcFacePrompt: 'ضع وجهك في البيضاوي',
+    gcDocConsentTitle: 'مسح المستند', gcDocConsentBody: 'التقط صورة لصفحة السيرة الذاتية في جواز سفرك أو بطاقة هويتك.',
+    gcDocConsentItem1: 'ستُستخدم الكاميرا الخلفية', gcDocConsentItem2: 'ضع المستند داخل إطار الدليل', gcDocConsentItem3: 'تجنب الظلال والوهج على المستند',
+    gcDocPrompt: 'محاذاة المستند داخل الإطار',
+    gcDocQualityGlare: 'تم اكتشاف وهج — أمِل الكاميرا قليلاً',
+    gcCaptureDone: 'تم الالتقاط', gcCaptureDoneDesc: 'تم التقاط صورتك بنجاح.',
   },
 
   fr: {
@@ -4823,6 +4863,14 @@ export const translations: Record<LangCode, Translations> = {
     confirmBtn: 'Je confirme — j\'attends ce colis', confirmDone: 'Confirmé ! Merci.',
     confirmExpired: 'Ce lien a expiré ou a déjà été utilisé.', confirmInvalid: 'Lien de confirmation invalide.',
     confirmAlreadyDone: 'Ce colis a déjà été confirmé.', confirmLoading: 'Chargement…',
+    gcFaceConsentTitle: 'Capture selfie', gcFaceConsentBody: "Nous prendrons un selfie net pour vérifier votre identité.",
+    gcFaceConsentItem1: 'La caméra frontale sera utilisée', gcFaceConsentItem2: "Gardez votre visage dans le guide ovale", gcFaceConsentItem3: "Assurez-vous d'avoir un bon éclairage",
+    gcFacePrompt: "Positionnez votre visage dans l'ovale",
+    gcDocConsentTitle: 'Scan de document', gcDocConsentBody: "Prenez une photo de la page biographique de votre passeport ou de votre carte d'identité.",
+    gcDocConsentItem1: 'La caméra arrière sera utilisée', gcDocConsentItem2: 'Placez le document dans le cadre guide', gcDocConsentItem3: 'Évitez les ombres et les reflets sur le document',
+    gcDocPrompt: 'Alignez le document dans le cadre',
+    gcDocQualityGlare: 'Reflet détecté — inclinez légèrement la caméra',
+    gcCaptureDone: 'Capturé', gcCaptureDoneDesc: 'Votre image a été capturée avec succès.',
   },
 
   zh: {
@@ -5616,5 +5664,13 @@ export const translations: Record<LangCode, Translations> = {
     confirmBtn: '确认 — 我在等待此包裹', confirmDone: '已确认！谢谢您。',
     confirmExpired: '此链接已过期或已被使用。', confirmInvalid: '无效的确认链接。',
     confirmAlreadyDone: '此包裹已被确认。', confirmLoading: '加载中…',
+    gcFaceConsentTitle: '自拍采集', gcFaceConsentBody: '我们将拍摄一张清晰的自拍照以验证您的身份。',
+    gcFaceConsentItem1: '将使用前置摄像头', gcFaceConsentItem2: '将面部保持在椭圆框内', gcFaceConsentItem3: '确保光线充足',
+    gcFacePrompt: '将面部对准椭圆框',
+    gcDocConsentTitle: '证件扫描', gcDocConsentBody: '拍摄护照个人信息页或身份证的照片。',
+    gcDocConsentItem1: '将使用后置摄像头', gcDocConsentItem2: '将证件放在框架引导内', gcDocConsentItem3: '避免证件上出现阴影和反光',
+    gcDocPrompt: '将证件对准框架',
+    gcDocQualityGlare: '检测到反光 — 稍微倾斜相机',
+    gcCaptureDone: '已拍摄', gcCaptureDoneDesc: '您的图像已成功拍摄。',
   },
 };
