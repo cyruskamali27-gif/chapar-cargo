@@ -802,6 +802,13 @@ export interface Translations {
   scanHandoffWaiting: string; scanHandoffDone: string;
   scanHandoffErrExpired: string; scanHandoffErrUsed: string;
   scanHandoffErrFailed: string; scanHandoffOpenPhone: string;
+  // M5 — Attestation + evidence bundle
+  scanEvidenceTitle: string; scanEvidenceViewBtn: string;
+  scanEvidenceLoading: string; scanEvidenceNotAvail: string; scanEvidenceErr: string;
+  scanAttestVerdict: string; scanAttestMatch: string; scanAttestCondition: string;
+  scanAttestProhibited: string; scanAttestValue: string;
+  scanAttestSigned: string; scanAttestSignOk: string; scanAttestSignFail: string;
+  scanAttestMediaFiles: string; scanAttestCreatedAt: string; scanAttestReviewer: string;
 }
 
 export const translations: Record<LangCode, Translations> = {
@@ -1595,6 +1602,12 @@ export const translations: Record<LangCode, Translations> = {
     scanHandoffWaiting: 'در انتظار تکمیل اسکن توسط گوشی…', scanHandoffDone: 'اسکن گوشی کامل شد',
     scanHandoffErrExpired: 'کد QR منقضی شده است. دوباره تلاش کنید.', scanHandoffErrUsed: 'کد QR قبلاً استفاده شده است.',
     scanHandoffErrFailed: 'ایجاد QR ناموفق بود. دوباره تلاش کنید.', scanHandoffOpenPhone: 'باز کردن روی گوشی',
+    scanEvidenceTitle: 'گواهی کالا', scanEvidenceViewBtn: 'مشاهده مستندات',
+    scanEvidenceLoading: 'در حال بارگذاری مستندات…', scanEvidenceNotAvail: 'هنوز موجود نیست', scanEvidenceErr: 'بارگذاری مستندات ناموفق بود',
+    scanAttestVerdict: 'نتیجه', scanAttestMatch: 'تطابق کالا', scanAttestCondition: 'وضعیت',
+    scanAttestProhibited: 'بررسی ممنوعه', scanAttestValue: 'ارزش',
+    scanAttestSigned: 'مهر تأیید', scanAttestSignOk: 'امضا تأیید شد', scanAttestSignFail: 'امضا نادرست — احتمال دستکاری',
+    scanAttestMediaFiles: 'تعداد رسانه', scanAttestCreatedAt: 'زمان گواهی', scanAttestReviewer: 'بررسی‌کننده',
   },
 
   en: {
@@ -2381,6 +2394,12 @@ export const translations: Record<LangCode, Translations> = {
     scanHandoffWaiting: 'Waiting for phone to complete scan…', scanHandoffDone: 'Phone scan complete',
     scanHandoffErrExpired: 'QR code expired. Try again.', scanHandoffErrUsed: 'QR code already used.',
     scanHandoffErrFailed: 'Could not create QR code. Try again.', scanHandoffOpenPhone: 'Open on phone',
+    scanEvidenceTitle: 'Cargo Attestation', scanEvidenceViewBtn: 'View Evidence',
+    scanEvidenceLoading: 'Loading evidence…', scanEvidenceNotAvail: 'Not yet available', scanEvidenceErr: 'Could not load evidence',
+    scanAttestVerdict: 'Verdict', scanAttestMatch: 'Item match', scanAttestCondition: 'Condition',
+    scanAttestProhibited: 'Prohibited check', scanAttestValue: 'Value check',
+    scanAttestSigned: 'Tamper-evident', scanAttestSignOk: 'Signature verified', scanAttestSignFail: 'Signature mismatch — possible tampering',
+    scanAttestMediaFiles: 'Media files', scanAttestCreatedAt: 'Attested at', scanAttestReviewer: 'Reviewer',
   },
 
   tr: {
@@ -3167,6 +3186,12 @@ export const translations: Record<LangCode, Translations> = {
     scanHandoffWaiting: 'Telefon taramasının tamamlanması bekleniyor…', scanHandoffDone: 'Telefon taraması tamamlandı',
     scanHandoffErrExpired: 'QR kodunun süresi doldu. Tekrar deneyin.', scanHandoffErrUsed: 'QR kodu zaten kullanıldı.',
     scanHandoffErrFailed: 'QR kodu oluşturulamadı. Tekrar deneyin.', scanHandoffOpenPhone: 'Telefonda aç',
+    scanEvidenceTitle: 'Kargo Tasdiki', scanEvidenceViewBtn: 'Kanıtları Görüntüle',
+    scanEvidenceLoading: 'Kanıtlar yükleniyor…', scanEvidenceNotAvail: 'Henüz mevcut değil', scanEvidenceErr: 'Kanıtlar yüklenemedi',
+    scanAttestVerdict: 'Karar', scanAttestMatch: 'Ürün eşleşmesi', scanAttestCondition: 'Durum',
+    scanAttestProhibited: 'Yasaklı kontrolü', scanAttestValue: 'Değer kontrolü',
+    scanAttestSigned: 'Değişmez kayıt', scanAttestSignOk: 'İmza doğrulandı', scanAttestSignFail: 'İmza uyuşmuyor — olası müdahale',
+    scanAttestMediaFiles: 'Medya dosyaları', scanAttestCreatedAt: 'Tasdik tarihi', scanAttestReviewer: 'İnceleyici',
   },
 
   ar: {
@@ -3952,6 +3977,12 @@ export const translations: Record<LangCode, Translations> = {
     scanHandoffWaiting: 'في انتظار اكتمال المسح على الهاتف…', scanHandoffDone: 'اكتمل مسح الهاتف',
     scanHandoffErrExpired: 'انتهت صلاحية رمز QR. حاول مجدداً.', scanHandoffErrUsed: 'رمز QR مستخدم بالفعل.',
     scanHandoffErrFailed: 'تعذّر إنشاء رمز QR. حاول مجدداً.', scanHandoffOpenPhone: 'فتح على الهاتف',
+    scanEvidenceTitle: 'إقرار البضاعة', scanEvidenceViewBtn: 'عرض الأدلة',
+    scanEvidenceLoading: 'جارٍ تحميل الأدلة…', scanEvidenceNotAvail: 'غير متوفر بعد', scanEvidenceErr: 'تعذّر تحميل الأدلة',
+    scanAttestVerdict: 'الحكم', scanAttestMatch: 'مطابقة البضاعة', scanAttestCondition: 'الحالة',
+    scanAttestProhibited: 'فحص المحظورات', scanAttestValue: 'فحص القيمة',
+    scanAttestSigned: 'سجل محمي', scanAttestSignOk: 'التوقيع مُتحقَّق منه', scanAttestSignFail: 'عدم تطابق التوقيع — احتمال تلاعب',
+    scanAttestMediaFiles: 'ملفات الوسائط', scanAttestCreatedAt: 'وقت الإقرار', scanAttestReviewer: 'المراجع',
   },
 
   fr: {
@@ -4738,6 +4769,12 @@ export const translations: Record<LangCode, Translations> = {
     scanHandoffWaiting: 'En attente que le téléphone termine le scan…', scanHandoffDone: 'Scan téléphone terminé',
     scanHandoffErrExpired: 'Code QR expiré. Réessayez.', scanHandoffErrUsed: 'Code QR déjà utilisé.',
     scanHandoffErrFailed: 'Impossible de créer le QR. Réessayez.', scanHandoffOpenPhone: 'Ouvrir sur téléphone',
+    scanEvidenceTitle: 'Attestation de cargaison', scanEvidenceViewBtn: 'Voir les preuves',
+    scanEvidenceLoading: 'Chargement des preuves…', scanEvidenceNotAvail: 'Pas encore disponible', scanEvidenceErr: 'Impossible de charger les preuves',
+    scanAttestVerdict: 'Verdict', scanAttestMatch: 'Correspondance', scanAttestCondition: 'État',
+    scanAttestProhibited: 'Vérification interdit', scanAttestValue: 'Vérification valeur',
+    scanAttestSigned: 'Registre inviolable', scanAttestSignOk: 'Signature vérifiée', scanAttestSignFail: 'Signature incorrecte — possible falsification',
+    scanAttestMediaFiles: 'Fichiers médias', scanAttestCreatedAt: 'Attesté le', scanAttestReviewer: 'Réviseur',
   },
 
   zh: {
@@ -5517,5 +5554,11 @@ export const translations: Record<LangCode, Translations> = {
     scanHandoffWaiting: '等待手机完成扫描…', scanHandoffDone: '手机扫描完成',
     scanHandoffErrExpired: '二维码已过期，请重试。', scanHandoffErrUsed: '二维码已被使用。',
     scanHandoffErrFailed: '无法创建二维码，请重试。', scanHandoffOpenPhone: '在手机上打开',
+    scanEvidenceTitle: '货物证明', scanEvidenceViewBtn: '查看证明',
+    scanEvidenceLoading: '正在加载证明…', scanEvidenceNotAvail: '暂不可用', scanEvidenceErr: '无法加载证明',
+    scanAttestVerdict: '结论', scanAttestMatch: '货物匹配', scanAttestCondition: '状况',
+    scanAttestProhibited: '违禁品检查', scanAttestValue: '价值核查',
+    scanAttestSigned: '防篡改记录', scanAttestSignOk: '签名已验证', scanAttestSignFail: '签名不匹配 — 可能遭篡改',
+    scanAttestMediaFiles: '媒体文件', scanAttestCreatedAt: '证明时间', scanAttestReviewer: '审核员',
   },
 };
