@@ -11,6 +11,8 @@ import { useVerifyGate } from '../lib/useVerifyGate';
 import { Store, genId, getLiveRate } from '../lib/store';
 import SecuritySelector from './ProtectionSelector';
 import { defaultSecurityLevel, type SecurityLevel } from './shipmentTypes';
+import { PhoneField, isValidPhoneNumber } from '../lib/PhoneField';
+import type { Country } from '../lib/PhoneField';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -382,7 +384,7 @@ export default function SendPackagePage({ onHome, cargoType = 'personal', onNavi
       case 6:
         if (!recFirst.trim())   return t.spErrNeedRecFirst;
         if (!recLast.trim())    return t.spErrNeedRecLast;
-        if (!recPhone.trim())   return t.spErrNeedRecPhone;
+        if (!recPhone || !isValidPhoneNumber(recPhone)) return t.spErrNeedRecPhone;
         if (!recAddress.trim()) return t.spErrNeedRecAddress;
         if (highValue && !recDocCapture) return t.spErrNeedRecDoc;
         return null;
@@ -1214,8 +1216,12 @@ export default function SendPackagePage({ onHome, cargoType = 'personal', onNavi
             </div>
             <div className="mb-4">
               <label className="ds-label">{t.spRecPhone}</label>
-              <input type="tel" className="ds-input" placeholder="+1 416..." value={recPhone}
-                onChange={e => { setRecPhone(e.target.value); setErr(''); }} style={{ direction: 'ltr' }} />
+              <PhoneField
+                value={recPhone}
+                onChange={v => { setRecPhone(v); setErr(''); }}
+                defaultCountry={(isRTL ? 'IR' : 'CA') as Country}
+                placeholder={t.phonePlaceholder}
+              />
             </div>
             <div className="mb-4">
               <label className="ds-label">{t.spRecAddress}</label>

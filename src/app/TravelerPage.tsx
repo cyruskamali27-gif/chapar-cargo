@@ -10,6 +10,8 @@ import { useVerifyGate } from '../lib/useVerifyGate';
 import { Store, genId } from '../lib/store';
 import SecuritySelector from './ProtectionSelector';
 import { type SecurityLevel } from './shipmentTypes';
+import { PhoneField, isValidPhoneNumber } from '../lib/PhoneField';
+import type { Country } from '../lib/PhoneField';
 
 // ── Static data (keys / flags that don't change with language) ────────────────
 
@@ -249,7 +251,7 @@ export default function TravelerPage({ onHome, onNavigate }: Props) {
     if (!origin)   { setErr(t.travErrNoOrigin);  return false; }
     if (!dest)     { setErr(t.travErrNoDest);    return false; }
     if (!date)     { setErr(t.travErrNoDate);    return false; }
-    if (!phone || phone.replace(/\D/g, '').length < 10)
+    if (!phone || !isValidPhoneNumber(phone))
                    { setErr(t.travErrNoPhone);   return false; }
     return true;
   }
@@ -483,8 +485,12 @@ export default function TravelerPage({ onHome, onNavigate }: Props) {
 
             <div className="mb-4">
               <label className="ds-label">{t.travMobilePhone}</label>
-              <input type="tel" className="ds-input" placeholder="۰۹۱۲۳۴۵۶۷۸۹" value={phone}
-                onChange={e => { setPhone(e.target.value.trim()); setErr(''); }} />
+              <PhoneField
+                value={phone}
+                onChange={v => { setPhone(v); setErr(''); }}
+                defaultCountry={(isRTL ? 'IR' : 'CA') as Country}
+                placeholder={t.phonePlaceholder}
+              />
             </div>
 
             {matchBoxData !== null && (

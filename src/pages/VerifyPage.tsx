@@ -16,6 +16,8 @@ import { ArrowLeft, Home, CheckCircle } from 'lucide-react';
 import { Store, getSession, getOrder, saveOrder } from '../lib/store';
 import { StatusBadge } from '../app/VerificationModules';
 import { useLang } from '../lib/LangContext';
+import { PhoneField } from '../lib/PhoneField';
+import type { Country } from '../lib/PhoneField';
 
 type DocType = 'passport' | 'license' | 'national_id';
 
@@ -565,14 +567,11 @@ export default function VerifyPage() {
           </div>
           <div>
             <label className="ds-label block mb-1">{t.vfyPhone}</label>
-            <input
-              type="tel"
-              className="ds-input w-full"
-              placeholder="+98 912..."
-              style={{ direction: 'ltr' }}
+            <PhoneField
               value={phone}
-              onChange={e => setPhone(e.target.value)}
-              onBlur={onFieldBlur}
+              onChange={v => { setPhone(v); onFieldBlur(); }}
+              defaultCountry={(isRTL ? 'IR' : 'CA') as Country}
+              placeholder={t.phonePlaceholder}
             />
           </div>
         </div>

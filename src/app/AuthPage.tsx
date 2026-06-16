@@ -163,6 +163,8 @@ export default function AuthPage({ onHome, onSuccess, defaultTab = 'login' }: Pr
   // ── Forgot-password / reset state ───────────────────────────────────────────
   const [forgotStep,    setForgotStep]    = useState<1 | 2>(1);
   const [fId,           setFId]           = useState('');
+  const [fIdMode,       setFIdMode]       = useState<IdMode>('email');
+  const [fPhone,        setFPhone]        = useState('');
   const [fCode,         setFCode]         = useState('');
   const [fPw,           setFPw]           = useState('');
   const [fPw2,          setFPw2]          = useState('');
@@ -207,15 +209,19 @@ export default function AuthPage({ onHome, onSuccess, defaultTab = 'login' }: Pr
 
   // ── Forgot password ───────────────────────────────────────────────────────────
   async function doForgotSend() {
-    const id = fId.trim();
-    if (!id) { setFErr(t.authErrEmailRequired); return; }
+    if (fIdMode === 'phone') {
+      if (!fPhone || !isValidPhoneNumber(fPhone)) { setFErr(t.authErrPhoneInvalid); return; }
+    } else {
+      if (!fId.trim()) { setFErr(t.authErrEmailRequired); return; }
+    }
+    const identifier = fIdMode === 'phone' ? fPhone : fId.trim();
     setFLoading(true);
     setFErr('');
     try {
       await fetch(`${AUTH_BASE}/forgot-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ identifier: id, channel: fChannel }),
+        body: JSON.stringify({ identifier, channel: fChannel }),
       });
       // Always treat as success (anti-enumeration: server always returns ok:true)
       setForgotStep(2);
@@ -228,15 +234,15 @@ export default function AuthPage({ onHome, onSuccess, defaultTab = 'login' }: Pr
   }
 
   async function doForgotResend() {
-    const id = fId.trim();
-    if (!id) return;
+    const identifier = fIdMode === 'phone' ? fPhone : fId.trim();
+    if (!identifier) return;
     setFLoading(true);
     setFErr('');
     try {
       await fetch(`${AUTH_BASE}/forgot-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ identifier: id, channel: fChannel }),
+        body: JSON.stringify({ identifier, channel: fChannel }),
       });
       setFCountdown(60);
     } catch {
@@ -248,6 +254,7 @@ export default function AuthPage({ onHome, onSuccess, defaultTab = 'login' }: Pr
 
   async function doForgotReset() {
     const code = fCode.trim();
+    const identifier = fIdMode === 'phone' ? fPhone : fId.trim();
     if (!code) { setFErr(t.otpErrInvalid); return; }
     if (!fPw || fPw.length < 8) { setFErr(t.authErrPasswordLength); return; }
     if (fPw !== fPw2) { setFErr(t.authErrPasswordMatch); return; }
@@ -257,7 +264,7 @@ export default function AuthPage({ onHome, onSuccess, defaultTab = 'login' }: Pr
       const res  = await fetch(`${AUTH_BASE}/reset-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ identifier: fId.trim(), code, newPassword: fPw, channel: fChannel }),
+        body: JSON.stringify({ identifier, code, newPassword: fPw, channel: fChannel }),
       });
       const data = await res.json();
       if (data.ok) {
@@ -449,7 +456,7 @@ export default function AuthPage({ onHome, onSuccess, defaultTab = 'login' }: Pr
               </div>
               <FieldError msg={lErr.global ?? ''} />
               <button className="block text-[11px] font-semibold text-gray-400 hover:text-cyan-600 mb-5 mt-1 transition-colors"
-                onClick={() => { setFId(lId); setForgotStep(1); setFCode(''); setFPw(''); setFPw2(''); setFErr(''); setFCountdown(0); setFChannel('email'); setTab('forgot'); }}>
+                onClick={() => { setFId(lId); setFPhone(lIdMode === 'phone' ? lPhone : ''); setFIdMode(lIdMode); setForgotStep(1); setFCode(''); setFPw(''); setFPw2(''); setFErr(''); setFCountdown(0); setFChannel('email'); setTab('forgot'); }}>
                 {t.authForgotPassword}
               </button>
               <button onClick={doLogin} disabled={lLoading} className="ds-btn-primary w-full h-12 disabled:opacity-60">
@@ -545,16 +552,30 @@ export default function AuthPage({ onHome, onSuccess, defaultTab = 'login' }: Pr
                 <>
                   <div className="mb-4">
                     <label className="ds-label">{t.authEmailOrPhone}</label>
-                    <input
-                      type="text"
-                      value={fId}
-                      onChange={e => { setFId(e.target.value); setFErr(''); }}
-                      onKeyDown={e => { if (e.key === 'Enter') doForgotSend(); }}
-                      placeholder={t.forgotIdPlaceholder}
-                      autoComplete="username"
-                      className={inputCls(fErr ? 'err' : '')}
-                      autoFocus
+                    <IdModeToggle
+                      mode={fIdMode}
+                      setMode={m => { setFIdMode(m); setFErr(''); setFPhone(''); }}
                     />
+                    {fIdMode === 'email' ? (
+                      <input
+                        type="text"
+                        value={fId}
+                        onChange={e => { setFId(e.target.value); setFErr(''); }}
+                        onKeyDown={e => { if (e.key === 'Enter') doForgotSend(); }}
+                        placeholder={t.forgotIdPlaceholder}
+                        autoComplete="username"
+                        className={inputCls(fErr ? 'err' : '')}
+                        autoFocus
+                      />
+                    ) : (
+                      <PhoneField
+                        value={fPhone}
+                        onChange={v => { setFPhone(v); setFErr(''); }}
+                        defaultCountry={defaultPhoneCountry}
+                        placeholder={t.phonePlaceholder}
+                        hasError={!!fErr}
+                      />
+                    )}
                   </div>
                   <div className="flex gap-2 mb-4">
                     <button
