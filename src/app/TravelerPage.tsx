@@ -7,6 +7,7 @@ import { IdentityVerification } from './VerificationModules';
 import { useSession } from '../lib/SessionContext';
 import { useLang } from '../lib/LangContext';
 import { useVerifyGate } from '../lib/useVerifyGate';
+import { useKycGate } from '../lib/useKycGate';
 import { Store, genId } from '../lib/store';
 import SecuritySelector from './ProtectionSelector';
 import { type SecurityLevel } from './shipmentTypes';
@@ -112,6 +113,7 @@ export default function TravelerPage({ onHome, onNavigate }: Props) {
   const { session } = useSession();
   const { t, isRTL } = useLang();
   const { gate, modal } = useVerifyGate();
+  const { isVerified: kycVerified, notice: kycNotice } = useKycGate({ onNavigate });
 
   // Cargo options built from translations
   const CARGO_OPTIONS = [
@@ -728,10 +730,11 @@ export default function TravelerPage({ onHome, onNavigate }: Props) {
               {t.travPayNote}
             </div>
 
+            {kycNotice}
             <Err msg={err} />
             <div className="flex gap-3 mt-2">
               <button onClick={() => goStep(3)} className="ds-btn-secondary flex-shrink-0 px-5 py-3">{t.travPrevStep}</button>
-              <button onClick={() => goStep(5)} disabled={publishing}
+              <button onClick={() => goStep(5)} disabled={publishing || !kycVerified}
                 className="ds-btn-primary flex-1 py-3 disabled:opacity-60">
                 {publishing
                   ? <span className="flex items-center justify-center gap-2"><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />{t.travPublishing}</span>

@@ -9,6 +9,7 @@ import GuidedCapture from './GuidedCapture';
 import { useSession } from '../lib/SessionContext';
 import { useLang } from '../lib/LangContext';
 import { useVerifyGate } from '../lib/useVerifyGate';
+import { useKycGate } from '../lib/useKycGate';
 import { Store, genId, getLiveRate } from '../lib/store';
 import SecuritySelector from './ProtectionSelector';
 import { defaultSecurityLevel, type SecurityLevel } from './shipmentTypes';
@@ -195,6 +196,7 @@ export default function SendPackagePage({ onHome, cargoType = 'personal', onNavi
 
   const { session } = useSession();
   const { gate, modal } = useVerifyGate();
+  const { isVerified: kycVerified, notice: kycNotice } = useKycGate({ onNavigate });
 
   const [step, setStep] = useState(1);
 
@@ -1463,10 +1465,11 @@ export default function SendPackagePage({ onHome, cargoType = 'personal', onNavi
               </>
             )}
 
+            {kycNotice}
             <Err msg={err} />
             <div className="flex gap-3 mt-2">
               <button onClick={() => goStep(7)} className="ds-btn-secondary flex-shrink-0 px-5 py-3">{t.wizardPrev}</button>
-              <button onClick={() => gate(publishOrder)} disabled={publishing || !payVerified}
+              <button onClick={() => gate(publishOrder)} disabled={publishing || !payVerified || !kycVerified}
                 className="ds-btn-primary flex-1 py-3 disabled:opacity-40">
                 {publishing
                   ? <span className="flex items-center justify-center gap-2"><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"/>{t.spPublishing}</span>

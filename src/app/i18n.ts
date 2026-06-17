@@ -848,6 +848,9 @@ export interface Translations {
   kycDocDriversLicense: string; kycDocDriversLicenseDesc: string;
   // Phase P6 driver's license back capture
   kycDlBackPrompt: string;
+  // Phase P8 KYC soft-gate
+  kycGateNotice: string;
+  kycGateCta: string;
 }
 
 export const translations: Record<LangCode, Translations> = {
@@ -1681,6 +1684,8 @@ export const translations: Record<LangCode, Translations> = {
     kycDocNationalId: 'کارت ملی', kycDocNationalIdDesc: 'کارت شناسایی ملی صادرشده توسط دولت',
     kycDocDriversLicense: 'گواهینامه رانندگی', kycDocDriversLicenseDesc: 'گواهینامه رانندگی صادرشده توسط دولت',
     kycDlBackPrompt: 'گواهینامه را برگردانید — بارکد باید داخل قاب باشد',
+    kycGateNotice: 'برای انتشار، باید هویت خود را تأیید کنید',
+    kycGateCta: 'تأیید هویت',
   },
 
   en: {
@@ -2507,6 +2512,8 @@ export const translations: Record<LangCode, Translations> = {
     kycDocNationalId: 'National ID Card', kycDocNationalIdDesc: 'Government-issued national identity card',
     kycDocDriversLicense: "Driver's License", kycDocDriversLicenseDesc: 'Government-issued driving license',
     kycDlBackPrompt: 'Flip to back — align the barcode in the frame',
+    kycGateNotice: 'Identity verification is required before you can publish',
+    kycGateCta: 'Verify your identity',
   },
 
   tr: {
@@ -3333,6 +3340,8 @@ export const translations: Record<LangCode, Translations> = {
     kycDocNationalId: 'Nüfus Cüzdanı', kycDocNationalIdDesc: 'Devlet tarafından verilen ulusal kimlik kartı',
     kycDocDriversLicense: 'Ehliyet', kycDocDriversLicenseDesc: 'Devlet tarafından verilen sürücü belgesi',
     kycDlBackPrompt: 'Lisansı ters çevirin — barkodu çerçeve içinde hizalayın',
+    kycGateNotice: 'Yayınlamadan önce kimlik doğrulaması gereklidir', // pending native review
+    kycGateCta: 'Kimliğinizi doğrulayın', // pending native review
   },
 
   ar: {
@@ -4158,6 +4167,8 @@ export const translations: Record<LangCode, Translations> = {
     kycDocNationalId: 'بطاقة الهوية الوطنية', kycDocNationalIdDesc: 'بطاقة هوية وطنية صادرة عن الحكومة',
     kycDocDriversLicense: 'رخصة القيادة', kycDocDriversLicenseDesc: 'رخصة قيادة صادرة عن الحكومة',
     kycDlBackPrompt: 'اقلب الرخصة — اضبط الرمز الشريطي داخل الإطار',
+    kycGateNotice: 'مطلوب التحقق من الهوية قبل النشر', // pending native review
+    kycGateCta: 'تحقق من هويتك', // pending native review
   },
 
   fr: {
@@ -4984,6 +4995,8 @@ export const translations: Record<LangCode, Translations> = {
     kycDocNationalId: "Carte nationale d'identité", kycDocNationalIdDesc: "Carte d'identité nationale délivrée par le gouvernement",
     kycDocDriversLicense: 'Permis de conduire', kycDocDriversLicenseDesc: 'Permis de conduire délivré par le gouvernement',
     kycDlBackPrompt: 'Retournez le permis — alignez le code-barres dans le cadre',
+    kycGateNotice: "La vérification d'identité est requise avant la publication", // pending native review
+    kycGateCta: 'Vérifier votre identité', // pending native review
   },
 
   zh: {
@@ -5803,5 +5816,7 @@ export const translations: Record<LangCode, Translations> = {
     kycDocNationalId: '身份证', kycDocNationalIdDesc: '政府颁发的国家身份证',
     kycDocDriversLicense: '驾驶证', kycDocDriversLicenseDesc: '政府颁发的驾驶执照',
     kycDlBackPrompt: '翻转驾驶证——将条形码对准取景框',
+    kycGateNotice: '发布前需要完成身份验证', // pending native review
+    kycGateCta: '验证您的身份', // pending native review
   },
 };
