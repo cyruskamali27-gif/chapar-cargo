@@ -846,6 +846,8 @@ export interface Translations {
   kycDocPassport: string; kycDocPassportDesc: string;
   kycDocNationalId: string; kycDocNationalIdDesc: string;
   kycDocDriversLicense: string; kycDocDriversLicenseDesc: string;
+  // Phase P6 driver's license back capture
+  kycDlBackPrompt: string;
 }
 
 export const translations: Record<LangCode, Translations> = {
@@ -1678,6 +1680,7 @@ export const translations: Record<LangCode, Translations> = {
     kycDocPassport: 'پاسپورت', kycDocPassportDesc: 'گذرنامه بین‌المللی با خطوط MRZ',
     kycDocNationalId: 'کارت ملی', kycDocNationalIdDesc: 'کارت شناسایی ملی صادرشده توسط دولت',
     kycDocDriversLicense: 'گواهینامه رانندگی', kycDocDriversLicenseDesc: 'گواهینامه رانندگی صادرشده توسط دولت',
+    kycDlBackPrompt: 'گواهینامه را برگردانید — بارکد باید داخل قاب باشد',
   },
 
   en: {
@@ -2503,6 +2506,7 @@ export const translations: Record<LangCode, Translations> = {
     kycDocPassport: 'Passport', kycDocPassportDesc: 'International travel document with MRZ strip',
     kycDocNationalId: 'National ID Card', kycDocNationalIdDesc: 'Government-issued national identity card',
     kycDocDriversLicense: "Driver's License", kycDocDriversLicenseDesc: 'Government-issued driving license',
+    kycDlBackPrompt: 'Flip to back — align the barcode in the frame',
   },
 
   tr: {
@@ -3328,6 +3332,7 @@ export const translations: Record<LangCode, Translations> = {
     kycDocPassport: 'Pasaport', kycDocPassportDesc: 'MRZ şeridi içeren uluslararası seyahat belgesi',
     kycDocNationalId: 'Nüfus Cüzdanı', kycDocNationalIdDesc: 'Devlet tarafından verilen ulusal kimlik kartı',
     kycDocDriversLicense: 'Ehliyet', kycDocDriversLicenseDesc: 'Devlet tarafından verilen sürücü belgesi',
+    kycDlBackPrompt: 'Lisansı ters çevirin — barkodu çerçeve içinde hizalayın',
   },
 
   ar: {
@@ -4152,6 +4157,7 @@ export const translations: Record<LangCode, Translations> = {
     kycDocPassport: 'جواز سفر', kycDocPassportDesc: 'وثيقة سفر دولية بشريط MRZ',
     kycDocNationalId: 'بطاقة الهوية الوطنية', kycDocNationalIdDesc: 'بطاقة هوية وطنية صادرة عن الحكومة',
     kycDocDriversLicense: 'رخصة القيادة', kycDocDriversLicenseDesc: 'رخصة قيادة صادرة عن الحكومة',
+    kycDlBackPrompt: 'اقلب الرخصة — اضبط الرمز الشريطي داخل الإطار',
   },
 
   fr: {
@@ -4977,6 +4983,7 @@ export const translations: Record<LangCode, Translations> = {
     kycDocPassport: 'Passeport', kycDocPassportDesc: 'Document de voyage international avec bande MRZ',
     kycDocNationalId: "Carte nationale d'identité", kycDocNationalIdDesc: "Carte d'identité nationale délivrée par le gouvernement",
     kycDocDriversLicense: 'Permis de conduire', kycDocDriversLicenseDesc: 'Permis de conduire délivré par le gouvernement',
+    kycDlBackPrompt: 'Retournez le permis — alignez le code-barres dans le cadre',
   },
 
   zh: {
@@ -5795,5 +5802,6 @@ export const translations: Record<LangCode, Translations> = {
     kycDocPassport: '护照', kycDocPassportDesc: '含MRZ条带的国际旅行证件',
     kycDocNationalId: '身份证', kycDocNationalIdDesc: '政府颁发的国家身份证',
     kycDocDriversLicense: '驾驶证', kycDocDriversLicenseDesc: '政府颁发的驾驶执照',
+    kycDlBackPrompt: '翻转驾驶证——将条形码对准取景框',
   },
 };

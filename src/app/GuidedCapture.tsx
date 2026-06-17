@@ -56,9 +56,13 @@ export interface GuidedCaptureProps {
 
 // ── Mode-specific angle plans ──────────────────────────────────────────────────
 
-const FACE_ANGLE_PLAN: AngleEntry[]  = [{ kind: 'frame', angle: 'selfie',    description: 'straight-on selfie' }];
-const DOC_ANGLE_PLAN: AngleEntry[]   = [{ kind: 'frame', angle: 'doc-front', description: 'passport bio page'  }];
-const PHOTO_ANGLE_PLAN: AngleEntry[] = [{ kind: 'frame', angle: 'photo',     description: 'single photo'       }];
+const FACE_ANGLE_PLAN: AngleEntry[]  = [{ kind: 'frame', angle: 'selfie',    description: 'straight-on selfie'            }];
+const DOC_ANGLE_PLAN: AngleEntry[]   = [{ kind: 'frame', angle: 'doc-front', description: 'passport bio page'             }];
+const DL_ANGLE_PLAN: AngleEntry[]    = [
+  { kind: 'frame', angle: 'dl-front', description: "driver's license front" },
+  { kind: 'frame', angle: 'dl-back',  description: "driver's license back"  },
+];
+const PHOTO_ANGLE_PLAN: AngleEntry[] = [{ kind: 'frame', angle: 'photo',     description: 'single photo'                  }];
 
 // ── Angle label helper ─────────────────────────────────────────────────────────
 
@@ -626,7 +630,7 @@ export default function GuidedCapture({
         if (selectedDocType === 'national_id') {
           setAnglePlan([{ kind: 'frame', angle: 'id-front', description: 'ID card front' }]);
         } else if (selectedDocType === 'drivers_license') {
-          setAnglePlan([{ kind: 'frame', angle: 'license-front', description: "driver's license front" }]);
+          setAnglePlan(DL_ANGLE_PLAN);  // front + back (barcode side)
         } else {
           setAnglePlan(DOC_ANGLE_PLAN); // passport or default
         }
@@ -689,10 +693,11 @@ export default function GuidedCapture({
       try {
         const frame = capturedFrames[0];
         if (!frame) throw new Error('No frame captured');
-        setUploadProgress({ done: 0, total: 1 });
+        const total = docT === 'drivers_license' ? 2 : 1;
+        setUploadProgress({ done: 0, total });
         const mediaKey = await uploadToSpaces(frame.blob, docT);
         if (!mediaKey) throw new Error(t.scanErrNetwork);
-        setUploadProgress({ done: 1, total: 1 });
+        setUploadProgress({ done: 1, total });
 
         const token = getToken();
         if (docT === 'passport') {
@@ -703,10 +708,16 @@ export default function GuidedCapture({
             body: JSON.stringify({ mediaKey }),
           }).catch(() => {});
         } else {
-          await fetch('/api/kyc/doc/register', {
+          // Upload DL back frame if present, then validate (MRZ / barcode / OCR)
+          let backMediaKey: string | null = null;
+          if (docT === 'drivers_license' && capturedFrames.length >= 2) {
+            backMediaKey = await uploadToSpaces(capturedFrames[1].blob, 'drivers_license_back');
+            setUploadProgress({ done: 2, total: 2 });
+          }
+          await fetch('/api/kyc/doc/validate', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-            body: JSON.stringify({ docType: docT, mediaKey }),
+            body: JSON.stringify({ docType: docT, mediaKey, ...(backMediaKey ? { backMediaKey } : {}) }),
           });
         }
         setPhase('result');
@@ -1384,7 +1395,7 @@ export default function GuidedCapture({
   const allDone = capturedCount >= totalFrames && totalFrames > 0;
 
   const capturePrompt = mode === 'face'     ? t.gcFacePrompt
-    : mode === 'document' ? t.gcDocPrompt
+    : mode === 'document' ? (currentAngle?.angle === 'dl-back' ? t.kycDlBackPrompt : t.gcDocPrompt)
     : mode === 'photo'    ? t.gcPhotoPrompt
     : `${t.scanCaptureTap} — ${currentLabel}`;
 
