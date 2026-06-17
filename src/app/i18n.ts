@@ -841,6 +841,11 @@ export interface Translations {
   gcPhotoConsentTitle: string; gcPhotoConsentBody: string;
   gcPhotoConsentItem1: string; gcPhotoConsentItem2: string; gcPhotoConsentItem3: string;
   gcPhotoPrompt: string;
+  // Phase P5 doc-type-aware — document-type selection
+  kycDocSelectTitle: string; kycDocSelectBody: string;
+  kycDocPassport: string; kycDocPassportDesc: string;
+  kycDocNationalId: string; kycDocNationalIdDesc: string;
+  kycDocDriversLicense: string; kycDocDriversLicenseDesc: string;
 }
 
 export const translations: Record<LangCode, Translations> = {
@@ -1669,6 +1674,10 @@ export const translations: Record<LangCode, Translations> = {
     gcPhotoConsentTitle: 'گرفتن عکس', gcPhotoConsentBody: 'یک عکس واضح با دوربین پشت بگیرید.',
     gcPhotoConsentItem1: 'سوژه را در کادر قرار دهید', gcPhotoConsentItem2: 'دوربین را ثابت نگه دارید', gcPhotoConsentItem3: 'از نور کافی مطمئن شوید',
     gcPhotoPrompt: 'برای گرفتن عکس ضربه بزنید',
+    kycDocSelectTitle: 'انتخاب نوع سند هویت', kycDocSelectBody: 'سند هویتی که برای تأیید حساب خود استفاده می‌کنید را انتخاب کنید',
+    kycDocPassport: 'پاسپورت', kycDocPassportDesc: 'گذرنامه بین‌المللی با خطوط MRZ',
+    kycDocNationalId: 'کارت ملی', kycDocNationalIdDesc: 'کارت شناسایی ملی صادرشده توسط دولت',
+    kycDocDriversLicense: 'گواهینامه رانندگی', kycDocDriversLicenseDesc: 'گواهینامه رانندگی صادرشده توسط دولت',
   },
 
   en: {
@@ -2490,6 +2499,10 @@ export const translations: Record<LangCode, Translations> = {
     gcPhotoConsentTitle: 'Take a photo', gcPhotoConsentBody: 'Take a clear photo using the rear camera.',
     gcPhotoConsentItem1: 'Position the subject in the frame', gcPhotoConsentItem2: 'Keep the camera steady', gcPhotoConsentItem3: 'Ensure you have good lighting',
     gcPhotoPrompt: 'Tap to capture',
+    kycDocSelectTitle: 'Select Document Type', kycDocSelectBody: "Choose the identity document you'll use to verify your account",
+    kycDocPassport: 'Passport', kycDocPassportDesc: 'International travel document with MRZ strip',
+    kycDocNationalId: 'National ID Card', kycDocNationalIdDesc: 'Government-issued national identity card',
+    kycDocDriversLicense: "Driver's License", kycDocDriversLicenseDesc: 'Government-issued driving license',
   },
 
   tr: {
@@ -3311,6 +3324,10 @@ export const translations: Record<LangCode, Translations> = {
     gcPhotoConsentTitle: 'Fotoğraf çek', gcPhotoConsentBody: 'Arka kamerayı kullanarak net bir fotoğraf çekin.',
     gcPhotoConsentItem1: 'Konuyu çerçeve içine yerleştirin', gcPhotoConsentItem2: 'Kamerayı sabit tutun', gcPhotoConsentItem3: 'İyi bir aydınlatma sağlayın',
     gcPhotoPrompt: 'Çekmek için dokun',
+    kycDocSelectTitle: 'Belge Türünü Seçin', kycDocSelectBody: 'Hesabınızı doğrulamak için kullanacağınız kimlik belgesini seçin',
+    kycDocPassport: 'Pasaport', kycDocPassportDesc: 'MRZ şeridi içeren uluslararası seyahat belgesi',
+    kycDocNationalId: 'Nüfus Cüzdanı', kycDocNationalIdDesc: 'Devlet tarafından verilen ulusal kimlik kartı',
+    kycDocDriversLicense: 'Ehliyet', kycDocDriversLicenseDesc: 'Devlet tarafından verilen sürücü belgesi',
   },
 
   ar: {
@@ -4131,6 +4148,10 @@ export const translations: Record<LangCode, Translations> = {
     gcPhotoConsentTitle: 'التقط صورة', gcPhotoConsentBody: 'التقط صورة واضحة باستخدام الكاميرا الخلفية.',
     gcPhotoConsentItem1: 'ضع الموضوع في الإطار', gcPhotoConsentItem2: 'ثبّت الكاميرا', gcPhotoConsentItem3: 'تأكد من الإضاءة الجيدة',
     gcPhotoPrompt: 'انقر للالتقاط',
+    kycDocSelectTitle: 'اختر نوع المستند', kycDocSelectBody: 'اختر وثيقة الهوية التي ستستخدمها للتحقق من حسابك',
+    kycDocPassport: 'جواز سفر', kycDocPassportDesc: 'وثيقة سفر دولية بشريط MRZ',
+    kycDocNationalId: 'بطاقة الهوية الوطنية', kycDocNationalIdDesc: 'بطاقة هوية وطنية صادرة عن الحكومة',
+    kycDocDriversLicense: 'رخصة القيادة', kycDocDriversLicenseDesc: 'رخصة قيادة صادرة عن الحكومة',
   },
 
   fr: {
@@ -4952,6 +4973,10 @@ export const translations: Record<LangCode, Translations> = {
     gcPhotoConsentTitle: 'Prendre une photo', gcPhotoConsentBody: 'Prenez une photo nette avec la caméra arrière.',
     gcPhotoConsentItem1: 'Placez le sujet dans le cadre', gcPhotoConsentItem2: 'Tenez la caméra immobile', gcPhotoConsentItem3: "Assurez-vous d'avoir un bon éclairage",
     gcPhotoPrompt: 'Appuyez pour capturer',
+    kycDocSelectTitle: 'Choisissez le type de document', kycDocSelectBody: "Sélectionnez le document d'identité que vous utiliserez pour vérifier votre compte",
+    kycDocPassport: 'Passeport', kycDocPassportDesc: 'Document de voyage international avec bande MRZ',
+    kycDocNationalId: "Carte nationale d'identité", kycDocNationalIdDesc: "Carte d'identité nationale délivrée par le gouvernement",
+    kycDocDriversLicense: 'Permis de conduire', kycDocDriversLicenseDesc: 'Permis de conduire délivré par le gouvernement',
   },
 
   zh: {
@@ -5766,5 +5791,9 @@ export const translations: Record<LangCode, Translations> = {
     gcPhotoConsentTitle: '拍摄照片', gcPhotoConsentBody: '使用后置摄像头拍摄清晰的照片。',
     gcPhotoConsentItem1: '将拍摄对象置于框内', gcPhotoConsentItem2: '保持相机稳定', gcPhotoConsentItem3: '确保光线充足',
     gcPhotoPrompt: '点击拍摄',
+    kycDocSelectTitle: '选择证件类型', kycDocSelectBody: '选择用于验证账户的身份证件',
+    kycDocPassport: '护照', kycDocPassportDesc: '含MRZ条带的国际旅行证件',
+    kycDocNationalId: '身份证', kycDocNationalIdDesc: '政府颁发的国家身份证',
+    kycDocDriversLicense: '驾驶证', kycDocDriversLicenseDesc: '政府颁发的驾驶执照',
   },
 };

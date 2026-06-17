@@ -8,7 +8,9 @@ import type { Translations } from './i18n';
 
 export type CaptureMode = 'cargo' | 'face' | 'document' | 'photo';
 
-type Phase = 'consent' | 'starting' | 'capturing' | 'uploading' | 'analyzing' | 'result' | 'cam-denied' | 'error'
+type DocType = 'passport' | 'national_id' | 'drivers_license';
+
+type Phase = 'doc-select' | 'consent' | 'starting' | 'capturing' | 'uploading' | 'analyzing' | 'result' | 'cam-denied' | 'error'
            | 'liveness-loading' | 'liveness-step' | 'liveness-verifying' | 'liveness-result';
 
 type Quality = 'ok' | 'blur' | 'dark' | 'glare' | null;
@@ -30,6 +32,9 @@ export interface GuidedCaptureResult {
   jobStatus?: string;
   frames: CapturedFrame[];
   livenessStatus?: 'pass' | 'fail' | 'needs_review';
+  docType?: DocType;
+  docMediaKey?: string;
+  selfieMediaKey?: string;
 }
 
 export interface GuidedCaptureProps {
@@ -41,6 +46,8 @@ export interface GuidedCaptureProps {
   initialAnglePlan?: AngleEntry[];
   overrideToken?: string;
   liveness?: boolean;
+  // KYC-specific
+  nationality?: string;   // ISO 3166-1 alpha-2, e.g. 'IR' — controls doc-type options shown
   // common
   onBack: () => void;
   onHome: () => void;
@@ -327,7 +334,7 @@ function drawFaceOverlay(canvas: HTMLCanvasElement, quality: Quality) {
   ctx.stroke();
 }
 
-function drawDocOverlay(canvas: HTMLCanvasElement, quality: Quality) {
+function drawDocOverlay(canvas: HTMLCanvasElement, quality: Quality, showMrz = true) {
   const cw = canvas.width, ch = canvas.height;
 
   const frameW = Math.min(cw * 0.88, ch * 1.48);
@@ -337,10 +344,12 @@ function drawDocOverlay(canvas: HTMLCanvasElement, quality: Quality) {
 
   drawCornerBrackets(canvas, quality, null, frameW, frameH, fx, fy, frameW * 0.08, 12);
 
+  if (!showMrz) return;
+
   const ctx = canvas.getContext('2d');
   if (!ctx) return;
 
-  // MRZ strip indicator
+  // MRZ strip indicator (passport only)
   const mrzH = frameH * 0.22;
   const mrzY = fy + frameH - mrzH;
   ctx.strokeStyle = 'rgba(255,220,50,0.45)';
@@ -360,10 +369,11 @@ function drawOverlay(
   quality: Quality,
   edgeBox: { x: number; y: number; w: number; h: number } | null,
   mode: CaptureMode,
+  showMrz = true,
 ) {
-  if (mode === 'cargo')    drawCargoOverlay(canvas, quality, edgeBox);
+  if (mode === 'cargo')         drawCargoOverlay(canvas, quality, edgeBox);
   else if (mode === 'face')     drawFaceOverlay(canvas, quality);
-  else if (mode === 'document') drawDocOverlay(canvas, quality);
+  else if (mode === 'document') drawDocOverlay(canvas, quality, showMrz);
   else                          drawPhotoOverlay(canvas, quality);  // 'photo'
 }
 
@@ -388,6 +398,7 @@ export default function GuidedCapture({
   initialAnglePlan,
   overrideToken,
   liveness,
+  nationality,
   onBack,
   onHome,
   onComplete,
@@ -395,7 +406,7 @@ export default function GuidedCapture({
   const { t, isRTL } = useLang();
   const dir = isRTL ? 'rtl' : 'ltr';
 
-  const [phase, setPhase] = useState<Phase>('consent');
+  const [phase, setPhase] = useState<Phase>(mode === 'document' ? 'doc-select' : 'consent');
   const [jobId, setJobId] = useState<string | null>(null);
   const [anglePlan, setAnglePlan] = useState<AngleEntry[]>([]);
   const [currentIdx, setCurrentIdx] = useState(0);
@@ -422,6 +433,11 @@ export default function GuidedCapture({
   const edgeBoxRef     = useRef<typeof edgeBox>(null);
   const qualityRef     = useRef<Quality>(null);
   const overlayRafRef  = useRef<number | null>(null);
+
+  // Document-type selection state
+  const [selectedDocType, setSelectedDocType] = useState<DocType | null>(null);
+  const selectedDocTypeRef = useRef<DocType | null>(null);
+  selectedDocTypeRef.current = selectedDocType;
 
   // Liveness state
   const [liveNonce,     setLiveNonce]     = useState('');
@@ -464,7 +480,8 @@ export default function GuidedCapture({
           canvas.width  = parent.clientWidth;
           canvas.height = parent.clientHeight;
         }
-        drawOverlay(canvas, qualityRef.current, edgeBoxRef.current, mode);
+        const showMrz = selectedDocTypeRef.current === 'passport' || selectedDocTypeRef.current === null;
+        drawOverlay(canvas, qualityRef.current, edgeBoxRef.current, mode, showMrz);
       }
       overlayRafRef.current = requestAnimationFrame(loop);
     };
@@ -606,7 +623,13 @@ export default function GuidedCapture({
         }
         setAnglePlan(FACE_ANGLE_PLAN);
       } else if (mode === 'document') {
-        setAnglePlan(DOC_ANGLE_PLAN);
+        if (selectedDocType === 'national_id') {
+          setAnglePlan([{ kind: 'frame', angle: 'id-front', description: 'ID card front' }]);
+        } else if (selectedDocType === 'drivers_license') {
+          setAnglePlan([{ kind: 'frame', angle: 'license-front', description: "driver's license front" }]);
+        } else {
+          setAnglePlan(DOC_ANGLE_PLAN); // passport or default
+        }
       } else {
         setAnglePlan(PHOTO_ANGLE_PLAN);
       }
@@ -658,7 +681,65 @@ export default function GuidedCapture({
   }
 
   async function finishCapture(capturedFrames: CapturedFrame[]) {
-    // face / document / photo: local capture only — no upload
+    // ── document mode: upload to Spaces, then register with KYC service ──────────
+    if (mode === 'document' && selectedDocTypeRef.current) {
+      const docT = selectedDocTypeRef.current;
+      stopCamera();
+      setPhase('uploading');
+      try {
+        const frame = capturedFrames[0];
+        if (!frame) throw new Error('No frame captured');
+        setUploadProgress({ done: 0, total: 1 });
+        const mediaKey = await uploadToSpaces(frame.blob, docT);
+        if (!mediaKey) throw new Error(t.scanErrNetwork);
+        setUploadProgress({ done: 1, total: 1 });
+
+        const token = getToken();
+        if (docT === 'passport') {
+          // Fire MRZ extraction — slow Gemini call, show result immediately
+          fetch('/api/kyc/passport/mrz', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ mediaKey }),
+          }).catch(() => {});
+        } else {
+          await fetch('/api/kyc/doc/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ docType: docT, mediaKey }),
+          });
+        }
+        setPhase('result');
+        onComplete?.({ mode, frames: capturedFrames, docType: docT, docMediaKey: mediaKey });
+      } catch (err) {
+        setErrMsg(err instanceof Error ? err.message : t.scanErrNetwork);
+        setPhase('error');
+      }
+      return;
+    }
+
+    // ── face mode (no liveness): upload selfie ────────────────────────────────────
+    if (mode === 'face') {
+      stopCamera();
+      setPhase('uploading');
+      try {
+        const frame = capturedFrames[0];
+        if (frame) {
+          const selfieMediaKey = await uploadToSpaces(frame.blob, 'selfie');
+          setPhase('result');
+          onComplete?.({ mode, frames: capturedFrames, selfieMediaKey: selfieMediaKey ?? undefined });
+        } else {
+          setPhase('result');
+          onComplete?.({ mode, frames: capturedFrames });
+        }
+      } catch {
+        setPhase('result');
+        onComplete?.({ mode, frames: capturedFrames });
+      }
+      return;
+    }
+
+    // ── photo mode: local only ────────────────────────────────────────────────────
     if (mode !== 'cargo') {
       stopCamera();
       setPhase('result');
@@ -764,6 +845,34 @@ export default function GuidedCapture({
 
   const liveDelay = (ms: number) => new Promise<void>(r => setTimeout(r, ms));
 
+  async function captureFrameAsBlob(): Promise<Blob | null> {
+    const video = videoRef.current;
+    if (!video) return null;
+    const fc = document.createElement('canvas');
+    fc.width  = Math.min(video.videoWidth  || 640, 640);
+    fc.height = Math.min(video.videoHeight || 480, 480);
+    fc.getContext('2d')!.drawImage(video, 0, 0, fc.width, fc.height);
+    return new Promise<Blob | null>(resolve => {
+      fc.toBlob(b => resolve(b), 'image/jpeg', 0.85);
+    });
+  }
+
+  async function uploadToSpaces(blob: Blob, type: string): Promise<string | null> {
+    try {
+      const urlRes = await fetch(`/api/kyc/upload-url?type=${type}`, {
+        headers: { Authorization: `Bearer ${getToken()}` },
+      });
+      if (!urlRes.ok) return null;
+      const { uploadUrl, mediaKey } = await urlRes.json() as { uploadUrl: string; mediaKey: string };
+      const putRes = await fetch(uploadUrl, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'image/jpeg' },
+        body: blob,
+      });
+      return putRes.ok ? mediaKey : null;
+    } catch { return null; }
+  }
+
   async function captureFrameAsBase64(): Promise<string> {
     const video = videoRef.current;
     if (!video) throw new Error('no video');
@@ -806,6 +915,10 @@ export default function GuidedCapture({
   }
 
   async function handleLivenessVerify(frameMap: Record<string, string[]>) {
+    // Capture selfie before stopping camera for face-match upload
+    let selfieBlob: Blob | null = null;
+    try { selfieBlob = await captureFrameAsBlob(); } catch {}
+
     stopCamera();
     setPhase('liveness-verifying');
     try {
@@ -813,16 +926,24 @@ export default function GuidedCapture({
       for (const [ch, b64s] of Object.entries(frameMap)) {
         framesPayload[ch] = b64s.map(b => ({ imageB64: b }));
       }
-      const res = await fetch('/api/kyc/liveness/verify', {
+
+      // Upload selfie and call liveness verify in parallel
+      const selfieUploadPromise = selfieBlob
+        ? uploadToSpaces(selfieBlob, 'selfie').catch(() => null)
+        : Promise.resolve<string | null>(null);
+
+      const verifyPromise = fetch('/api/kyc/liveness/verify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` },
         body: JSON.stringify({ nonce: liveNonceRef.current, frames: framesPayload }),
       });
-      const data = await res.json() as { ok: boolean; status: string };
+
+      const [selfieMediaKey, verifyRes] = await Promise.all([selfieUploadPromise, verifyPromise]);
+      const data = await verifyRes.json() as { ok: boolean; status: string };
       const status = (data.status || 'fail') as 'pass' | 'fail' | 'needs_review';
       setLiveStatus(status);
       setPhase('liveness-result');
-      onComplete?.({ mode, frames: [], livenessStatus: status });
+      onComplete?.({ mode, frames: [], livenessStatus: status, selfieMediaKey: selfieMediaKey ?? undefined });
     } catch (err) {
       setErrMsg(err instanceof Error ? err.message : 'Liveness verification failed');
       setPhase('error');
@@ -884,6 +1005,82 @@ export default function GuidedCapture({
     quality === 'ok'    ? t.scanQualityOk : '';
 
   const qualityColor = quality === 'ok' ? 'text-cyan-400' : quality !== null ? 'text-red-400' : 'text-gray-400';
+
+  // ── DOC-SELECT ───────────────────────────────────────────────────────────────
+  // Shown before consent for mode=document. Nationality-aware: if nationality==='IR'
+  // only passport is offered; otherwise all three doc types are shown.
+  if (phase === 'doc-select') {
+    const isIranian = nationality === 'IR';
+    type DocOption = { type: DocType; label: string; desc: string };
+    const docOptions: DocOption[] = isIranian
+      ? [{ type: 'passport', label: t.kycDocPassport, desc: t.kycDocPassportDesc }]
+      : [
+          { type: 'passport',        label: t.kycDocPassport,        desc: t.kycDocPassportDesc },
+          { type: 'national_id',     label: t.kycDocNationalId,      desc: t.kycDocNationalIdDesc },
+          { type: 'drivers_license', label: t.kycDocDriversLicense,  desc: t.kycDocDriversLicenseDesc },
+        ];
+
+    return (
+      <FullScreen dir={dir}>
+        <div className="flex items-center justify-between px-4 pt-6 pb-4">
+          <button onClick={onBack} className="p-2 rounded-xl bg-white/5 border border-white/10 text-white hover:bg-white/10 transition-colors">
+            <ArrowLeft className="w-5 h-5" />
+          </button>
+          <button onClick={onHome} className="p-2 rounded-xl bg-white/5 border border-white/10 text-white hover:bg-white/10 transition-colors">
+            <Home className="w-5 h-5" />
+          </button>
+        </div>
+
+        <div className="flex-1 flex flex-col items-center justify-center px-6 pb-10">
+          <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-sm">
+            <div className="w-16 h-16 bg-gradient-to-br from-cyan-500/20 to-blue-600/20 border border-cyan-500/30 rounded-2xl flex items-center justify-center mx-auto mb-6">
+              <FileText className="w-8 h-8 text-cyan-400" />
+            </div>
+            <h1 className="text-2xl font-extrabold text-white text-center mb-2">{t.kycDocSelectTitle}</h1>
+            <p className="text-gray-400 text-sm text-center mb-8 leading-relaxed">{t.kycDocSelectBody}</p>
+
+            <div className="space-y-3 mb-8">
+              {docOptions.map(opt => (
+                <button
+                  key={opt.type}
+                  type="button"
+                  onClick={() => setSelectedDocType(opt.type)}
+                  className={`w-full flex items-center gap-4 px-4 py-4 rounded-xl border transition-all text-start ${
+                    selectedDocType === opt.type
+                      ? 'bg-cyan-500/15 border-cyan-500/50 shadow-lg shadow-cyan-500/10'
+                      : 'bg-white/5 border-white/10 hover:border-white/25'
+                  }`}
+                >
+                  <div className={`w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-colors ${
+                    selectedDocType === opt.type ? 'border-cyan-400' : 'border-white/30'
+                  }`}>
+                    {selectedDocType === opt.type && <div className="w-2.5 h-2.5 rounded-full bg-cyan-400" />}
+                  </div>
+                  <div>
+                    <div className="text-white text-sm font-semibold">{opt.label}</div>
+                    <div className="text-gray-500 text-xs mt-0.5">{opt.desc}</div>
+                  </div>
+                </button>
+              ))}
+            </div>
+
+            <motion.button
+              whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
+              onClick={() => { if (selectedDocType) setPhase('consent'); }}
+              disabled={!selectedDocType}
+              className={`w-full py-4 font-bold rounded-2xl text-base transition-all ${
+                selectedDocType
+                  ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-lg shadow-cyan-500/25 hover:from-cyan-400 hover:to-blue-500'
+                  : 'bg-white/10 text-gray-500 cursor-not-allowed'
+              }`}
+            >
+              {t.scanConsentAccept}
+            </motion.button>
+          </motion.div>
+        </div>
+      </FullScreen>
+    );
+  }
 
   // ── CONSENT ──────────────────────────────────────────────────────────────────
   if (phase === 'consent') {

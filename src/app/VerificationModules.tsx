@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { BadgeCheck, Camera, Phone, Cpu, Upload, Package, FileText, AlertCircle, CheckCircle, Clock, XCircle } from 'lucide-react';
 import type { VerificationStatus } from './shipmentTypes';
 import { useLang } from '../lib/LangContext';
-import GuidedCapture, { type CaptureMode } from './GuidedCapture';
+import GuidedCapture, { type CaptureMode, type GuidedCaptureResult } from './GuidedCapture';
 
 // ─── Status badge ──────────────────────────────────────────────────────────────
 export function StatusBadge({ status }: { status: VerificationStatus }) {
@@ -76,11 +76,13 @@ function FileUploadStub({ label, accept, icon: Icon }: { label: string; accept: 
 }
 
 // ─── Camera capture trigger (photo-capture replacements) ──────────────────────
-function CameraCaptureTrigger({ label, mode, icon: Icon, withLiveness }: {
+function CameraCaptureTrigger({ label, mode, icon: Icon, withLiveness, nationality, onResult }: {
   label: string;
   mode: CaptureMode;
   icon: React.FC<{ className?: string }>;
   withLiveness?: boolean;
+  nationality?: string;
+  onResult?: (result: GuidedCaptureResult) => void;
 }) {
   const [open,     setOpen]     = useState(false);
   const [captured, setCaptured] = useState(false);
@@ -109,9 +111,10 @@ function CameraCaptureTrigger({ label, mode, icon: Icon, withLiveness }: {
         <GuidedCapture
           mode={mode}
           liveness={withLiveness}
+          nationality={nationality}
           onBack={() => setOpen(false)}
           onHome={() => setOpen(false)}
-          onComplete={() => { setCaptured(true); setOpen(false); }}
+          onComplete={(result) => { setCaptured(true); setOpen(false); onResult?.(result); }}
         />
       )}
     </>
@@ -127,6 +130,35 @@ interface IdentityVerificationProps {
 
 export function IdentityVerification({ enabled, onToggle, status }: IdentityVerificationProps) {
   const { t } = useLang();
+  const [nationality,    setNationality]    = useState<string | null>(null);
+  const [docMediaKey,    setDocMediaKey]    = useState<string | null>(null);
+  const [selfieMediaKey, setSelfieMediaKey] = useState<string | null>(null);
+  const [faceMatchDone,  setFaceMatchDone]  = useState(false);
+
+  // Fetch KYC status to get nationality (for doc-type routing) + existing docType
+  useEffect(() => {
+    if (!enabled) return;
+    const token = localStorage.getItem('cp_token');
+    if (!token) return;
+    fetch('/api/kyc/status', { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d?.nationality) setNationality(d.nationality); })
+      .catch(() => {});
+  }, [enabled]);
+
+  // Auto-trigger face-match when both doc + selfie are uploaded
+  useEffect(() => {
+    if (!docMediaKey || !selfieMediaKey || faceMatchDone) return;
+    const token = localStorage.getItem('cp_token');
+    if (!token) return;
+    setFaceMatchDone(true);
+    fetch('/api/kyc/passport/face-match', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ selfieMediaKey, passportMediaKey: docMediaKey }),
+    }).catch(() => {});
+  }, [docMediaKey, selfieMediaKey, faceMatchDone]);
+
   return (
     <div className="border border-gray-200 rounded-xl overflow-hidden">
       <button
@@ -154,10 +186,22 @@ export function IdentityVerification({ enabled, onToggle, status }: IdentityVeri
       {enabled && (
         <div className="border-t border-gray-100 px-5 py-5 bg-slate-50 space-y-4">
           <div className="grid grid-cols-2 gap-3">
-            {/* Document upload: accepts PDF → genuine file upload, left as-is */}
-            <FileUploadStub label={t.verDocUpload} accept="image/*,.pdf" icon={FileText} />
-            {/* Selfie: image capture only → camera */}
-            <CameraCaptureTrigger label={t.verSelfieUpload} mode="face" icon={Camera} withLiveness />
+            {/* Document: camera capture with doc-type selection */}
+            <CameraCaptureTrigger
+              label={t.verDocUpload}
+              mode="document"
+              icon={FileText}
+              nationality={nationality ?? undefined}
+              onResult={(r) => { if (r.docMediaKey) setDocMediaKey(r.docMediaKey); }}
+            />
+            {/* Selfie with liveness */}
+            <CameraCaptureTrigger
+              label={t.verSelfieUpload}
+              mode="face"
+              icon={Camera}
+              withLiveness
+              onResult={(r) => { if (r.selfieMediaKey) setSelfieMediaKey(r.selfieMediaKey); }}
+            />
           </div>
 
           <div className="flex items-center justify-between bg-white border border-gray-200 rounded-xl px-4 py-3">
@@ -176,7 +220,7 @@ export function IdentityVerification({ enabled, onToggle, status }: IdentityVeri
             <StatusBadge status={status} />
           </div>
 
-          {/* Live KYC passport verification status */}
+          {/* Live KYC status badge */}
           <div className="flex items-center justify-between bg-white border border-gray-200 rounded-xl px-4 py-3">
             <div className="flex items-center gap-2">
               <BadgeCheck className="w-4 h-4 text-gray-400" />
