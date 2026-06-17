@@ -821,6 +821,14 @@ export interface Translations {
   gcFaceConsentTitle: string; gcFaceConsentBody: string;
   gcFaceConsentItem1: string; gcFaceConsentItem2: string; gcFaceConsentItem3: string;
   gcFacePrompt: string;
+  // Phase P4 — Liveness challenge-response
+  lcTurnLeft: string; lcTurnRight: string; lcBlink: string;
+  lcTurnLeftDesc: string; lcTurnRightDesc: string; lcBlinkDesc: string;
+  lcStepOf: string; lcVerifying: string;
+  lcLivenessPass: string; lcLivenessPassDesc: string;
+  lcLivenessFail: string; lcLivenessFailDesc: string;
+  lcLivenessReview: string; lcLivenessReviewDesc: string;
+  lcLivenessRetry: string; lcLivenessGetReady: string;
   gcDocConsentTitle: string; gcDocConsentBody: string;
   gcDocConsentItem1: string; gcDocConsentItem2: string; gcDocConsentItem3: string;
   gcDocPrompt: string; gcDocQualityGlare: string;
@@ -1639,6 +1647,13 @@ export const translations: Record<LangCode, Translations> = {
     gcFaceConsentTitle: 'تصویر سلفی', gcFaceConsentBody: 'یک عکس سلفی واضح برای تأیید هویت می‌گیریم.',
     gcFaceConsentItem1: 'دوربین جلو استفاده می‌شود', gcFaceConsentItem2: 'صورت خود را در کادر بیضی نگه دارید', gcFaceConsentItem3: 'نور کافی داشته باشید',
     gcFacePrompt: 'صورت خود را در بیضی بیاورید',
+    lcTurnLeft: 'بچرخید به چپ', lcTurnRight: 'بچرخید به راست', lcBlink: 'چشم بزنید',
+    lcTurnLeftDesc: 'سر خود را آهسته به چپ بچرخانید', lcTurnRightDesc: 'سر خود را آهسته به راست بچرخانید', lcBlinkDesc: 'به طور طبیعی چشم بزنید',
+    lcStepOf: 'از', lcVerifying: 'در حال تأیید زنده بودن…',
+    lcLivenessPass: 'تأیید شد', lcLivenessPassDesc: 'تست زنده بودن با موفقیت انجام شد.',
+    lcLivenessFail: 'تأیید زنده بودن ناموفق بود', lcLivenessFailDesc: 'نتوانستیم حضور زنده را تأیید کنیم. لطفاً دوباره امتحان کنید.',
+    lcLivenessReview: 'در حال بررسی', lcLivenessReviewDesc: 'بررسی زنده بودن شما به صورت دستی انجام می‌شود.',
+    lcLivenessRetry: 'دوباره امتحان کنید', lcLivenessGetReady: 'ثابت بمانید، سپس عمل را انجام دهید',
     gcDocConsentTitle: 'اسکن سند', gcDocConsentBody: 'از صفحه بیوگرافی گذرنامه یا کارت شناسایی خود عکس بگیرید.',
     gcDocConsentItem1: 'دوربین پشت استفاده می‌شود', gcDocConsentItem2: 'سند را در داخل کادر راهنما قرار دهید', gcDocConsentItem3: 'از سایه و بازتاب نور روی سند جلوگیری کنید',
     gcDocPrompt: 'سند را در کادر راهنما بیاورید',
@@ -2450,6 +2465,13 @@ export const translations: Record<LangCode, Translations> = {
     gcFaceConsentTitle: 'Selfie capture', gcFaceConsentBody: "We'll take a clear selfie to verify your identity.",
     gcFaceConsentItem1: 'Front camera will be used', gcFaceConsentItem2: 'Keep your face inside the oval guide', gcFaceConsentItem3: 'Make sure you have good lighting',
     gcFacePrompt: 'Position your face in the oval',
+    lcTurnLeft: 'Turn left', lcTurnRight: 'Turn right', lcBlink: 'Blink',
+    lcTurnLeftDesc: 'Slowly turn your head to the left', lcTurnRightDesc: 'Slowly turn your head to the right', lcBlinkDesc: 'Blink naturally — keep still otherwise',
+    lcStepOf: 'of', lcVerifying: 'Verifying liveness…',
+    lcLivenessPass: 'Liveness Verified', lcLivenessPassDesc: 'You passed the liveness check.',
+    lcLivenessFail: 'Liveness Check Failed', lcLivenessFailDesc: 'We could not confirm a live person. Please try again in good light.',
+    lcLivenessReview: 'Under Review', lcLivenessReviewDesc: 'Your liveness check is being reviewed manually.',
+    lcLivenessRetry: 'Try Again', lcLivenessGetReady: 'Hold still, then perform the action',
     gcDocConsentTitle: 'Document scan', gcDocConsentBody: 'Take a photo of your passport bio page or ID card.',
     gcDocConsentItem1: 'Rear camera will be used', gcDocConsentItem2: 'Place the document inside the frame guide', gcDocConsentItem3: 'Avoid shadows and glare on the document',
     gcDocPrompt: 'Align the document within the frame',
@@ -3261,6 +3283,13 @@ export const translations: Record<LangCode, Translations> = {
     gcFaceConsentTitle: 'Selfie çekimi', gcFaceConsentBody: 'Kimliğinizi doğrulamak için net bir selfie çekeceğiz.',
     gcFaceConsentItem1: 'Ön kamera kullanılacak', gcFaceConsentItem2: 'Yüzünüzü oval rehberin içinde tutun', gcFaceConsentItem3: 'İyi bir aydınlatma sağlayın',
     gcFacePrompt: 'Yüzünüzü oval içine yerleştirin',
+    lcTurnLeft: 'Sola dön', lcTurnRight: 'Sağa dön', lcBlink: 'Göz kırp',
+    lcTurnLeftDesc: 'Başınızı yavaşça sola çevirin', lcTurnRightDesc: 'Başınızı yavaşça sağa çevirin', lcBlinkDesc: 'Doğal şekilde göz kırpın',
+    lcStepOf: '/', lcVerifying: 'Canlılık doğrulanıyor…',
+    lcLivenessPass: 'Canlılık Doğrulandı', lcLivenessPassDesc: 'Canlılık kontrolünü geçtiniz.',
+    lcLivenessFail: 'Canlılık Kontrolü Başarısız', lcLivenessFailDesc: 'Canlı bir kişiyi doğrulayamadık. Lütfen tekrar deneyin.',
+    lcLivenessReview: 'İnceleme Altında', lcLivenessReviewDesc: 'Canlılık kontrolünüz manuel olarak inceleniyor.',
+    lcLivenessRetry: 'Tekrar Dene', lcLivenessGetReady: 'Sabit durun, sonra hareketi yapın',
     gcDocConsentTitle: 'Belge tarama', gcDocConsentBody: 'Pasaportunuzun biyografik sayfasının veya kimlik kartınızın fotoğrafını çekin.',
     gcDocConsentItem1: 'Arka kamera kullanılacak', gcDocConsentItem2: 'Belgeyi çerçeve kılavuzuna yerleştirin', gcDocConsentItem3: 'Belge üzerindeki gölge ve yansımalardan kaçının',
     gcDocPrompt: 'Belgeyi çerçeveyle hizalayın',
@@ -4071,6 +4100,13 @@ export const translations: Record<LangCode, Translations> = {
     gcFaceConsentTitle: 'التقاط صورة سيلفي', gcFaceConsentBody: 'سنلتقط صورة سيلفي واضحة للتحقق من هويتك.',
     gcFaceConsentItem1: 'ستُستخدم الكاميرا الأمامية', gcFaceConsentItem2: 'ضع وجهك داخل الدليل البيضاوي', gcFaceConsentItem3: 'تأكد من وجود إضاءة جيدة',
     gcFacePrompt: 'ضع وجهك في البيضاوي',
+    lcTurnLeft: 'استدر لليسار', lcTurnRight: 'استدر لليمين', lcBlink: 'ارمش',
+    lcTurnLeftDesc: 'أدر رأسك ببطء نحو اليسار', lcTurnRightDesc: 'أدر رأسك ببطء نحو اليمين', lcBlinkDesc: 'ارمش بشكل طبيعي',
+    lcStepOf: 'من', lcVerifying: 'جارٍ التحقق من الحياة…',
+    lcLivenessPass: 'تم التحقق من الحياة', lcLivenessPassDesc: 'لقد اجتزت فحص الحياة.',
+    lcLivenessFail: 'فشل فحص الحياة', lcLivenessFailDesc: 'تعذر علينا التحقق من وجود شخص حي. يرجى المحاولة مرة أخرى.',
+    lcLivenessReview: 'قيد المراجعة', lcLivenessReviewDesc: 'يتم مراجعة فحص الحياة يدوياً.',
+    lcLivenessRetry: 'حاول مجدداً', lcLivenessGetReady: 'ابقَ ثابتاً، ثم أدِّ الحركة',
     gcDocConsentTitle: 'مسح المستند', gcDocConsentBody: 'التقط صورة لصفحة السيرة الذاتية في جواز سفرك أو بطاقة هويتك.',
     gcDocConsentItem1: 'ستُستخدم الكاميرا الخلفية', gcDocConsentItem2: 'ضع المستند داخل إطار الدليل', gcDocConsentItem3: 'تجنب الظلال والوهج على المستند',
     gcDocPrompt: 'محاذاة المستند داخل الإطار',
@@ -4882,6 +4918,13 @@ export const translations: Record<LangCode, Translations> = {
     gcFaceConsentTitle: 'Capture selfie', gcFaceConsentBody: "Nous prendrons un selfie net pour vérifier votre identité.",
     gcFaceConsentItem1: 'La caméra frontale sera utilisée', gcFaceConsentItem2: "Gardez votre visage dans le guide ovale", gcFaceConsentItem3: "Assurez-vous d'avoir un bon éclairage",
     gcFacePrompt: "Positionnez votre visage dans l'ovale",
+    lcTurnLeft: 'Tournez à gauche', lcTurnRight: 'Tournez à droite', lcBlink: 'Clignez des yeux',
+    lcTurnLeftDesc: 'Tournez lentement la tête vers la gauche', lcTurnRightDesc: 'Tournez lentement la tête vers la droite', lcBlinkDesc: 'Clignez naturellement des yeux',
+    lcStepOf: 'sur', lcVerifying: 'Vérification du vivant…',
+    lcLivenessPass: 'Vivacité vérifiée', lcLivenessPassDesc: 'Vous avez réussi la vérification du vivant.',
+    lcLivenessFail: 'Vérification du vivant échouée', lcLivenessFailDesc: "Nous n'avons pas pu confirmer une personne en vie. Réessayez.",
+    lcLivenessReview: 'En cours de révision', lcLivenessReviewDesc: 'Votre vérification du vivant est examinée manuellement.',
+    lcLivenessRetry: 'Réessayer', lcLivenessGetReady: "Restez immobile, puis effectuez l'action",
     gcDocConsentTitle: 'Scan de document', gcDocConsentBody: "Prenez une photo de la page biographique de votre passeport ou de votre carte d'identité.",
     gcDocConsentItem1: 'La caméra arrière sera utilisée', gcDocConsentItem2: 'Placez le document dans le cadre guide', gcDocConsentItem3: 'Évitez les ombres et les reflets sur le document',
     gcDocPrompt: 'Alignez le document dans le cadre',
@@ -5686,6 +5729,13 @@ export const translations: Record<LangCode, Translations> = {
     gcFaceConsentTitle: '自拍采集', gcFaceConsentBody: '我们将拍摄一张清晰的自拍照以验证您的身份。',
     gcFaceConsentItem1: '将使用前置摄像头', gcFaceConsentItem2: '将面部保持在椭圆框内', gcFaceConsentItem3: '确保光线充足',
     gcFacePrompt: '将面部对准椭圆框',
+    lcTurnLeft: '向左转头', lcTurnRight: '向右转头', lcBlink: '眨眼',
+    lcTurnLeftDesc: '缓慢将头转向左侧', lcTurnRightDesc: '缓慢将头转向右侧', lcBlinkDesc: '自然地眨眼',
+    lcStepOf: '/', lcVerifying: '正在验证活体…',
+    lcLivenessPass: '活体验证通过', lcLivenessPassDesc: '您已通过活体检测。',
+    lcLivenessFail: '活体检测失败', lcLivenessFailDesc: '无法确认活体人员，请重试。',
+    lcLivenessReview: '人工审核中', lcLivenessReviewDesc: '您的活体检测正在人工审核中。',
+    lcLivenessRetry: '重试', lcLivenessGetReady: '保持静止，然后执行动作',
     gcDocConsentTitle: '证件扫描', gcDocConsentBody: '拍摄护照个人信息页或身份证的照片。',
     gcDocConsentItem1: '将使用后置摄像头', gcDocConsentItem2: '将证件放在框架引导内', gcDocConsentItem3: '避免证件上出现阴影和反光',
     gcDocPrompt: '将证件对准框架',

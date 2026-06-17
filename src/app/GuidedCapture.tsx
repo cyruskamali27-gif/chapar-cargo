@@ -8,7 +8,8 @@ import type { Translations } from './i18n';
 
 export type CaptureMode = 'cargo' | 'face' | 'document' | 'photo';
 
-type Phase = 'consent' | 'starting' | 'capturing' | 'uploading' | 'analyzing' | 'result' | 'cam-denied' | 'error';
+type Phase = 'consent' | 'starting' | 'capturing' | 'uploading' | 'analyzing' | 'result' | 'cam-denied' | 'error'
+           | 'liveness-loading' | 'liveness-step' | 'liveness-verifying' | 'liveness-result';
 
 type Quality = 'ok' | 'blur' | 'dark' | 'glare' | null;
 
@@ -28,6 +29,7 @@ export interface GuidedCaptureResult {
   jobId?: string;
   jobStatus?: string;
   frames: CapturedFrame[];
+  livenessStatus?: 'pass' | 'fail' | 'needs_review';
 }
 
 export interface GuidedCaptureProps {
@@ -38,6 +40,7 @@ export interface GuidedCaptureProps {
   initialJobId?: string;
   initialAnglePlan?: AngleEntry[];
   overrideToken?: string;
+  liveness?: boolean;
   // common
   onBack: () => void;
   onHome: () => void;
@@ -384,6 +387,7 @@ export default function GuidedCapture({
   initialJobId,
   initialAnglePlan,
   overrideToken,
+  liveness,
   onBack,
   onHome,
   onComplete,
@@ -419,8 +423,22 @@ export default function GuidedCapture({
   const qualityRef     = useRef<Quality>(null);
   const overlayRafRef  = useRef<number | null>(null);
 
-  edgeBoxRef.current  = edgeBox;
-  qualityRef.current  = quality;
+  // Liveness state
+  const [liveNonce,     setLiveNonce]     = useState('');
+  const [liveSequence,  setLiveSequence]  = useState<string[]>([]);
+  const [liveStep,      setLiveStep]      = useState(0);
+  const [liveCountdown, setLiveCountdown] = useState(3);
+  const [liveStatus,    setLiveStatus]    = useState<'pass' | 'fail' | 'needs_review' | ''>('');
+  const liveNonceRef    = useRef('');
+  const liveSequenceRef = useRef<string[]>([]);
+  const liveStepRef     = useRef(0);
+  const liveFrameMapRef = useRef<Record<string, string[]>>({});
+
+  edgeBoxRef.current      = edgeBox;
+  qualityRef.current      = quality;
+  liveNonceRef.current    = liveNonce;
+  liveSequenceRef.current = liveSequence;
+  liveStepRef.current     = liveStep;
 
   const frameAngles  = anglePlan.filter(a => a.kind === 'frame');
   const totalFrames  = frameAngles.length;
@@ -492,7 +510,7 @@ export default function GuidedCapture({
     }
   }
 
-  async function startCamera() {
+  async function startCamera(nextPhase: Phase = 'capturing') {
     try {
       const facingMode = mode === 'face' ? 'user' : 'environment';
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -529,7 +547,7 @@ export default function GuidedCapture({
       startQualityPoll();
       if (mode === 'cargo') startEdgePoll();
       startOverlayLoop();
-      setPhase('capturing');
+      setPhase(nextPhase);
     } catch (err: unknown) {
       stopCamera();
       const msg = err instanceof Error ? err.message : String(err);
@@ -569,6 +587,23 @@ export default function GuidedCapture({
         setJobId(data.jobId);
         setAnglePlan(data.anglePlan);
       } else if (mode === 'face') {
+        if (liveness) {
+          const cRes = await fetch('/api/kyc/liveness/challenge', {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${getToken()}` },
+          });
+          if (!cRes.ok) throw new Error('Failed to get liveness challenge');
+          const cData = await cRes.json() as { nonce: string; sequence: string[] };
+          setLiveNonce(cData.nonce);
+          setLiveSequence(cData.sequence);
+          liveNonceRef.current    = cData.nonce;
+          liveSequenceRef.current = cData.sequence;
+          setLiveStep(0);
+          liveStepRef.current = 0;
+          liveFrameMapRef.current = {};
+          await startCamera('liveness-step');
+          return;
+        }
         setAnglePlan(FACE_ANGLE_PLAN);
       } else if (mode === 'document') {
         setAnglePlan(DOC_ANGLE_PLAN);
@@ -724,6 +759,98 @@ export default function GuidedCapture({
       setPhase('result');
     }
   }
+
+  // ── Liveness helpers ──────────────────────────────────────────────────────────
+
+  const liveDelay = (ms: number) => new Promise<void>(r => setTimeout(r, ms));
+
+  async function captureFrameAsBase64(): Promise<string> {
+    const video = videoRef.current;
+    if (!video) throw new Error('no video');
+    const fc = document.createElement('canvas');
+    fc.width  = Math.min(video.videoWidth  || 640, 640);
+    fc.height = Math.min(video.videoHeight || 480, 480);
+    fc.getContext('2d')!.drawImage(video, 0, 0, fc.width, fc.height);
+    return new Promise<string>((resolve, reject) => {
+      fc.toBlob(b => {
+        if (!b) return reject(new Error('toBlob failed'));
+        const reader = new FileReader();
+        reader.onloadend = () => resolve((reader.result as string).split(',')[1]);
+        reader.readAsDataURL(b);
+      }, 'image/jpeg', 0.80);
+    });
+  }
+
+  async function handleLivenessCapture(challenge: string, step: number) {
+    let frameB64s: string[];
+    if (challenge === 'blink') {
+      const f1 = await captureFrameAsBase64();
+      await liveDelay(800);
+      const f2 = await captureFrameAsBase64();
+      await liveDelay(800);
+      const f3 = await captureFrameAsBase64();
+      frameB64s = [f1, f2, f3];
+    } else {
+      frameB64s = [await captureFrameAsBase64()];
+    }
+
+    const updatedMap = { ...liveFrameMapRef.current, [challenge]: frameB64s };
+    liveFrameMapRef.current = updatedMap;
+
+    const nextStep = step + 1;
+    if (nextStep >= liveSequenceRef.current.length) {
+      await handleLivenessVerify(updatedMap);
+    } else {
+      setLiveStep(nextStep);
+    }
+  }
+
+  async function handleLivenessVerify(frameMap: Record<string, string[]>) {
+    stopCamera();
+    setPhase('liveness-verifying');
+    try {
+      const framesPayload: Record<string, { imageB64: string }[]> = {};
+      for (const [ch, b64s] of Object.entries(frameMap)) {
+        framesPayload[ch] = b64s.map(b => ({ imageB64: b }));
+      }
+      const res = await fetch('/api/kyc/liveness/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` },
+        body: JSON.stringify({ nonce: liveNonceRef.current, frames: framesPayload }),
+      });
+      const data = await res.json() as { ok: boolean; status: string };
+      const status = (data.status || 'fail') as 'pass' | 'fail' | 'needs_review';
+      setLiveStatus(status);
+      setPhase('liveness-result');
+      onComplete?.({ mode, frames: [], livenessStatus: status });
+    } catch (err) {
+      setErrMsg(err instanceof Error ? err.message : 'Liveness verification failed');
+      setPhase('error');
+    }
+  }
+
+  // Auto-capture countdown when a liveness challenge is active
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (phase !== 'liveness-step') return;
+    const challenge = liveSequenceRef.current[liveStepRef.current];
+    if (!challenge) return;
+
+    let count = 3;
+    setLiveCountdown(count);
+    const tick = setInterval(() => {
+      count--;
+      setLiveCountdown(count);
+      if (count <= 0) {
+        clearInterval(tick);
+        handleLivenessCapture(challenge, liveStepRef.current).catch(err => {
+          setErrMsg(err instanceof Error ? err.message : 'Capture failed');
+          setPhase('error');
+        });
+      }
+    }, 1000);
+    return () => clearInterval(tick);
+  }, [phase, liveStep]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Mode-specific consent content ────────────────────────────────────────────
   const consentTitle = mode === 'face'     ? t.gcFaceConsentTitle
@@ -965,6 +1092,87 @@ export default function GuidedCapture({
     );
   }
 
+  // ── LIVENESS-LOADING ─────────────────────────────────────────────────────────
+  if (phase === 'liveness-loading') {
+    return (
+      <FullScreen dir={dir}>
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <div className="w-12 h-12 border-2 border-cyan-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+            <p className="text-gray-400 text-sm">…</p>
+          </div>
+        </div>
+      </FullScreen>
+    );
+  }
+
+  // ── LIVENESS-VERIFYING ────────────────────────────────────────────────────────
+  if (phase === 'liveness-verifying') {
+    return (
+      <FullScreen dir={dir}>
+        <div className="flex-1 flex flex-col items-center justify-center px-6">
+          <div className="relative w-20 h-20 mb-8">
+            <div className="absolute inset-0 rounded-full border-2 border-cyan-500/20 animate-ping" />
+            <div className="w-20 h-20 rounded-full bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center">
+              <div className="w-8 h-8 border-2 border-cyan-500 border-t-transparent rounded-full animate-spin" />
+            </div>
+          </div>
+          <p className="text-white font-semibold text-center">{t.lcVerifying}</p>
+        </div>
+      </FullScreen>
+    );
+  }
+
+  // ── LIVENESS-RESULT ───────────────────────────────────────────────────────────
+  if (phase === 'liveness-result') {
+    const isPass = liveStatus === 'pass';
+    const isFail = liveStatus === 'fail';
+    return (
+      <FullScreen dir={dir}>
+        <div className="flex-1 flex flex-col items-center justify-center px-6">
+          <motion.div initial={{ opacity: 0, scale: 0.92 }} animate={{ opacity: 1, scale: 1 }} className="w-full max-w-sm text-center">
+            {isPass ? (
+              <>
+                <div className="w-20 h-20 bg-green-500/15 border border-green-500/30 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <CheckCircle className="w-10 h-10 text-green-400" />
+                </div>
+                <h2 className="text-2xl font-extrabold text-white mb-3">{t.lcLivenessPass}</h2>
+                <p className="text-gray-400 text-sm leading-relaxed mb-8">{t.lcLivenessPassDesc}</p>
+              </>
+            ) : isFail ? (
+              <>
+                <div className="w-20 h-20 bg-red-500/15 border border-red-500/30 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <AlertCircle className="w-10 h-10 text-red-400" />
+                </div>
+                <h2 className="text-xl font-bold text-white mb-3">{t.lcLivenessFail}</h2>
+                <p className="text-gray-400 text-sm mb-6">{t.lcLivenessFailDesc}</p>
+                <motion.button
+                  whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
+                  onClick={handleConsent}
+                  className="flex items-center justify-center gap-2 w-full py-3 bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold rounded-xl mb-3"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                  {t.lcLivenessRetry}
+                </motion.button>
+              </>
+            ) : (
+              <>
+                <div className="w-20 h-20 bg-amber-500/15 border border-amber-500/30 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <Info className="w-10 h-10 text-amber-400" />
+                </div>
+                <h2 className="text-xl font-bold text-white mb-3">{t.lcLivenessReview}</h2>
+                <p className="text-gray-400 text-sm leading-relaxed mb-8">{t.lcLivenessReviewDesc}</p>
+              </>
+            )}
+            <button onClick={onHome} className="w-full py-3 border border-white/15 text-gray-400 rounded-xl hover:bg-white/5 transition-colors text-sm">
+              {t.navHome}
+            </button>
+          </motion.div>
+        </div>
+      </FullScreen>
+    );
+  }
+
   // ── CAPTURING ─────────────────────────────────────────────────────────────────
   const currentAngle = frameAngles[currentIdx];
   const currentLabel = currentAngle ? angleLabel(currentAngle.angle ?? '', t) : '';
@@ -1041,45 +1249,76 @@ export default function GuidedCapture({
         )}
       </div>
 
-      {/* Bottom controls */}
-      <div
-        className="relative z-20 flex flex-col items-center px-6 pt-4 pb-10 gap-4"
-        style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.85), transparent)' }}
-      >
-        {!allDone && (
-          <p className="text-gray-300 text-sm text-center font-medium">{capturePrompt}</p>
-        )}
-
-        {mode === 'cargo' && !edgeBox && (
-          <p className="text-gray-500 text-xs text-center">{t.scanOutlineFallback}</p>
-        )}
-
-        <motion.button
-          whileHover={{ scale: 1.06 }}
-          whileTap={{ scale: 0.92 }}
-          onClick={handleCapture}
-          disabled={capturing || allDone}
-          className={`w-20 h-20 rounded-full border-4 flex items-center justify-center transition-all shadow-xl ${
-            allDone
-              ? 'border-green-400 bg-green-500/20 cursor-not-allowed'
-              : quality === 'ok' || quality === null
-              ? 'border-white bg-white/20 hover:bg-white/30 active:scale-90 cursor-pointer'
-              : 'border-red-400 bg-red-500/20 cursor-not-allowed'
-          }`}
+      {/* Bottom controls — liveness-step vs. normal capture */}
+      {phase === 'liveness-step' ? (
+        <div
+          className="relative z-20 flex flex-col items-center px-6 pt-4 pb-10 gap-3"
+          style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.92), transparent)' }}
         >
-          {allDone ? (
-            <CheckCircle className="w-8 h-8 text-green-400" />
-          ) : capturing ? (
-            <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
+          <p className="text-gray-400 text-xs font-medium tracking-wider uppercase">
+            {liveStep + 1} {t.lcStepOf} {liveSequence.length}
+          </p>
+          <p className="text-2xl font-extrabold text-white text-center">
+            {liveSequence[liveStep] === 'turn_left'  ? t.lcTurnLeft
+             : liveSequence[liveStep] === 'turn_right' ? t.lcTurnRight
+             : t.lcBlink}
+          </p>
+          <p className="text-gray-300 text-sm text-center leading-relaxed">
+            {liveSequence[liveStep] === 'turn_left'  ? t.lcTurnLeftDesc
+             : liveSequence[liveStep] === 'turn_right' ? t.lcTurnRightDesc
+             : t.lcBlinkDesc}
+          </p>
+          {liveCountdown > 0 ? (
+            <div className="w-16 h-16 mt-1 rounded-full border-4 border-cyan-500/60 flex items-center justify-center">
+              <span className="text-white text-2xl font-bold">{liveCountdown}</span>
+            </div>
           ) : (
-            <div className={`w-14 h-14 rounded-full ${quality === 'ok' || quality === null ? 'bg-white' : 'bg-red-400'}`} />
+            <div className="w-16 h-16 mt-1 rounded-full border-4 border-cyan-500 bg-cyan-500/20 flex items-center justify-center">
+              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            </div>
           )}
-        </motion.button>
+          <p className="text-gray-500 text-xs text-center">{t.lcLivenessGetReady}</p>
+        </div>
+      ) : (
+        <div
+          className="relative z-20 flex flex-col items-center px-6 pt-4 pb-10 gap-4"
+          style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.85), transparent)' }}
+        >
+          {!allDone && (
+            <p className="text-gray-300 text-sm text-center font-medium">{capturePrompt}</p>
+          )}
 
-        {quality && quality !== 'ok' && (
-          <p className={`text-xs font-medium text-center ${qualityColor}`}>{qualityHint}</p>
-        )}
-      </div>
+          {mode === 'cargo' && !edgeBox && (
+            <p className="text-gray-500 text-xs text-center">{t.scanOutlineFallback}</p>
+          )}
+
+          <motion.button
+            whileHover={{ scale: 1.06 }}
+            whileTap={{ scale: 0.92 }}
+            onClick={handleCapture}
+            disabled={capturing || allDone}
+            className={`w-20 h-20 rounded-full border-4 flex items-center justify-center transition-all shadow-xl ${
+              allDone
+                ? 'border-green-400 bg-green-500/20 cursor-not-allowed'
+                : quality === 'ok' || quality === null
+                ? 'border-white bg-white/20 hover:bg-white/30 active:scale-90 cursor-pointer'
+                : 'border-red-400 bg-red-500/20 cursor-not-allowed'
+            }`}
+          >
+            {allDone ? (
+              <CheckCircle className="w-8 h-8 text-green-400" />
+            ) : capturing ? (
+              <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            ) : (
+              <div className={`w-14 h-14 rounded-full ${quality === 'ok' || quality === null ? 'bg-white' : 'bg-red-400'}`} />
+            )}
+          </motion.button>
+
+          {quality && quality !== 'ok' && (
+            <p className={`text-xs font-medium text-center ${qualityColor}`}>{qualityHint}</p>
+          )}
+        </div>
+      )}
     </div>
   );
 }

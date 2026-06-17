@@ -43,10 +43,11 @@ function FileUploadStub({ label, accept, icon: Icon }: { label: string; accept: 
 }
 
 // ─── Camera capture trigger (photo-capture replacements) ──────────────────────
-function CameraCaptureTrigger({ label, mode, icon: Icon }: {
+function CameraCaptureTrigger({ label, mode, icon: Icon, withLiveness }: {
   label: string;
   mode: CaptureMode;
   icon: React.FC<{ className?: string }>;
+  withLiveness?: boolean;
 }) {
   const [open,     setOpen]     = useState(false);
   const [captured, setCaptured] = useState(false);
@@ -74,6 +75,7 @@ function CameraCaptureTrigger({ label, mode, icon: Icon }: {
       {open && (
         <GuidedCapture
           mode={mode}
+          liveness={withLiveness}
           onBack={() => setOpen(false)}
           onHome={() => setOpen(false)}
           onComplete={() => { setCaptured(true); setOpen(false); }}
@@ -122,7 +124,7 @@ export function IdentityVerification({ enabled, onToggle, status }: IdentityVeri
             {/* Document upload: accepts PDF → genuine file upload, left as-is */}
             <FileUploadStub label={t.verDocUpload} accept="image/*,.pdf" icon={FileText} />
             {/* Selfie: image capture only → camera */}
-            <CameraCaptureTrigger label={t.verSelfieUpload} mode="face" icon={Camera} />
+            <CameraCaptureTrigger label={t.verSelfieUpload} mode="face" icon={Camera} withLiveness />
           </div>
 
           <div className="flex items-center justify-between bg-white border border-gray-200 rounded-xl px-4 py-3">
