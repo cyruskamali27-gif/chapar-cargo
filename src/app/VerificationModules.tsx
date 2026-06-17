@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { BadgeCheck, Camera, Phone, Cpu, Upload, Package, FileText, AlertCircle, CheckCircle, Clock, XCircle } from 'lucide-react';
 import type { VerificationStatus } from './shipmentTypes';
 import { useLang } from '../lib/LangContext';
@@ -13,6 +13,39 @@ export function StatusBadge({ status }: { status: VerificationStatus }) {
     REJECTED:      { label: t.verRejected,     cls: 'bg-red-50 text-red-700 border-red-200',         Icon: XCircle },
     MANUAL_REVIEW: { label: t.verManualReview, cls: 'bg-blue-50 text-blue-700 border-blue-200',      Icon: AlertCircle },
   }[status];
+  return (
+    <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full border ${cfg.cls}`}>
+      <cfg.Icon className="w-3 h-3" />
+      {cfg.label}
+    </span>
+  );
+}
+
+// ─── KYC status badge (live fetch from /api/kyc/status) ───────────────────────
+// Shows the user's own KYC verdict: pending / under_review / verified / rejected.
+// No internal details are ever exposed — only the neutral label.
+export function KycStatusBadge() {
+  const { t } = useLang();
+  const [status, setStatus] = useState<string | null>(null);
+
+  useEffect(() => {
+    const token = localStorage.getItem('cp_token');
+    if (!token) { setStatus('pending'); return; }
+    fetch('/api/kyc/status', { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => setStatus(d?.status ?? 'pending'))
+      .catch(() => setStatus('pending'));
+  }, []);
+
+  if (status === null) return null;
+
+  const cfg = {
+    pending:      { label: t.kycStatusPending,     cls: 'bg-gray-50 text-gray-500 border-gray-200',      Icon: Clock },
+    under_review: { label: t.kycStatusUnderReview,  cls: 'bg-blue-50 text-blue-600 border-blue-200',      Icon: AlertCircle },
+    verified:     { label: t.kycStatusVerified,     cls: 'bg-green-50 text-green-700 border-green-200',   Icon: CheckCircle },
+    rejected:     { label: t.kycStatusRejected,     cls: 'bg-red-50 text-red-600 border-red-200',         Icon: XCircle },
+  }[status] ?? { label: status, cls: 'bg-gray-50 text-gray-500 border-gray-200', Icon: Clock };
+
   return (
     <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full border ${cfg.cls}`}>
       <cfg.Icon className="w-3 h-3" />
@@ -141,6 +174,15 @@ export function IdentityVerification({ enabled, onToggle, status }: IdentityVeri
               <span className="text-sm text-gray-700">{t.verAiCheck}</span>
             </div>
             <StatusBadge status={status} />
+          </div>
+
+          {/* Live KYC passport verification status */}
+          <div className="flex items-center justify-between bg-white border border-gray-200 rounded-xl px-4 py-3">
+            <div className="flex items-center gap-2">
+              <BadgeCheck className="w-4 h-4 text-gray-400" />
+              <span className="text-sm text-gray-700">{t.kycPassportRow}</span>
+            </div>
+            <KycStatusBadge />
           </div>
 
           <p className="text-xs text-gray-400 leading-relaxed">{t.verIdentityNote}</p>

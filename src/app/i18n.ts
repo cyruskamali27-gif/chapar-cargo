@@ -829,6 +829,10 @@ export interface Translations {
   lcLivenessFail: string; lcLivenessFailDesc: string;
   lcLivenessReview: string; lcLivenessReviewDesc: string;
   lcLivenessRetry: string; lcLivenessGetReady: string;
+  // Phase P5 — KYC status labels + consent legal note
+  kycStatusPending: string; kycStatusUnderReview: string;
+  kycStatusVerified: string; kycStatusRejected: string;
+  kycPassportRow: string; kycConsentLegal: string;
   gcDocConsentTitle: string; gcDocConsentBody: string;
   gcDocConsentItem1: string; gcDocConsentItem2: string; gcDocConsentItem3: string;
   gcDocPrompt: string; gcDocQualityGlare: string;
@@ -1654,6 +1658,9 @@ export const translations: Record<LangCode, Translations> = {
     lcLivenessFail: 'تأیید زنده بودن ناموفق بود', lcLivenessFailDesc: 'نتوانستیم حضور زنده را تأیید کنیم. لطفاً دوباره امتحان کنید.',
     lcLivenessReview: 'در حال بررسی', lcLivenessReviewDesc: 'بررسی زنده بودن شما به صورت دستی انجام می‌شود.',
     lcLivenessRetry: 'دوباره امتحان کنید', lcLivenessGetReady: 'ثابت بمانید، سپس عمل را انجام دهید',
+    kycStatusPending: 'تأیید هویت در انتظار', kycStatusUnderReview: 'در حال بررسی',
+    kycStatusVerified: 'تأیید شد', kycStatusRejected: 'تأیید ناموفق',
+    kycPassportRow: 'تأیید پاسپورت', kycConsentLegal: 'اطلاعات بیومتریک شما فقط برای تأیید هویت استفاده می‌شود، به صورت رمزنگاری‌شده ذخیره می‌گردد و حداکثر یک سال نگهداری می‌شود. می‌توانید در هر زمان درخواست حذف دهید.',
     gcDocConsentTitle: 'اسکن سند', gcDocConsentBody: 'از صفحه بیوگرافی گذرنامه یا کارت شناسایی خود عکس بگیرید.',
     gcDocConsentItem1: 'دوربین پشت استفاده می‌شود', gcDocConsentItem2: 'سند را در داخل کادر راهنما قرار دهید', gcDocConsentItem3: 'از سایه و بازتاب نور روی سند جلوگیری کنید',
     gcDocPrompt: 'سند را در کادر راهنما بیاورید',
@@ -2472,6 +2479,9 @@ export const translations: Record<LangCode, Translations> = {
     lcLivenessFail: 'Liveness Check Failed', lcLivenessFailDesc: 'We could not confirm a live person. Please try again in good light.',
     lcLivenessReview: 'Under Review', lcLivenessReviewDesc: 'Your liveness check is being reviewed manually.',
     lcLivenessRetry: 'Try Again', lcLivenessGetReady: 'Hold still, then perform the action',
+    kycStatusPending: 'Identity verification pending', kycStatusUnderReview: 'Under review',
+    kycStatusVerified: 'Verified', kycStatusRejected: 'Verification failed',
+    kycPassportRow: 'Passport KYC', kycConsentLegal: 'Your biometric data is used solely for identity verification, stored encrypted in private cloud storage, and retained for up to 1 year. You may request deletion at any time.',
     gcDocConsentTitle: 'Document scan', gcDocConsentBody: 'Take a photo of your passport bio page or ID card.',
     gcDocConsentItem1: 'Rear camera will be used', gcDocConsentItem2: 'Place the document inside the frame guide', gcDocConsentItem3: 'Avoid shadows and glare on the document',
     gcDocPrompt: 'Align the document within the frame',
@@ -3290,6 +3300,9 @@ export const translations: Record<LangCode, Translations> = {
     lcLivenessFail: 'Canlılık Kontrolü Başarısız', lcLivenessFailDesc: 'Canlı bir kişiyi doğrulayamadık. Lütfen tekrar deneyin.',
     lcLivenessReview: 'İnceleme Altında', lcLivenessReviewDesc: 'Canlılık kontrolünüz manuel olarak inceleniyor.',
     lcLivenessRetry: 'Tekrar Dene', lcLivenessGetReady: 'Sabit durun, sonra hareketi yapın',
+    kycStatusPending: 'Kimlik doğrulama bekliyor', kycStatusUnderReview: 'İnceleniyor',
+    kycStatusVerified: 'Doğrulandı', kycStatusRejected: 'Doğrulama başarısız',
+    kycPassportRow: 'Pasaport KYC', kycConsentLegal: 'Biyometrik verileriniz yalnızca kimlik doğrulama amacıyla kullanılır, şifreli olarak depolanır ve en fazla bir yıl saklanır. Her zaman silinmesini talep edebilirsiniz.',
     gcDocConsentTitle: 'Belge tarama', gcDocConsentBody: 'Pasaportunuzun biyografik sayfasının veya kimlik kartınızın fotoğrafını çekin.',
     gcDocConsentItem1: 'Arka kamera kullanılacak', gcDocConsentItem2: 'Belgeyi çerçeve kılavuzuna yerleştirin', gcDocConsentItem3: 'Belge üzerindeki gölge ve yansımalardan kaçının',
     gcDocPrompt: 'Belgeyi çerçeveyle hizalayın',
@@ -4107,6 +4120,9 @@ export const translations: Record<LangCode, Translations> = {
     lcLivenessFail: 'فشل فحص الحياة', lcLivenessFailDesc: 'تعذر علينا التحقق من وجود شخص حي. يرجى المحاولة مرة أخرى.',
     lcLivenessReview: 'قيد المراجعة', lcLivenessReviewDesc: 'يتم مراجعة فحص الحياة يدوياً.',
     lcLivenessRetry: 'حاول مجدداً', lcLivenessGetReady: 'ابقَ ثابتاً، ثم أدِّ الحركة',
+    kycStatusPending: 'التحقق من الهوية معلق', kycStatusUnderReview: 'قيد المراجعة',
+    kycStatusVerified: 'تم التحقق', kycStatusRejected: 'فشل التحقق',
+    kycPassportRow: 'التحقق من جواز السفر', kycConsentLegal: 'تُستخدم بياناتك البيومترية لأغراض التحقق من الهوية فقط، وتُخزَّن مشفرةً لمدة تصل إلى عام. يمكنك طلب حذفها في أي وقت.',
     gcDocConsentTitle: 'مسح المستند', gcDocConsentBody: 'التقط صورة لصفحة السيرة الذاتية في جواز سفرك أو بطاقة هويتك.',
     gcDocConsentItem1: 'ستُستخدم الكاميرا الخلفية', gcDocConsentItem2: 'ضع المستند داخل إطار الدليل', gcDocConsentItem3: 'تجنب الظلال والوهج على المستند',
     gcDocPrompt: 'محاذاة المستند داخل الإطار',
@@ -4925,6 +4941,9 @@ export const translations: Record<LangCode, Translations> = {
     lcLivenessFail: 'Vérification du vivant échouée', lcLivenessFailDesc: "Nous n'avons pas pu confirmer une personne en vie. Réessayez.",
     lcLivenessReview: 'En cours de révision', lcLivenessReviewDesc: 'Votre vérification du vivant est examinée manuellement.',
     lcLivenessRetry: 'Réessayer', lcLivenessGetReady: "Restez immobile, puis effectuez l'action",
+    kycStatusPending: 'Vérification d\'identité en attente', kycStatusUnderReview: 'En cours d\'examen',
+    kycStatusVerified: 'Vérifié', kycStatusRejected: 'Vérification échouée',
+    kycPassportRow: 'KYC passeport', kycConsentLegal: 'Vos données biométriques sont utilisées uniquement pour la vérification d\'identité, stockées chiffrées et conservées jusqu\'à un an. Vous pouvez en demander la suppression.',
     gcDocConsentTitle: 'Scan de document', gcDocConsentBody: "Prenez une photo de la page biographique de votre passeport ou de votre carte d'identité.",
     gcDocConsentItem1: 'La caméra arrière sera utilisée', gcDocConsentItem2: 'Placez le document dans le cadre guide', gcDocConsentItem3: 'Évitez les ombres et les reflets sur le document',
     gcDocPrompt: 'Alignez le document dans le cadre',
@@ -5736,6 +5755,9 @@ export const translations: Record<LangCode, Translations> = {
     lcLivenessFail: '活体检测失败', lcLivenessFailDesc: '无法确认活体人员，请重试。',
     lcLivenessReview: '人工审核中', lcLivenessReviewDesc: '您的活体检测正在人工审核中。',
     lcLivenessRetry: '重试', lcLivenessGetReady: '保持静止，然后执行动作',
+    kycStatusPending: '身份验证待完成', kycStatusUnderReview: '审核中',
+    kycStatusVerified: '已验证', kycStatusRejected: '验证失败',
+    kycPassportRow: '护照KYC验证', kycConsentLegal: '您的生物特征数据仅用于身份验证，加密存储于私有云存储中，保留期最长一年，您可随时申请删除。',
     gcDocConsentTitle: '证件扫描', gcDocConsentBody: '拍摄护照个人信息页或身份证的照片。',
     gcDocConsentItem1: '将使用后置摄像头', gcDocConsentItem2: '将证件放在框架引导内', gcDocConsentItem3: '避免证件上出现阴影和反光',
     gcDocPrompt: '将证件对准框架',

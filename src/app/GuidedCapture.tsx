@@ -906,7 +906,7 @@ export default function GuidedCapture({
             <h1 className="text-2xl font-extrabold text-white text-center mb-2">{consentTitle}</h1>
             <p className="text-gray-400 text-sm text-center mb-8 leading-relaxed">{consentBody}</p>
 
-            <div className="space-y-3 mb-8">
+            <div className="space-y-3 mb-6">
               {consentItems.map((item, i) => (
                 <div key={i} className="flex items-start gap-3 bg-white/5 border border-white/8 rounded-xl px-4 py-3">
                   <Info className="w-4 h-4 text-cyan-400 flex-shrink-0 mt-0.5" />
@@ -914,6 +914,14 @@ export default function GuidedCapture({
                 </div>
               ))}
             </div>
+
+            {/* KYC consent legal note — shown for face and document modes */}
+            {(mode === 'face' || mode === 'document') && (
+              <div className="flex items-start gap-2 bg-cyan-500/5 border border-cyan-500/20 rounded-xl px-4 py-3 mb-8">
+                <Shield className="w-4 h-4 text-cyan-500/70 flex-shrink-0 mt-0.5" />
+                <span className="text-gray-500 text-xs leading-relaxed">{t.kycConsentLegal}</span>
+              </div>
+            )}
 
             <motion.button
               whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
