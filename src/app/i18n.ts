@@ -308,6 +308,7 @@ export interface Translations {
   channelWhatsapp: string;
   tgConnectTitle: string;
   tgOpenBtn: string;
+  tgCopyLink: string;
   tgWaiting: string;
   tgConnected: string;
   tgManualCheck: string;
@@ -1123,7 +1124,7 @@ export const translations: Record<LangCode, Translations> = {
     channelSms: 'پیامک',
     channelWhatsapp: 'واتس‌اپ',
     tgConnectTitle: 'اتصال تلگرام',
-    tgOpenBtn: 'باز کردن تلگرام',
+    tgOpenBtn: 'باز کردن تلگرام', tgCopyLink: 'یا این لینک را کپی کنید',
     tgWaiting: 'در انتظار اتصال…',
     tgConnected: '✓ متصل شد',
     tgManualCheck: 'متصل شدم',
@@ -1959,7 +1960,7 @@ export const translations: Record<LangCode, Translations> = {
     channelSms: 'SMS',
     channelWhatsapp: 'WhatsApp',
     tgConnectTitle: 'Connect Telegram',
-    tgOpenBtn: 'Open Telegram',
+    tgOpenBtn: 'Open Telegram', tgCopyLink: 'or copy link',
     tgWaiting: 'Waiting for connection…',
     tgConnected: '✓ Connected',
     tgManualCheck: "I've connected",
@@ -2790,7 +2791,7 @@ export const translations: Record<LangCode, Translations> = {
     channelSms: 'SMS',
     channelWhatsapp: 'WhatsApp',
     tgConnectTitle: "Telegram'ı Bağla",
-    tgOpenBtn: "Telegram'ı Aç",
+    tgOpenBtn: "Telegram'ı Aç", tgCopyLink: 'or copy link',
     tgWaiting: 'Bağlantı bekleniyor…',
     tgConnected: '✓ Bağlandı',
     tgManualCheck: 'Bağlandım',
@@ -3621,7 +3622,7 @@ export const translations: Record<LangCode, Translations> = {
     channelSms: 'رسالة SMS',
     channelWhatsapp: 'واتساب',
     tgConnectTitle: 'ربط تيليغرام',
-    tgOpenBtn: 'فتح تيليغرام',
+    tgOpenBtn: 'فتح تيليغرام', tgCopyLink: 'or copy link',
     tgWaiting: 'في انتظار الاتصال…',
     tgConnected: '✓ تم الاتصال',
     tgManualCheck: 'لقد اتصلت',
@@ -4451,7 +4452,7 @@ export const translations: Record<LangCode, Translations> = {
     channelSms: 'SMS',
     channelWhatsapp: 'WhatsApp',
     tgConnectTitle: 'Connecter Telegram',
-    tgOpenBtn: 'Ouvrir Telegram',
+    tgOpenBtn: 'Ouvrir Telegram', tgCopyLink: 'ou copier le lien',
     tgWaiting: 'En attente de connexion…',
     tgConnected: '✓ Connecté',
     tgManualCheck: 'Je suis connecté',
@@ -5282,7 +5283,7 @@ export const translations: Record<LangCode, Translations> = {
     channelSms: '短信',
     channelWhatsapp: 'WhatsApp',
     tgConnectTitle: '连接 Telegram',
-    tgOpenBtn: '打开 Telegram',
+    tgOpenBtn: '打开 Telegram', tgCopyLink: '或复制链接',
     tgWaiting: '等待连接中…',
     tgConnected: '✓ 已连接',
     tgManualCheck: '我已连接',

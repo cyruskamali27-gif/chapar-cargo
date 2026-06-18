@@ -331,15 +331,32 @@ export function OtpChannelPanel({
             </div>
           ) : (
             <>
-              <p className="text-sm font-semibold text-gray-700 mb-4">{t.tgConnectTitle}</p>
+              <p className="text-sm font-semibold text-gray-700 mb-3">{t.tgConnectTitle}</p>
+              {/* Primary CTA — large, unmissable */}
               <a
                 href={deepLink}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="ds-btn-primary w-full h-11 flex items-center justify-center gap-2 mb-4 no-underline"
+                className="flex items-center justify-center gap-2 w-full h-13 rounded-2xl bg-[#229ED9] hover:bg-[#1a8ac5] active:bg-[#1577ab] text-white font-bold text-base py-3 mb-3 no-underline transition-colors shadow-md"
               >
-                <Send size={15} />{t.tgOpenBtn}
+                <Send size={18} />{t.tgOpenBtn}
               </a>
+              {/* Copyable fallback */}
+              <div className="flex items-center gap-2 mb-4">
+                <input
+                  readOnly
+                  value={deepLink}
+                  className="flex-1 text-xs text-gray-500 bg-gray-50 border border-gray-200 rounded-lg px-2 py-1.5 truncate select-all"
+                  onFocus={e => e.currentTarget.select()}
+                />
+                <button
+                  type="button"
+                  onClick={() => { void navigator.clipboard.writeText(deepLink); }}
+                  className="flex-shrink-0 text-xs font-semibold text-cyan-600 hover:text-cyan-700 border border-cyan-200 rounded-lg px-2 py-1.5 transition-colors"
+                >
+                  {t.tgCopyLink}
+                </button>
+              </div>
               {pollingLinked && (
                 <div className="flex items-center justify-center gap-2 text-xs text-gray-500 mb-3">
                   <div className="w-3 h-3 border-2 border-gray-200 border-t-cyan-500 rounded-full animate-spin flex-shrink-0" />
