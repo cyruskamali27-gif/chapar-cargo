@@ -171,6 +171,7 @@ export default function AuthPage({ onHome, onSuccess, defaultTab = 'login' }: Pr
   const [fPw,           setFPw]           = useState('');
   const [fPw2,          setFPw2]          = useState('');
   const [fErr,          setFErr]          = useState('');
+  const [fErrCode,      setFErrCode]      = useState('');
   const [fLoading,      setFLoading]      = useState(false);
   const [fCountdown,    setFCountdown]    = useState(0);
   const [fChannel,      setFChannel]      = useState<'email' | 'telegram' | 'sms'>('email');
@@ -215,13 +216,24 @@ export default function AuthPage({ onHome, onSuccess, defaultTab = 'login' }: Pr
     const identifier = fIdMode === 'phone' ? fPhone : fId.trim();
     setFLoading(true);
     setFErr('');
+    setFErrCode('');
     try {
-      await fetch(`${AUTH_BASE}/forgot-password`, {
+      const res  = await fetch(`${AUTH_BASE}/forgot-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ identifier, channel: fChannel }),
       });
-      // Always treat as success (anti-enumeration: server always returns ok:true)
+      const data = await res.json();
+      if (data.code === 'NOT_REGISTERED') {
+        setFErrCode('NOT_REGISTERED');
+        setFErr(t.forgotErrNotRegistered);
+        return;
+      }
+      if (!data.ok || data.code === 'SEND_FAILED') {
+        setFErr(t.forgotErrSendFailed);
+        return;
+      }
+      // SENT — advance to code entry
       setForgotStep(2);
       setFCountdown(60);
     } catch {
@@ -236,12 +248,18 @@ export default function AuthPage({ onHome, onSuccess, defaultTab = 'login' }: Pr
     if (!identifier) return;
     setFLoading(true);
     setFErr('');
+    setFErrCode('');
     try {
-      await fetch(`${AUTH_BASE}/forgot-password`, {
+      const res  = await fetch(`${AUTH_BASE}/forgot-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ identifier, channel: fChannel }),
       });
+      const data = await res.json();
+      if (!data.ok) {
+        setFErr(t.forgotErrSendFailed);
+        return;
+      }
       setFCountdown(60);
     } catch {
       setFErr(t.authErrNetwork);
@@ -455,7 +473,7 @@ export default function AuthPage({ onHome, onSuccess, defaultTab = 'login' }: Pr
               </div>
               <FieldError msg={lErr.global ?? ''} />
               <button className="block text-[11px] font-semibold text-gray-400 hover:text-cyan-600 mb-5 mt-1 transition-colors"
-                onClick={() => { setFId(lId); setFPhone(lIdMode === 'phone' ? lPhone : ''); setFIdMode(lIdMode); setForgotStep(1); setFCode(''); setFPw(''); setFPw2(''); setFErr(''); setFCountdown(0); setFChannel(lIdMode === 'phone' ? 'sms' : 'email'); setTab('forgot'); }}>
+                onClick={() => { setFId(lId); setFPhone(lIdMode === 'phone' ? lPhone : ''); setFIdMode(lIdMode); setForgotStep(1); setFCode(''); setFPw(''); setFPw2(''); setFErr(''); setFErrCode(''); setFCountdown(0); setFChannel(lIdMode === 'phone' ? 'sms' : 'email'); setTab('forgot'); }}>
                 {t.authForgotPassword}
               </button>
               <button onClick={doLogin} disabled={lLoading} className="ds-btn-primary w-full h-12 disabled:opacity-60">
@@ -553,7 +571,7 @@ export default function AuthPage({ onHome, onSuccess, defaultTab = 'login' }: Pr
                     <label className="ds-label">{t.authEmailOrPhone}</label>
                     <IdModeToggle
                       mode={fIdMode}
-                      setMode={m => { setFIdMode(m); setFErr(''); setFPhone(''); setFChannel(m === 'phone' ? 'sms' : 'email'); }}
+                      setMode={m => { setFIdMode(m); setFErr(''); setFErrCode(''); setFPhone(''); setFChannel(m === 'phone' ? 'sms' : 'email'); }}
                     />
                     {fIdMode === 'email' ? (
                       <input
@@ -621,6 +639,12 @@ export default function AuthPage({ onHome, onSuccess, defaultTab = 'login' }: Pr
                     </div>
                   )}
                   <FieldError msg={fErr} />
+                  {fErrCode === 'NOT_REGISTERED' && (
+                    <button type="button" onClick={() => setTab('register')}
+                      className="mt-2 text-sm font-bold text-cyan-600 hover:underline">
+                      {t.authSignUpLink}
+                    </button>
+                  )}
                   <button onClick={doForgotSend} disabled={fLoading}
                     className="ds-btn-primary w-full h-12 disabled:opacity-60 mb-4">
                     {fLoading ? '…' : t.forgotSendBtn}

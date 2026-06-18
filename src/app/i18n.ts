@@ -292,6 +292,8 @@ export interface Translations {
   forgotSentMsg: string;
   forgotSentMsgTg: string;
   forgotSentMsgSms: string;
+  forgotErrNotRegistered: string;
+  forgotErrSendFailed: string;
   forgotNewPwPlaceholder: string;
   forgotConfirmPwPlaceholder: string;
   forgotResetBtn: string;
@@ -1107,6 +1109,8 @@ export const translations: Record<LangCode, Translations> = {
     forgotSentMsg: 'در صورت وجود حساب کاربری، کد بازیابی به ایمیل شما ارسال شد.',
     forgotSentMsgTg: 'در صورت وجود حساب کاربری با تلگرام متصل، کد بازیابی از طریق تلگرام ارسال شد.',
     forgotSentMsgSms: 'در صورت وجود حساب کاربری، کد بازیابی از طریق پیامک ارسال شد.',
+    forgotErrNotRegistered: 'این ایمیل/شماره ثبت نشده است.',
+    forgotErrSendFailed: 'ارسال کد از این کانال ناموفق بود؛ کانال دیگری را امتحان کنید.',
     forgotNewPwPlaceholder: 'رمز عبور جدید',
     forgotConfirmPwPlaceholder: 'تکرار رمز عبور جدید',
     forgotResetBtn: 'تغییر رمز عبور',
@@ -1941,6 +1945,8 @@ export const translations: Record<LangCode, Translations> = {
     forgotSentMsg: 'If an account exists, a reset code was sent.',
     forgotSentMsgTg: 'If an account with Telegram linked exists, a reset code was sent via Telegram.',
     forgotSentMsgSms: 'If an account exists, a reset code was sent via SMS.',
+    forgotErrNotRegistered: 'This email/number is not registered.',
+    forgotErrSendFailed: 'Failed to send code via this channel; please try a different channel.',
     forgotNewPwPlaceholder: 'New password',
     forgotConfirmPwPlaceholder: 'Confirm new password',
     forgotResetBtn: 'Reset password',
@@ -2770,6 +2776,8 @@ export const translations: Record<LangCode, Translations> = {
     forgotSentMsg: 'Hesap mevcut ise bir sıfırlama kodu gönderildi.',
     forgotSentMsgTg: 'Telegram bağlı bir hesap mevcutsa, Telegram üzerinden bir sıfırlama kodu gönderildi.',
     forgotSentMsgSms: 'Hesap mevcut ise SMS ile bir sıfırlama kodu gönderildi.',
+    forgotErrNotRegistered: 'This email/number is not registered.',
+    forgotErrSendFailed: 'Failed to send code via this channel; please try a different channel.',
     forgotNewPwPlaceholder: 'Yeni şifre',
     forgotConfirmPwPlaceholder: 'Yeni şifreyi onayla',
     forgotResetBtn: 'Şifreyi sıfırla',
@@ -3599,6 +3607,8 @@ export const translations: Record<LangCode, Translations> = {
     forgotSentMsg: 'إذا كان الحساب موجوداً، فقد تم إرسال رمز استرداد.',
     forgotSentMsgTg: 'إذا كان الحساب موجوداً ومرتبطاً بتيليغرام، فقد تم إرسال رمز الاسترداد عبر تيليغرام.',
     forgotSentMsgSms: 'إذا كان الحساب موجوداً، فقد تم إرسال رمز استرداد عبر الرسائل القصيرة.',
+    forgotErrNotRegistered: 'This email/number is not registered.',
+    forgotErrSendFailed: 'Failed to send code via this channel; please try a different channel.',
     forgotNewPwPlaceholder: 'كلمة المرور الجديدة',
     forgotConfirmPwPlaceholder: 'تأكيد كلمة المرور الجديدة',
     forgotResetBtn: 'إعادة تعيين كلمة المرور',
@@ -4427,6 +4437,8 @@ export const translations: Record<LangCode, Translations> = {
     forgotSentMsg: 'Si un compte existe, un code de réinitialisation a été envoyé.',
     forgotSentMsgTg: 'Si un compte avec Telegram lié existe, un code de réinitialisation a été envoyé via Telegram.',
     forgotSentMsgSms: 'Si un compte existe, un code de réinitialisation a été envoyé par SMS.',
+    forgotErrNotRegistered: 'This email/number is not registered.',
+    forgotErrSendFailed: 'Failed to send code via this channel; please try a different channel.',
     forgotNewPwPlaceholder: 'Nouveau mot de passe',
     forgotConfirmPwPlaceholder: 'Confirmer le nouveau mot de passe',
     forgotResetBtn: 'Réinitialiser le mot de passe',
@@ -5256,6 +5268,8 @@ export const translations: Record<LangCode, Translations> = {
     forgotSentMsg: '如果账户存在，重置验证码已发送。',
     forgotSentMsgTg: '如果存在已关联 Telegram 的账户，重置验证码已通过 Telegram 发送。',
     forgotSentMsgSms: '如果账户存在，重置验证码已通过短信发送。',
+    forgotErrNotRegistered: 'This email/number is not registered.',
+    forgotErrSendFailed: 'Failed to send code via this channel; please try a different channel.',
     forgotNewPwPlaceholder: '新密码',
     forgotConfirmPwPlaceholder: '确认新密码',
     forgotResetBtn: '重置密码',
