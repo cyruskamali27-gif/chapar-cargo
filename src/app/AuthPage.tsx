@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Eye, EyeOff, ArrowLeft, Mail, Send } from 'lucide-react';
+import { Eye, EyeOff, ArrowLeft, Mail, Send, Phone, LogIn, UserPlus, MessageSquare } from 'lucide-react';
 import { useSession } from '../lib/SessionContext';
 import { useLang } from '../lib/LangContext';
 import { useOtpChannel, OtpChannelPanel } from '../lib/useOtpChannel';
@@ -31,6 +31,7 @@ function PwInput({
   placeholder: string; onEnter?: () => void;
 }) {
   const [show, setShow] = useState(false);
+  const { isRTL } = useLang();
   return (
     <div className="relative">
       <input
@@ -41,12 +42,12 @@ function PwInput({
         autoComplete="off"
         onChange={e => onChange(e.target.value)}
         onKeyDown={e => { if (e.key === 'Enter') onEnter?.(); }}
-        className="ds-input pr-11"
+        className={`ds-input ${isRTL ? 'pl-11' : 'pr-11'}`}
       />
       <button
         type="button"
         onClick={() => setShow(s => !s)}
-        className="absolute right-3 top-1/2 -translate-y-1/2 text-[#9CA3AF] hover:text-[#6B7280] transition-colors"
+        className={`absolute ${isRTL ? 'left-3' : 'right-3'} top-1/2 -translate-y-1/2 text-[#9CA3AF] hover:text-[#6B7280] transition-colors`}
         tabIndex={-1}
       >
         {show ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -121,12 +122,13 @@ function IdModeToggle({
           key={m}
           type="button"
           onClick={() => setMode(m)}
-          className={`flex-1 h-8 rounded-xl text-xs font-bold transition-all ${
+          className={`flex-1 h-8 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1 ${
             mode === m
               ? 'bg-white text-cyan-600 shadow-sm border border-gray-200'
               : 'text-gray-500 hover:text-gray-900'
           }`}
         >
+          {m === 'email' ? <Mail size={12} /> : <Phone size={12} />}
           {m === 'email' ? t.channelEmail : t.idModePhone}
         </button>
       ))}
@@ -171,7 +173,7 @@ export default function AuthPage({ onHome, onSuccess, defaultTab = 'login' }: Pr
   const [fErr,          setFErr]          = useState('');
   const [fLoading,      setFLoading]      = useState(false);
   const [fCountdown,    setFCountdown]    = useState(0);
-  const [fChannel,      setFChannel]      = useState<'email' | 'telegram'>('email');
+  const [fChannel,      setFChannel]      = useState<'email' | 'telegram' | 'sms'>('email');
 
   // ── Shared success state ─────────────────────────────────────────────────────
   const [successTitle, setSuccessTitle] = useState('');
@@ -414,11 +416,12 @@ export default function AuthPage({ onHome, onSuccess, defaultTab = 'login' }: Pr
             <div className="flex bg-gray-100 border border-gray-200 rounded-xl p-1 mb-6 gap-1">
               {(['login', 'register'] as const).map(tabKey => (
                 <button key={tabKey} onClick={() => setTab(tabKey)}
-                  className={`flex-1 h-10 rounded-xl text-sm font-bold transition-all ${
+                  className={`flex-1 h-10 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-1.5 ${
                     tab === tabKey
                       ? 'bg-white text-cyan-600 shadow-sm border border-gray-200'
                       : 'text-gray-500 hover:text-gray-900'
                   }`}>
+                  {tabKey === 'login' ? <LogIn size={14} /> : <UserPlus size={14} />}
                   {tabKey === 'login' ? t.authTabLogin : t.authTabRegister}
                 </button>
               ))}
@@ -456,7 +459,7 @@ export default function AuthPage({ onHome, onSuccess, defaultTab = 'login' }: Pr
               </div>
               <FieldError msg={lErr.global ?? ''} />
               <button className="block text-[11px] font-semibold text-gray-400 hover:text-cyan-600 mb-5 mt-1 transition-colors"
-                onClick={() => { setFId(lId); setFPhone(lIdMode === 'phone' ? lPhone : ''); setFIdMode(lIdMode); setForgotStep(1); setFCode(''); setFPw(''); setFPw2(''); setFErr(''); setFCountdown(0); setFChannel('email'); setTab('forgot'); }}>
+                onClick={() => { setFId(lId); setFPhone(lIdMode === 'phone' ? lPhone : ''); setFIdMode(lIdMode); setForgotStep(1); setFCode(''); setFPw(''); setFPw2(''); setFErr(''); setFCountdown(0); setFChannel(lIdMode === 'phone' ? 'sms' : 'email'); setTab('forgot'); }}>
                 {t.authForgotPassword}
               </button>
               <button onClick={doLogin} disabled={lLoading} className="ds-btn-primary w-full h-12 disabled:opacity-60">
@@ -554,7 +557,7 @@ export default function AuthPage({ onHome, onSuccess, defaultTab = 'login' }: Pr
                     <label className="ds-label">{t.authEmailOrPhone}</label>
                     <IdModeToggle
                       mode={fIdMode}
-                      setMode={m => { setFIdMode(m); setFErr(''); setFPhone(''); }}
+                      setMode={m => { setFIdMode(m); setFErr(''); setFPhone(''); setFChannel(m === 'phone' ? 'sms' : 'email'); }}
                     />
                     {fIdMode === 'email' ? (
                       <input
@@ -577,26 +580,50 @@ export default function AuthPage({ onHome, onSuccess, defaultTab = 'login' }: Pr
                       />
                     )}
                   </div>
-                  <div className="flex gap-2 mb-4">
-                    <button
-                      onClick={() => setFChannel('email')}
-                      disabled={fLoading}
-                      className={`flex-1 h-9 rounded-xl text-sm font-bold flex items-center justify-center gap-1.5 transition-all ${
-                        fChannel === 'email' ? 'bg-cyan-600 text-white shadow-sm' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
-                      }`}
-                    >
-                      <Mail size={13} />{t.channelEmail}
-                    </button>
-                    <button
-                      onClick={() => setFChannel('telegram')}
-                      disabled={fLoading}
-                      className={`flex-1 h-9 rounded-xl text-sm font-bold flex items-center justify-center gap-1.5 transition-all ${
-                        fChannel === 'telegram' ? 'bg-[#229ED9] text-white shadow-sm' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
-                      }`}
-                    >
-                      <Send size={13} />{t.channelTelegram}
-                    </button>
-                  </div>
+                  {fIdMode === 'email' && (
+                    <div className="flex gap-2 mb-4">
+                      <button
+                        onClick={() => setFChannel('email')}
+                        disabled={fLoading}
+                        className={`flex-1 h-9 rounded-xl text-sm font-bold flex items-center justify-center gap-1.5 transition-all ${
+                          fChannel === 'email' ? 'bg-cyan-600 text-white shadow-sm' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                        }`}
+                      >
+                        <Mail size={13} />{t.channelEmail}
+                      </button>
+                      <button
+                        onClick={() => setFChannel('telegram')}
+                        disabled={fLoading}
+                        className={`flex-1 h-9 rounded-xl text-sm font-bold flex items-center justify-center gap-1.5 transition-all ${
+                          fChannel === 'telegram' ? 'bg-[#229ED9] text-white shadow-sm' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                        }`}
+                      >
+                        <Send size={13} />{t.channelTelegram}
+                      </button>
+                    </div>
+                  )}
+                  {fIdMode === 'phone' && (
+                    <div className="flex gap-2 mb-4">
+                      <button
+                        onClick={() => setFChannel('sms')}
+                        disabled={fLoading}
+                        className={`flex-1 h-9 rounded-xl text-sm font-bold flex items-center justify-center gap-1.5 transition-all ${
+                          fChannel === 'sms' ? 'bg-cyan-600 text-white shadow-sm' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                        }`}
+                      >
+                        <MessageSquare size={13} />{t.channelSms}
+                      </button>
+                      <button
+                        onClick={() => setFChannel('telegram')}
+                        disabled={fLoading}
+                        className={`flex-1 h-9 rounded-xl text-sm font-bold flex items-center justify-center gap-1.5 transition-all ${
+                          fChannel === 'telegram' ? 'bg-[#229ED9] text-white shadow-sm' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                        }`}
+                      >
+                        <Send size={13} />{t.channelTelegram}
+                      </button>
+                    </div>
+                  )}
                   <FieldError msg={fErr} />
                   <button onClick={doForgotSend} disabled={fLoading}
                     className="ds-btn-primary w-full h-12 disabled:opacity-60 mb-4">
@@ -608,7 +635,7 @@ export default function AuthPage({ onHome, onSuccess, defaultTab = 'login' }: Pr
               {forgotStep === 2 && (
                 <>
                   <p className="text-sm text-gray-500 mb-4 text-center leading-relaxed">
-                    {fChannel === 'telegram' ? t.forgotSentMsgTg : t.forgotSentMsg}
+                    {fChannel === 'telegram' ? t.forgotSentMsgTg : fChannel === 'sms' ? t.forgotSentMsgSms : t.forgotSentMsg}
                   </p>
                   <div className="mb-3">
                     <label className="ds-label">{t.otpCodeLabel}</label>
