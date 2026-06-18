@@ -204,10 +204,6 @@ export default function AuthPage({ onHome, onSuccess, defaultTab = 'login' }: Pr
     setTimeout(onSuccess ?? onHome, 1400);
   }
 
-  function doSkip() {
-    otpChannel.reset();
-    (onSuccess ?? onHome)();
-  }
 
   // ── Forgot password ───────────────────────────────────────────────────────────
   async function doForgotSend() {
@@ -544,7 +540,7 @@ export default function AuthPage({ onHome, onSuccess, defaultTab = 'login' }: Pr
                   ? <Send className="w-7 h-7 text-[#229ED9]" />
                   : <Mail className="w-7 h-7 text-cyan-500" />}
               </div>
-              <OtpChannelPanel hook={otpChannel} identifier={vIdentifier} onSkip={doSkip} />
+              <OtpChannelPanel hook={otpChannel} identifier={vIdentifier} />
             </div>
           )}
 
