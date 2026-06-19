@@ -855,6 +855,22 @@ export interface Translations {
   // Phase P8 KYC soft-gate
   kycGateNotice: string;
   kycGateCta: string;
+  // Block 1b — Order mode selector + Buy-For-Me flow
+  bfm2ModeTitle: string; bfm2ModeDesc: string;
+  bfm2Commercial: string; bfm2CommercialDesc: string; bfm2ComingSoon: string;
+  bfm2TabLink: string; bfm2TabManual: string;
+  bfm2UrlLabel: string; bfm2UrlPlaceholder: string; bfm2FetchBtn: string; bfm2Fetching: string; bfm2FetchPartial: string;
+  bfm2ProdSection: string; bfm2ProdTitleLabel: string; bfm2ProdTitlePlaceholder: string;
+  bfm2ProdStore: string; bfm2ProdStorePlaceholder: string;
+  bfm2ProdQty: string; bfm2ProdImageUrl: string; bfm2ProdImagePlaceholder: string;
+  bfm2DestSection: string; bfm2DestCountry: string; bfm2DestCountryPlaceholder: string;
+  bfm2DestCity: string; bfm2DestCityPlaceholder: string;
+  bfm2DestType: string; bfm2DestStandard: string; bfm2DestExpress: string;
+  bfm2ValSection: string; bfm2RecipSection: string; bfm2ReviewSection: string;
+  bfm2Publish: string; bfm2Publishing: string;
+  bfm2SuccessTitle: string; bfm2SuccessDesc: string; bfm2SuccessIdLabel: string; bfm2SuccessMarket: string; bfm2NewOrder: string;
+  bfm2ErrProduct: string; bfm2ErrDest: string; bfm2ErrValue: string; bfm2ErrRecip: string; bfm2ErrServer: string;
+  bfm2ReviewMode: string; bfm2ReviewProduct: string; bfm2ReviewDest: string; bfm2ReviewValue: string; bfm2ReviewRecip: string;
 }
 
 export const translations: Record<LangCode, Translations> = {
@@ -1693,6 +1709,21 @@ export const translations: Record<LangCode, Translations> = {
     kycDlBackPrompt: 'گواهینامه را برگردانید — بارکد باید داخل قاب باشد',
     kycGateNotice: 'برای انتشار، باید هویت خود را تأیید کنید',
     kycGateCta: 'تأیید هویت',
+    bfm2ModeTitle: 'چه کاری می‌خواهید انجام دهید؟', bfm2ModeDesc: 'نوع سفارش خود را انتخاب کنید',
+    bfm2Commercial: 'خرید تجاری', bfm2CommercialDesc: 'خرید برای کسب‌وکار یا فروشگاه', bfm2ComingSoon: 'به‌زودی',
+    bfm2TabLink: 'لینک محصول', bfm2TabManual: 'دستی',
+    bfm2UrlLabel: 'لینک محصول', bfm2UrlPlaceholder: 'https://...', bfm2FetchBtn: 'دریافت اطلاعات', bfm2Fetching: 'در حال دریافت...', bfm2FetchPartial: 'اطلاعات جزئی دریافت شد — لطفاً موارد نادرست را ویرایش کنید',
+    bfm2ProdSection: 'اطلاعات محصول', bfm2ProdTitleLabel: 'عنوان محصول', bfm2ProdTitlePlaceholder: 'مثلاً iPhone 16 Pro',
+    bfm2ProdStore: 'فروشگاه', bfm2ProdStorePlaceholder: 'مثلاً Apple Canada',
+    bfm2ProdQty: 'تعداد', bfm2ProdImageUrl: 'لینک تصویر (اختیاری)', bfm2ProdImagePlaceholder: 'https://...',
+    bfm2DestSection: 'مقصد تحویل', bfm2DestCountry: 'کشور', bfm2DestCountryPlaceholder: 'مثلاً ایران',
+    bfm2DestCity: 'شهر', bfm2DestCityPlaceholder: 'مثلاً تهران',
+    bfm2DestType: 'نوع تحویل', bfm2DestStandard: 'استاندارد', bfm2DestExpress: 'اکسپرس',
+    bfm2ValSection: 'ارزش کالا', bfm2RecipSection: 'اطلاعات گیرنده', bfm2ReviewSection: 'بررسی نهایی',
+    bfm2Publish: 'انتشار سفارش', bfm2Publishing: 'در حال انتشار...',
+    bfm2SuccessTitle: 'سفارش منتشر شد!', bfm2SuccessDesc: 'سفارش شما با موفقیت در بازارگاه ثبت شد.', bfm2SuccessIdLabel: 'شماره سفارش:', bfm2SuccessMarket: 'مشاهده بازارگاه', bfm2NewOrder: 'سفارش جدید',
+    bfm2ErrProduct: 'لطفاً عنوان و فروشگاه محصول را وارد کنید', bfm2ErrDest: 'لطفاً کشور و شهر مقصد را وارد کنید', bfm2ErrValue: 'لطفاً مبلغ را وارد کنید', bfm2ErrRecip: 'لطفاً نام و شماره گیرنده را وارد کنید', bfm2ErrServer: 'خطا در ثبت سفارش. دوباره امتحان کنید.',
+    bfm2ReviewMode: 'نوع سفارش', bfm2ReviewProduct: 'محصول', bfm2ReviewDest: 'مقصد', bfm2ReviewValue: 'ارزش', bfm2ReviewRecip: 'گیرنده',
   },
 
   en: {
@@ -2524,6 +2555,21 @@ export const translations: Record<LangCode, Translations> = {
     kycDlBackPrompt: 'Flip to back — align the barcode in the frame',
     kycGateNotice: 'Identity verification is required before you can publish',
     kycGateCta: 'Verify your identity',
+    bfm2ModeTitle: 'What would you like to do?', bfm2ModeDesc: 'Select your order type',
+    bfm2Commercial: 'Commercial Purchase', bfm2CommercialDesc: 'Buy for a business or store', bfm2ComingSoon: 'Coming Soon',
+    bfm2TabLink: 'Product Link', bfm2TabManual: 'Manual',
+    bfm2UrlLabel: 'Product URL', bfm2UrlPlaceholder: 'https://...', bfm2FetchBtn: 'Fetch Info', bfm2Fetching: 'Fetching...', bfm2FetchPartial: 'Partial info retrieved — please correct any fields',
+    bfm2ProdSection: 'Product Info', bfm2ProdTitleLabel: 'Product Title', bfm2ProdTitlePlaceholder: 'e.g. iPhone 16 Pro',
+    bfm2ProdStore: 'Store', bfm2ProdStorePlaceholder: 'e.g. Apple Canada',
+    bfm2ProdQty: 'Quantity', bfm2ProdImageUrl: 'Image URL (optional)', bfm2ProdImagePlaceholder: 'https://...',
+    bfm2DestSection: 'Delivery Destination', bfm2DestCountry: 'Country', bfm2DestCountryPlaceholder: 'e.g. Iran',
+    bfm2DestCity: 'City', bfm2DestCityPlaceholder: 'e.g. Tehran',
+    bfm2DestType: 'Delivery Type', bfm2DestStandard: 'Standard', bfm2DestExpress: 'Express',
+    bfm2ValSection: 'Item Value', bfm2RecipSection: 'Recipient Info', bfm2ReviewSection: 'Final Review',
+    bfm2Publish: 'Publish Order', bfm2Publishing: 'Publishing...',
+    bfm2SuccessTitle: 'Order Published!', bfm2SuccessDesc: 'Your order has been posted to the marketplace.', bfm2SuccessIdLabel: 'Order ID:', bfm2SuccessMarket: 'View Marketplace', bfm2NewOrder: 'New Order',
+    bfm2ErrProduct: 'Please enter the product title and store', bfm2ErrDest: 'Please enter the destination country and city', bfm2ErrValue: 'Please enter an amount', bfm2ErrRecip: 'Please enter the recipient name and phone', bfm2ErrServer: 'Failed to submit order. Please try again.',
+    bfm2ReviewMode: 'Order Type', bfm2ReviewProduct: 'Product', bfm2ReviewDest: 'Destination', bfm2ReviewValue: 'Value', bfm2ReviewRecip: 'Recipient',
   },
 
   tr: {
@@ -3355,6 +3401,21 @@ export const translations: Record<LangCode, Translations> = {
     kycDlBackPrompt: 'Lisansı ters çevirin — barkodu çerçeve içinde hizalayın',
     kycGateNotice: 'Yayınlamadan önce kimlik doğrulaması gereklidir', // pending native review
     kycGateCta: 'Kimliğinizi doğrulayın', // pending native review
+    bfm2ModeTitle: 'What would you like to do?', bfm2ModeDesc: 'Select your order type',
+    bfm2Commercial: 'Commercial Purchase', bfm2CommercialDesc: 'Buy for a business or store', bfm2ComingSoon: 'Coming Soon',
+    bfm2TabLink: 'Product Link', bfm2TabManual: 'Manual',
+    bfm2UrlLabel: 'Product URL', bfm2UrlPlaceholder: 'https://...', bfm2FetchBtn: 'Fetch Info', bfm2Fetching: 'Fetching...', bfm2FetchPartial: 'Partial info retrieved — please correct any fields',
+    bfm2ProdSection: 'Product Info', bfm2ProdTitleLabel: 'Product Title', bfm2ProdTitlePlaceholder: 'e.g. iPhone 16 Pro',
+    bfm2ProdStore: 'Store', bfm2ProdStorePlaceholder: 'e.g. Apple Canada',
+    bfm2ProdQty: 'Quantity', bfm2ProdImageUrl: 'Image URL (optional)', bfm2ProdImagePlaceholder: 'https://...',
+    bfm2DestSection: 'Delivery Destination', bfm2DestCountry: 'Country', bfm2DestCountryPlaceholder: 'e.g. Iran',
+    bfm2DestCity: 'City', bfm2DestCityPlaceholder: 'e.g. Tehran',
+    bfm2DestType: 'Delivery Type', bfm2DestStandard: 'Standard', bfm2DestExpress: 'Express',
+    bfm2ValSection: 'Item Value', bfm2RecipSection: 'Recipient Info', bfm2ReviewSection: 'Final Review',
+    bfm2Publish: 'Publish Order', bfm2Publishing: 'Publishing...',
+    bfm2SuccessTitle: 'Order Published!', bfm2SuccessDesc: 'Your order has been posted to the marketplace.', bfm2SuccessIdLabel: 'Order ID:', bfm2SuccessMarket: 'View Marketplace', bfm2NewOrder: 'New Order',
+    bfm2ErrProduct: 'Please enter the product title and store', bfm2ErrDest: 'Please enter the destination country and city', bfm2ErrValue: 'Please enter an amount', bfm2ErrRecip: 'Please enter the recipient name and phone', bfm2ErrServer: 'Failed to submit order. Please try again.',
+    bfm2ReviewMode: 'Order Type', bfm2ReviewProduct: 'Product', bfm2ReviewDest: 'Destination', bfm2ReviewValue: 'Value', bfm2ReviewRecip: 'Recipient',
   },
 
   ar: {
@@ -4185,6 +4246,21 @@ export const translations: Record<LangCode, Translations> = {
     kycDlBackPrompt: 'اقلب الرخصة — اضبط الرمز الشريطي داخل الإطار',
     kycGateNotice: 'مطلوب التحقق من الهوية قبل النشر', // pending native review
     kycGateCta: 'تحقق من هويتك', // pending native review
+    bfm2ModeTitle: 'What would you like to do?', bfm2ModeDesc: 'Select your order type',
+    bfm2Commercial: 'Commercial Purchase', bfm2CommercialDesc: 'Buy for a business or store', bfm2ComingSoon: 'Coming Soon',
+    bfm2TabLink: 'Product Link', bfm2TabManual: 'Manual',
+    bfm2UrlLabel: 'Product URL', bfm2UrlPlaceholder: 'https://...', bfm2FetchBtn: 'Fetch Info', bfm2Fetching: 'Fetching...', bfm2FetchPartial: 'Partial info retrieved — please correct any fields',
+    bfm2ProdSection: 'Product Info', bfm2ProdTitleLabel: 'Product Title', bfm2ProdTitlePlaceholder: 'e.g. iPhone 16 Pro',
+    bfm2ProdStore: 'Store', bfm2ProdStorePlaceholder: 'e.g. Apple Canada',
+    bfm2ProdQty: 'Quantity', bfm2ProdImageUrl: 'Image URL (optional)', bfm2ProdImagePlaceholder: 'https://...',
+    bfm2DestSection: 'Delivery Destination', bfm2DestCountry: 'Country', bfm2DestCountryPlaceholder: 'e.g. Iran',
+    bfm2DestCity: 'City', bfm2DestCityPlaceholder: 'e.g. Tehran',
+    bfm2DestType: 'Delivery Type', bfm2DestStandard: 'Standard', bfm2DestExpress: 'Express',
+    bfm2ValSection: 'Item Value', bfm2RecipSection: 'Recipient Info', bfm2ReviewSection: 'Final Review',
+    bfm2Publish: 'Publish Order', bfm2Publishing: 'Publishing...',
+    bfm2SuccessTitle: 'Order Published!', bfm2SuccessDesc: 'Your order has been posted to the marketplace.', bfm2SuccessIdLabel: 'Order ID:', bfm2SuccessMarket: 'View Marketplace', bfm2NewOrder: 'New Order',
+    bfm2ErrProduct: 'Please enter the product title and store', bfm2ErrDest: 'Please enter the destination country and city', bfm2ErrValue: 'Please enter an amount', bfm2ErrRecip: 'Please enter the recipient name and phone', bfm2ErrServer: 'Failed to submit order. Please try again.',
+    bfm2ReviewMode: 'Order Type', bfm2ReviewProduct: 'Product', bfm2ReviewDest: 'Destination', bfm2ReviewValue: 'Value', bfm2ReviewRecip: 'Recipient',
   },
 
   fr: {
@@ -5016,6 +5092,21 @@ export const translations: Record<LangCode, Translations> = {
     kycDlBackPrompt: 'Retournez le permis — alignez le code-barres dans le cadre',
     kycGateNotice: "La vérification d'identité est requise avant la publication", // pending native review
     kycGateCta: 'Vérifier votre identité', // pending native review
+    bfm2ModeTitle: 'What would you like to do?', bfm2ModeDesc: 'Select your order type',
+    bfm2Commercial: 'Commercial Purchase', bfm2CommercialDesc: 'Buy for a business or store', bfm2ComingSoon: 'Coming Soon',
+    bfm2TabLink: 'Product Link', bfm2TabManual: 'Manual',
+    bfm2UrlLabel: 'Product URL', bfm2UrlPlaceholder: 'https://...', bfm2FetchBtn: 'Fetch Info', bfm2Fetching: 'Fetching...', bfm2FetchPartial: 'Partial info retrieved — please correct any fields',
+    bfm2ProdSection: 'Product Info', bfm2ProdTitleLabel: 'Product Title', bfm2ProdTitlePlaceholder: 'e.g. iPhone 16 Pro',
+    bfm2ProdStore: 'Store', bfm2ProdStorePlaceholder: 'e.g. Apple Canada',
+    bfm2ProdQty: 'Quantity', bfm2ProdImageUrl: 'Image URL (optional)', bfm2ProdImagePlaceholder: 'https://...',
+    bfm2DestSection: 'Delivery Destination', bfm2DestCountry: 'Country', bfm2DestCountryPlaceholder: 'e.g. Iran',
+    bfm2DestCity: 'City', bfm2DestCityPlaceholder: 'e.g. Tehran',
+    bfm2DestType: 'Delivery Type', bfm2DestStandard: 'Standard', bfm2DestExpress: 'Express',
+    bfm2ValSection: 'Item Value', bfm2RecipSection: 'Recipient Info', bfm2ReviewSection: 'Final Review',
+    bfm2Publish: 'Publish Order', bfm2Publishing: 'Publishing...',
+    bfm2SuccessTitle: 'Order Published!', bfm2SuccessDesc: 'Your order has been posted to the marketplace.', bfm2SuccessIdLabel: 'Order ID:', bfm2SuccessMarket: 'View Marketplace', bfm2NewOrder: 'New Order',
+    bfm2ErrProduct: 'Please enter the product title and store', bfm2ErrDest: 'Please enter the destination country and city', bfm2ErrValue: 'Please enter an amount', bfm2ErrRecip: 'Please enter the recipient name and phone', bfm2ErrServer: 'Failed to submit order. Please try again.',
+    bfm2ReviewMode: 'Order Type', bfm2ReviewProduct: 'Product', bfm2ReviewDest: 'Destination', bfm2ReviewValue: 'Value', bfm2ReviewRecip: 'Recipient',
   },
 
   zh: {
@@ -5840,5 +5931,20 @@ export const translations: Record<LangCode, Translations> = {
     kycDlBackPrompt: '翻转驾驶证——将条形码对准取景框',
     kycGateNotice: '发布前需要完成身份验证', // pending native review
     kycGateCta: '验证您的身份', // pending native review
+    bfm2ModeTitle: 'What would you like to do?', bfm2ModeDesc: 'Select your order type',
+    bfm2Commercial: 'Commercial Purchase', bfm2CommercialDesc: 'Buy for a business or store', bfm2ComingSoon: 'Coming Soon',
+    bfm2TabLink: 'Product Link', bfm2TabManual: 'Manual',
+    bfm2UrlLabel: 'Product URL', bfm2UrlPlaceholder: 'https://...', bfm2FetchBtn: 'Fetch Info', bfm2Fetching: 'Fetching...', bfm2FetchPartial: 'Partial info retrieved — please correct any fields',
+    bfm2ProdSection: 'Product Info', bfm2ProdTitleLabel: 'Product Title', bfm2ProdTitlePlaceholder: 'e.g. iPhone 16 Pro',
+    bfm2ProdStore: 'Store', bfm2ProdStorePlaceholder: 'e.g. Apple Canada',
+    bfm2ProdQty: 'Quantity', bfm2ProdImageUrl: 'Image URL (optional)', bfm2ProdImagePlaceholder: 'https://...',
+    bfm2DestSection: 'Delivery Destination', bfm2DestCountry: 'Country', bfm2DestCountryPlaceholder: 'e.g. Iran',
+    bfm2DestCity: 'City', bfm2DestCityPlaceholder: 'e.g. Tehran',
+    bfm2DestType: 'Delivery Type', bfm2DestStandard: 'Standard', bfm2DestExpress: 'Express',
+    bfm2ValSection: 'Item Value', bfm2RecipSection: 'Recipient Info', bfm2ReviewSection: 'Final Review',
+    bfm2Publish: 'Publish Order', bfm2Publishing: 'Publishing...',
+    bfm2SuccessTitle: 'Order Published!', bfm2SuccessDesc: 'Your order has been posted to the marketplace.', bfm2SuccessIdLabel: 'Order ID:', bfm2SuccessMarket: 'View Marketplace', bfm2NewOrder: 'New Order',
+    bfm2ErrProduct: 'Please enter the product title and store', bfm2ErrDest: 'Please enter the destination country and city', bfm2ErrValue: 'Please enter an amount', bfm2ErrRecip: 'Please enter the recipient name and phone', bfm2ErrServer: 'Failed to submit order. Please try again.',
+    bfm2ReviewMode: 'Order Type', bfm2ReviewProduct: 'Product', bfm2ReviewDest: 'Destination', bfm2ReviewValue: 'Value', bfm2ReviewRecip: 'Recipient',
   },
 };

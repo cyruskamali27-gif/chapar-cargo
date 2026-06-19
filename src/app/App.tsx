@@ -17,6 +17,7 @@ import { SecurityBadge } from './ProtectionSelector';
 import { type SecurityLevel } from './shipmentTypes';
 import { IdentityVerification, CargoVerification } from './VerificationModules';
 import SmartTester from './SmartTester';
+import BuyForMeFlow from './BuyForMeFlow';
 
 // ── Social media SVG icons ────────────────────────────────────────────────────
 function InstagramIcon({ className }: { className?: string }) {
@@ -305,7 +306,8 @@ function PageHeader({ title, desc, onHome }: { title: string; desc: string; onBa
 }
 
 function BuyForMePage({ onBack, onHome, t, onNavigate }: { onBack: () => void; onHome: () => void; t: typeof translations['en']; onNavigate?: (page: string) => void }) {
-  return <SendPackagePage onBack={onBack} onHome={onHome} t={t} cargoType="chapar" onNavigate={onNavigate} />;
+  const { isRTL } = useLang();
+  return <BuyForMeFlow onBack={onBack} onHome={onHome} t={t} isRTL={isRTL} onNavigate={onNavigate} />;
 }
 
 // ─── Traveler Acceptance Preview ─────────────────────────────────────────────
@@ -1406,8 +1408,8 @@ function SocialSection() {
       followers: '۱۲K',
     },
     {
-      name: 'Telegram', handle: '@chaparcargo',
-      href: 'https://t.me/chaparcargo',
+      name: 'Telegram', handle: '@ChaparGlobalBot',
+      href: 'https://t.me/ChaparGlobalBot',
       Icon: TelegramIcon,
       gradient: 'bg-sky-50',
       border: 'border-sky-200 hover:border-sky-300',
