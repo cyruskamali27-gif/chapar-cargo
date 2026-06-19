@@ -4,6 +4,7 @@ import { ArrowLeft, Home, ShoppingCart, Package, Building2, CheckCircle, Externa
 import { getLiveRate } from '../lib/store';
 import { useSession } from '../lib/SessionContext';
 import type { Translations } from './i18n';
+import ProductFinder from './ProductFinder';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -488,6 +489,13 @@ function BuyForMeForm({ t, isRTL, onHome, onNavigate }: {
       {/* Section 1: Product */}
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="ds-card p-6">
         <SectionHeader title={t.bfm2ProdSection} />
+        {/* AI product finder — sets title + estimated value on select */}
+        <ProductFinder
+          onSelect={(p) => {
+            setProduct({ ...product, title: p.title });
+            setValue({ amount: String(p.priceUSD), currency: 'USD' });
+          }}
+        />
         {/* Tab switcher */}
         <div className="flex bg-gray-100 rounded-xl p-1 mb-5">
           {(['link', 'manual'] as const).map(k => (

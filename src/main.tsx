@@ -1,4 +1,8 @@
 
+fetch('/version.json').then(r => r.json()).then((v: {version:string;builtAt:string}) => {
+  console.log('%cChapar ' + v.version + ' @ ' + v.builtAt, 'background:#111;color:#22d3ee;padding:2px 6px;border-radius:3px');
+}).catch(() => {});
+
 import { createRoot } from "react-dom/client";
 import App from "./app/App.tsx";
 import "./styles/index.css";
