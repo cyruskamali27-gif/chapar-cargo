@@ -305,9 +305,9 @@ function PageHeader({ title, desc, onHome }: { title: string; desc: string; onBa
   );
 }
 
-function BuyForMePage({ onBack, onHome, t, onNavigate }: { onBack: () => void; onHome: () => void; t: typeof translations['en']; onNavigate?: (page: string) => void }) {
+function BuyForMePage({ onBack, onHome, t, onNavigate, onNeedAuth }: { onBack: () => void; onHome: () => void; t: typeof translations['en']; onNavigate?: (page: string) => void; onNeedAuth?: () => void }) {
   const { isRTL } = useLang();
-  return <BuyForMeFlow onBack={onBack} onHome={onHome} t={t} isRTL={isRTL} onNavigate={onNavigate} />;
+  return <BuyForMeFlow onBack={onBack} onHome={onHome} t={t} isRTL={isRTL} onNavigate={onNavigate} onNeedAuth={onNeedAuth} />;
 }
 
 // ─── Traveler Acceptance Preview ─────────────────────────────────────────────
@@ -1984,7 +1984,7 @@ export default function App() {
   // Redirect logged-out users away from protected pages directly to auth (no interstitial)
   // Exception: cargo-scan in handoff mode — phone has no session, uses scoped token
   useEffect(() => {
-    const protected_pages: Page[] = ['send-package', 'traveler', 'buy-for-me', 'my-orders', 'wallet', 'profile', 'traveler-dashboard', 'cargo-scan'];
+    const protected_pages: Page[] = ['send-package', 'traveler', 'my-orders', 'wallet', 'profile', 'traveler-dashboard', 'cargo-scan'];
     const isHandoffScan = currentPage === 'cargo-scan' && mobileHandoffToken !== null;
     if (!session && protected_pages.includes(currentPage) && !isHandoffScan) {
       returnPageRef.current = currentPage;
@@ -2005,7 +2005,7 @@ export default function App() {
 
   // Synchronous auth gate — determines effective page to render without a flash.
   // Exception: cargo-scan in handoff mode (phone redeems via scoped token, no session needed).
-  const AUTH_PROTECTED: Page[] = ['send-package', 'traveler', 'buy-for-me', 'my-orders', 'wallet', 'profile', 'traveler-dashboard', 'cargo-scan'];
+  const AUTH_PROTECTED: Page[] = ['send-package', 'traveler', 'my-orders', 'wallet', 'profile', 'traveler-dashboard', 'cargo-scan'];
   const isHandoffScan = currentPage === 'cargo-scan' && mobileHandoffToken !== null;
   if (!session && AUTH_PROTECTED.includes(currentPage) && !isHandoffScan) {
     returnPageRef.current = currentPage;
@@ -2269,7 +2269,7 @@ export default function App() {
       <AnimatePresence mode="wait">
         <motion.div key={renderPage} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.25 }}>
           {renderPage === 'home' && <HomePage t={t} setPage={setCurrentPage} isRTL={isRTL} />}
-          {renderPage === 'buy-for-me' && <BuyForMePage onBack={() => setCurrentPage('home')} onHome={() => setCurrentPage('home')} t={t} onNavigate={(p) => { setCurrentPage(p as Page); }} />}
+          {renderPage === 'buy-for-me' && <BuyForMePage onBack={() => setCurrentPage('home')} onHome={() => setCurrentPage('home')} t={t} onNavigate={(p) => { setCurrentPage(p as Page); }} onNeedAuth={() => { returnPageRef.current = 'buy-for-me'; setCurrentPage('auth'); }} />}
           {renderPage === 'send-package' && <SendPackagePage onBack={() => setCurrentPage('home')} onHome={() => setCurrentPage('home')} t={t} onNavigate={(p) => { setCurrentPage(p as Page); }} onVerifyCargo={(id) => { setScanListingId(id); setCurrentPage('cargo-scan'); }} />}
           {renderPage === 'traveler' && <TravelerPage onBack={() => setCurrentPage('home')} onHome={() => setCurrentPage('home')} t={t} onNavigate={(p) => { setCurrentPage(p as Page); }} />}
           {renderPage === 'marketplace' && <MarketplacePage onBack={() => setCurrentPage('home')} onHome={() => setCurrentPage('home')} t={t} onBook={() => setCurrentPage('send-package')} />}

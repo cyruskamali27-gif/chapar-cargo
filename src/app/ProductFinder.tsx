@@ -87,7 +87,7 @@ export default function ProductFinder({ onSelect }: Props) {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'خطا');
-      setPrices(data.results || []);
+      setPrices(data.ranked || data.results || []);
       setSelectedIdx(null);
       setStep('results');
     } catch (e: unknown) {

@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ArrowLeft, Home, ShoppingCart, Package, Building2, CheckCircle, ExternalLink, AlertCircle, ChevronDown } from 'lucide-react';
+import { ArrowLeft, Home, CheckCircle, ExternalLink, AlertCircle, ChevronDown } from 'lucide-react';
 import { getLiveRate } from '../lib/store';
 import { useSession } from '../lib/SessionContext';
 import type { Translations } from './i18n';
@@ -8,7 +8,7 @@ import ProductFinder from './ProductFinder';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-type Mode = 'selector' | 'buyforme' | 'send';
+type Mode = 'buyforme';
 
 interface ProductInfo {
   title: string;
@@ -98,91 +98,6 @@ function Err({ msg }: { msg: string }) {
     <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-xl px-4 py-3 mt-3">
       <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0" />
       <p className="text-sm font-semibold text-red-700">{msg}</p>
-    </div>
-  );
-}
-
-// ── Mode Selector ─────────────────────────────────────────────────────────────
-
-function ModeSelector({ t, isRTL, onSelectBuyForMe, onSelectSend }: {
-  t: Translations;
-  isRTL: boolean;
-  onSelectBuyForMe: () => void;
-  onSelectSend: () => void;
-}) {
-  const modes = [
-    {
-      key: 'buyforme',
-      icon: <ShoppingCart className="w-7 h-7 text-cyan-500" />,
-      title: t.buyForMe,
-      desc: t.buyForMeDesc,
-      gradient: 'from-cyan-50 to-blue-50',
-      border: 'border-cyan-200 hover:border-cyan-400',
-      badge: null,
-      disabled: false,
-      onClick: onSelectBuyForMe,
-    },
-    {
-      key: 'send',
-      icon: <Package className="w-7 h-7 text-violet-500" />,
-      title: t.sendPackage,
-      desc: t.sendPackageDesc,
-      gradient: 'from-violet-50 to-purple-50',
-      border: 'border-violet-200 hover:border-violet-400',
-      badge: null,
-      disabled: false,
-      onClick: onSelectSend,
-    },
-    {
-      key: 'commercial',
-      icon: <Building2 className="w-7 h-7 text-gray-400" />,
-      title: t.bfm2Commercial,
-      desc: t.bfm2CommercialDesc,
-      gradient: 'from-gray-50 to-slate-50',
-      border: 'border-gray-200',
-      badge: t.bfm2ComingSoon,
-      disabled: true,
-      onClick: () => {},
-    },
-  ];
-
-  return (
-    <div className="space-y-4">
-      <div className="text-center mb-8">
-        <h2 className="text-2xl font-extrabold text-gray-900 mb-1">{t.bfm2ModeTitle}</h2>
-        <p className="text-sm text-gray-500">{t.bfm2ModeDesc}</p>
-      </div>
-      {modes.map((m, i) => (
-        <motion.button
-          key={m.key}
-          onClick={m.onClick}
-          disabled={m.disabled}
-          className={`w-full text-${isRTL ? 'right' : 'left'} bg-gradient-to-br ${m.gradient} border-2 ${m.border} rounded-2xl p-5 transition-all flex items-start gap-4 ${m.disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: i * 0.07 }}
-          whileHover={m.disabled ? {} : { y: -2, scale: 1.01 }}
-          whileTap={m.disabled ? {} : { scale: 0.98 }}
-        >
-          <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center shadow-sm flex-shrink-0">
-            {m.icon}
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="font-extrabold text-gray-900 text-base">{m.title}</span>
-              {m.badge && (
-                <span className="text-xs font-bold bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full border border-amber-200">
-                  {m.badge}
-                </span>
-              )}
-            </div>
-            <p className="text-sm text-gray-500 mt-0.5 leading-relaxed">{m.desc}</p>
-          </div>
-          {!m.disabled && (
-            <ChevronDown className={`w-5 h-5 text-gray-400 flex-shrink-0 mt-1 ${isRTL ? 'rotate-90' : '-rotate-90'}`} />
-          )}
-        </motion.button>
-      ))}
     </div>
   );
 }
@@ -372,19 +287,20 @@ function EditableProductFields({ t, product, setProduct }: {
 
 // ── BuyForMe Form ─────────────────────────────────────────────────────────────
 
-function BuyForMeForm({ t, isRTL, onHome, onNavigate }: {
+function BuyForMeForm({ t, isRTL, onHome, onNavigate, onNeedAuth, product, setProduct, value, setValue }: {
   t: Translations;
   isRTL: boolean;
   onHome: () => void;
   onNavigate?: (page: string) => void;
+  onNeedAuth?: () => void;
+  product: ProductInfo;
+  setProduct: (p: ProductInfo) => void;
+  value: ValueInfo;
+  setValue: (v: ValueInfo) => void;
 }) {
   const { session } = useSession();
   const [tab, setTab] = useState<'link' | 'manual'>('link');
-  const [product, setProduct] = useState<ProductInfo>({
-    title: '', store: '', price: '', currency: 'USD', qty: '1', imageUrl: '', productUrl: '',
-  });
   const [dest, setDest] = useState<DestInfo>({ country: '', city: '', deliveryType: 'standard' });
-  const [value, setValue] = useState<ValueInfo>({ amount: '', currency: 'USD' });
   const [recip, setRecip] = useState<RecipInfo>({ firstName: '', lastName: '', phone: '', email: '', address: '' });
   const [err, setErr] = useState('');
   const [publishing, setPublishing] = useState(false);
@@ -396,9 +312,10 @@ function BuyForMeForm({ t, isRTL, onHome, onNavigate }: {
     if (p.price && !value.amount) {
       setValue({ amount: p.price, currency: p.currency || 'USD' });
     }
-  }, [value.amount]);
+  }, [setProduct, setValue, value.amount]);
 
   async function publish() {
+    if (!session) { onNeedAuth?.(); return; }
     if (!product.title.trim() || !product.store.trim()) { setErr(t.bfm2ErrProduct); return; }
     if (!dest.country.trim() || !dest.city.trim()) { setErr(t.bfm2ErrDest); return; }
     if (!value.amount) { setErr(t.bfm2ErrValue); return; }
@@ -489,13 +406,6 @@ function BuyForMeForm({ t, isRTL, onHome, onNavigate }: {
       {/* Section 1: Product */}
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="ds-card p-6">
         <SectionHeader title={t.bfm2ProdSection} />
-        {/* AI product finder — sets title + estimated value on select */}
-        <ProductFinder
-          onSelect={(p) => {
-            setProduct({ ...product, title: p.title });
-            setValue({ amount: String(p.priceUSD), currency: 'USD' });
-          }}
-        />
         {/* Tab switcher */}
         <div className="flex bg-gray-100 rounded-xl p-1 mb-5">
           {(['link', 'manual'] as const).map(k => (
@@ -637,32 +547,31 @@ function BuyForMeForm({ t, isRTL, onHome, onNavigate }: {
   );
 }
 
-// ── Public export: full BuyForMePage (mode selector + form) ──────────────────
+// ── Public export ─────────────────────────────────────────────────────────────
 
-export default function BuyForMeFlow({ onBack, onHome, t, isRTL, onNavigate }: {
+export default function BuyForMeFlow({ onBack, onHome, t, isRTL, onNavigate, onNeedAuth }: {
   onBack: () => void;
   onHome: () => void;
   t: Translations;
   isRTL: boolean;
   onNavigate?: (page: string) => void;
+  onNeedAuth?: () => void;
 }) {
-  const [mode, setMode] = useState<Mode>('selector');
-
-  function goBack() {
-    if (mode !== 'selector') { setMode('selector'); } else { onBack(); }
-  }
+  // Lifted state — shared between ProductFinder (lead) and BuyForMeForm
+  const [product, setProduct] = useState<ProductInfo>({
+    title: '', store: '', price: '', currency: 'USD', qty: '1', imageUrl: '', productUrl: '',
+  });
+  const [value, setValue] = useState<ValueInfo>({ amount: '', currency: 'USD' });
 
   return (
     <div className="min-h-screen bg-[#F8FAFC]" dir={isRTL ? 'rtl' : 'ltr'}>
       {/* Header */}
       <div className="sticky top-0 z-30 bg-white/95 backdrop-blur border-b border-gray-100 px-4 py-3 flex items-center gap-3">
-        <button onClick={goBack} className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-gray-100 transition-colors text-gray-500">
+        <button onClick={onBack} className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-gray-100 transition-colors text-gray-500">
           <ArrowLeft className="w-5 h-5" />
         </button>
         <div className="flex-1 min-w-0">
-          <h1 className="text-base font-extrabold text-gray-900 leading-tight truncate">
-            {mode === 'selector' ? t.buyForMeTitle : t.buyForMe}
-          </h1>
+          <h1 className="text-base font-extrabold text-gray-900 leading-tight truncate">{t.buyForMe}</h1>
         </div>
         <button onClick={onHome} className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-gray-100 transition-colors text-gray-500">
           <Home className="w-5 h-5" />
@@ -670,23 +579,23 @@ export default function BuyForMeFlow({ onBack, onHome, t, isRTL, onNavigate }: {
       </div>
 
       <div className="max-w-lg mx-auto px-4 pt-6 pb-12">
-        <AnimatePresence mode="wait">
-          {mode === 'selector' && (
-            <motion.div key="selector" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
-              <ModeSelector
-                t={t}
-                isRTL={isRTL}
-                onSelectBuyForMe={() => setMode('buyforme')}
-                onSelectSend={() => onNavigate?.('send-package')}
-              />
-            </motion.div>
-          )}
-          {mode === 'buyforme' && (
-            <motion.div key="buyforme" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
-              <BuyForMeForm t={t} isRTL={isRTL} onHome={onHome} onNavigate={onNavigate} />
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {/* ProductFinder — lead element: first thing the user sees */}
+        <ProductFinder
+          onSelect={(p) => {
+            setProduct(prev => ({ ...prev, title: p.title }));
+            setValue({ amount: String(p.priceUSD), currency: 'USD' });
+          }}
+        />
+
+        {/* Order form: destination / value / recipient / review */}
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>
+          <BuyForMeForm
+            t={t} isRTL={isRTL} onHome={onHome} onNavigate={onNavigate}
+            onNeedAuth={onNeedAuth}
+            product={product} setProduct={setProduct}
+            value={value} setValue={setValue}
+          />
+        </motion.div>
       </div>
     </div>
   );
