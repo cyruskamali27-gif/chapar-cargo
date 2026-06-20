@@ -29,7 +29,7 @@ export default function ChaparStorePanel({ product, onContinue, onBack }) {
     <div dir="rtl" className="p-5 font-sans text-white">
       <button onClick={onBack} className="mb-3 inline-flex items-center gap-1 text-sm text-white/50"><ArrowLeft size={15} /> بازگشت</button>
       <div className="mb-4 flex items-center gap-3">
-        {domain && logoOk ? <img src={`https://www.google.com/s2/favicons?domain=${domain}&sz=128`} onError={() => setLogoOk(false)} alt={brand} className="h-8 w-8 rounded bg-white/90 p-1 object-contain" /> : <div className="text-lg font-extrabold tracking-wide">{brand || "Store"}</div>}
+        {domain && logoOk ? <img src={`https://www.google.com/s2/favicons?sz=128&domain=${domain}`} onError={() => setLogoOk(false)} alt={brand} className="h-8 w-8 rounded bg-white/90 p-1 object-contain" /> : <div className="text-lg font-extrabold tracking-wide">{brand || "Store"}</div>}
         {brand && <div className="text-xs text-white/40">فروشگاهِ {brand}</div>}
       </div>
       {loading ? <div className="py-16 text-center text-sm text-white/50">در حالِ آماده‌سازیِ فروشگاه…</div> : (
@@ -47,13 +47,13 @@ export default function ChaparStorePanel({ product, onContinue, onBack }) {
                   </button>
                 ))}
               </div>
-              {selColor && <div className="mt-1 text-xs text-white/50">{selColor.label}</div>}
+              {selColor && selColor.label && !/^default$/i.test(selColor.label) && <div className="mt-1 text-xs text-white/50">{selColor.label}</div>}
             </div>
           )}
           {sizes.length > 0 && (
             <div className="mb-5">
               <div className="mb-2 text-xs text-white/45">سایز</div>
-              <div className="flex flex-wrap gap-2">
+              <div dir="ltr" className="flex flex-wrap gap-2">
                 {sizes.map((s) => <button key={s} onClick={() => setSize(s)} className={`rounded-lg border px-3 py-2 text-sm ${size === s ? "border-cyan-400 bg-cyan-400/10 text-white" : "border-white/12 bg-white/[0.03] text-white/70"}`}>{s}</button>)}
               </div>
             </div>
