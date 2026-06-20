@@ -20,13 +20,15 @@ export default function ChaparConcierge() {
   const [speaking, setSpeaking] = useState(false);
   const [listening, setListening] = useState(false);
   const [muted, setMuted] = useState(false);
-  const fileRef = useRef(null), scrollRef = useRef(null), canvasRef = useRef(null);
+  const fileRef = useRef(null), scrollRef = useRef(null), canvasRef = useRef(null), videoRef = useRef(null);
   const speakingRef = useRef(false), loadingRef = useRef(false), listeningRef = useRef(false);
   const audioLevelRef = useRef(0), audioCtxRef = useRef(null), streamRef = useRef(null), analyserRef = useRef(null), micRafRef = useRef(null);
 
   useEffect(() => { speakingRef.current = speaking; }, [speaking]);
   useEffect(() => { loadingRef.current = loading; }, [loading]);
   useEffect(() => { listeningRef.current = listening; }, [listening]);
+  useEffect(() => { const v = videoRef.current; if (!v) return; v.muted = true; v.play().then(() => { if (!speakingRef.current) v.pause(); }).catch(() => {}); }, []);
+  useEffect(() => { const v = videoRef.current; if (!v) return; if (speaking) v.play().catch(() => {}); else v.pause(); }, [speaking]);
   useEffect(() => { window.speechSynthesis?.getVoices(); }, []);
   useEffect(() => { scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" }); }, [messages, loading]);
 
@@ -129,7 +131,7 @@ export default function ChaparConcierge() {
     <div dir="rtl" className="relative mx-auto flex h-[680px] w-full max-w-md flex-col overflow-hidden rounded-[28px] font-sans" style={{ background: "radial-gradient(130% 80% at 50% 25%, #0f1330, #05060d 70%)" }}>
       <style>{`@keyframes up{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}@keyframes pd{0%,100%{opacity:.4}50%{opacity:1}}`}</style>
       <div className="relative h-[290px] w-full shrink-0 overflow-hidden">
-        <video src={VIDEO_URL} autoPlay loop muted playsInline className="absolute inset-0 h-full w-full object-cover"
+        <video ref={videoRef} src={VIDEO_URL} loop muted playsInline preload="auto" className="absolute inset-0 h-full w-full object-cover"
           style={{ filter: speaking ? "brightness(1.18) saturate(1.25)" : loading ? "brightness(.92)" : "brightness(1.02)", transition: "filter .3s" }} />
         <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" />
         <div className="pointer-events-none absolute inset-x-0 top-3 grid place-items-center">
