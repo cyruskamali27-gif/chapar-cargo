@@ -79,7 +79,7 @@ export default function ChaparConcierge() {
 
       {orderProduct ? (
         /* ── Recipient form ── */
-        <div className="overflow-y-auto">
+        <div className="relative z-10 flex-1 overflow-y-auto">
           <ChaparFormSimple product={orderProduct} onSubmit={() => {}} />
         </div>
       ) : (
