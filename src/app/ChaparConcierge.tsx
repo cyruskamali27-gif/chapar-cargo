@@ -21,6 +21,7 @@ export default function ChaparConcierge({ language = "fa", userName = "" }) {
   const [muted, setMuted] = useState(false); const [orderProduct, setOrderProduct] = useState(null);
   const [voiceErr, setVoiceErr] = useState("");
   const fileRef = useRef(null), scrollRef = useRef(null), videoRef = useRef(null);
+
   useEffect(() => { window.speechSynthesis?.getVoices(); }, []);
   useEffect(() => { scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" }); }, [messages, loading]);
 
@@ -33,16 +34,43 @@ export default function ChaparConcierge({ language = "fa", userName = "" }) {
     u.onstart = () => setSpeaking(true); u.onend = () => setSpeaking(false);
     window.speechSynthesis.speak(u);
   }
+
+  async function fetchPrice(q) {
+    try {
+      const r = await fetch("/api/product/price", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ query: q }) });
+      const d = await r.json();
+      if (!d.ok || !d.cheapest) return null;
+      const c = d.cheapest;
+      return { title: c.title || null, priceUSD: c.priceUSD ?? null, currency: c.currency || null, country: c.country || null, link: c.link || null, image: c.image || null };
+    } catch { return null; }
+  }
+
   async function callAI(hist, img) {
     setLoading(true);
     try {
       const res = await fetch("/api/ai/chat", { method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ language: lang, userName, messages: hist.filter((m) => m._api).map((m) => m._api), ...(img ? { imageBase64: img.b64, imageMimeType: img.mime } : {}) }) });
       const data = await res.json();
-      const reply = data.reply || "…"; const product = data.resolved ? (data.product || null) : null;
-      setMessages((m) => [...m, { role: "assistant", text: reply, product, _api: { role: "assistant", content: reply } }]); speak(reply);
+      const reply = data.reply || "…";
+      const rawProduct = data.resolved ? (data.product || null) : null;
+      const msgId = Date.now();
+      const product = rawProduct ? { ...rawProduct, priceLoading: true, _msgId: msgId } : null;
+      setMessages((m) => [...m, { role: "assistant", text: reply, product, _api: { role: "assistant", content: reply } }]);
+      speak(reply);
+      if (rawProduct?.searchQuery) {
+        fetchPrice(rawProduct.searchQuery).then((priceData) => {
+          setMessages((m) => m.map((msg) => {
+            if (msg.product?._msgId === msgId) {
+              const merged = priceData ? { ...msg.product, ...priceData } : msg.product;
+              return { ...msg, product: { ...merged, priceLoading: false } };
+            }
+            return msg;
+          }));
+        });
+      }
     } catch { setMessages((m) => [...m, { role: "assistant", text: "ارتباط برقرار نشد.", _api: null }]); } finally { setLoading(false); }
   }
+
   function send(txt) { const t = (txt ?? input).trim(); if (!t || loading) return; const next = [...messages, { role: "user", text: t, _api: { role: "user", content: t } }]; setMessages(next); setInput(""); callAI(next); }
   function more() { if (loading) return; const next = [...messages, { role: "user", text: "بیشتر بگردیم.", _api: { role: "user", content: "Suggest a different option." } }]; setMessages(next); callAI(next); }
   function confirmProduct(p) { setOrderProduct(p); }
@@ -60,9 +88,9 @@ export default function ChaparConcierge({ language = "fa", userName = "" }) {
   }
 
   return (
-    <div dir={rtl ? "rtl" : "ltr"} className="mx-auto flex h-[680px] w-full max-w-md flex-col overflow-hidden rounded-[28px] font-sans" style={{ background: "radial-gradient(130% 80% at 50% 25%, #0f1330, #05060d 70%)" }}>
+    <div dir={rtl ? "rtl" : "ltr"} className="mx-auto flex h-[86vh] max-h-[880px] w-full max-w-2xl flex-col overflow-hidden rounded-[28px] font-sans" style={{ background: "radial-gradient(130% 80% at 50% 25%, #0f1330, #05060d 70%)" }}>
       <style>{`@keyframes up{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}`}</style>
-      <div className="relative h-[290px] w-full shrink-0 overflow-hidden">
+      <div className="relative h-[34vh] max-h-[360px] w-full shrink-0 overflow-hidden">
         <video ref={videoRef} src={VIDEO_URL} autoPlay loop muted playsInline preload="auto" className="absolute inset-0 h-full w-full object-cover" />
       </div>
       {orderProduct ? (
@@ -76,11 +104,23 @@ export default function ChaparConcierge({ language = "fa", userName = "" }) {
                 <div className="rounded-2xl px-3.5 py-2 text-sm leading-relaxed" style={m.role === "user" ? { background: "linear-gradient(135deg,#22d3eecc,#6366f1cc)", color: "#fff" } : { background: "rgba(255,255,255,.06)", border: "1px solid rgba(255,255,255,.1)", color: "#eaf2ff" }}>{m.text}</div>
                 {m.product && (
                   <div className="mt-2 rounded-2xl border border-white/10 p-3" style={{ background: "rgba(15,18,32,.7)" }}>
+                    {m.product.image && (m.product.image.startsWith("http") || m.product.image.startsWith("data:")) && (
+                      <img src={m.product.image} alt="" className="mb-2 h-32 w-full rounded-xl object-cover" />
+                    )}
                     <div className="flex items-center gap-3">
-                      <div className="grid h-11 w-11 place-items-center rounded-xl text-cyan-300" style={{ background: "linear-gradient(135deg,#6366f14d,#22d3ee33)" }}><ShoppingBag size={20} /></div>
-                      <div className="flex-1"><div className="font-bold text-white">{m.product.title || `${m.product.brand} ${m.product.model}`}</div><div className="text-xs text-white/40">{[m.product.brand, m.product.country].filter(Boolean).join(" · ")}</div></div>
+                      {!(m.product.image && (m.product.image.startsWith("http") || m.product.image.startsWith("data:"))) && (
+                        <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl text-cyan-300" style={{ background: "linear-gradient(135deg,#6366f14d,#22d3ee33)" }}><ShoppingBag size={20} /></div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <div className="truncate font-bold text-white">{m.product.title || `${m.product.brand || ""} ${m.product.model || ""}`.trim()}</div>
+                        <div className="text-xs text-white/40">
+                          {m.product.priceLoading
+                            ? "در حال یافتن بهترین قیمت…"
+                            : [m.product.priceUSD != null && `$${m.product.priceUSD}`, m.product.country].filter(Boolean).join(" · ")}
+                        </div>
+                      </div>
                     </div>
-                    <a href={`https://www.google.com/search?tbm=shop&q=${encodeURIComponent(m.product.searchQuery || m.product.title || "")}`} target="_blank" rel="noopener noreferrer" className="mt-2 flex items-center justify-center gap-1 rounded-xl border border-white/10 bg-white/5 py-2 text-sm font-medium text-cyan-300">مشاهدهٔ محصول <ExternalLink size={14} /></a>
+                    <a href={m.product.link || `https://www.google.com/search?tbm=shop&q=${encodeURIComponent(m.product.searchQuery || m.product.title || "")}`} target="_blank" rel="noopener noreferrer" className="mt-2 flex items-center justify-center gap-1 rounded-xl border border-white/10 bg-white/5 py-2 text-sm font-medium text-cyan-300">مشاهدهٔ محصول <ExternalLink size={14} /></a>
                     <div className="mt-2 flex gap-2">
                       <button onClick={() => confirmProduct(m.product)} className="flex flex-1 items-center justify-center gap-1 rounded-xl py-2 text-sm font-bold text-white" style={{ background: "linear-gradient(135deg,#10b981,#22d3ee)" }}><Check size={15} /> بله، همین است</button>
                       <button onClick={more} className="flex items-center gap-1 rounded-xl border border-white/15 px-3 py-2 text-sm text-white/70"><RotateCw size={14} /> بیشتر</button>
