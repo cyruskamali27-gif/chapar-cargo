@@ -2,7 +2,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Send, Mic, Image as ImageIcon, Check, RotateCw, ExternalLink, ShoppingBag, MapPin, Volume2, VolumeX } from "lucide-react";
 
-const VIDEO_URL = "https://chapar-cargo-scans.tor1.digitaloceanspaces.com/doc_2026-06-19_20-53-22.mp4";
+const VIDEO_URL = "https://chapar-cargo-scans.tor1.digitaloceanspaces.com/doc_2026-06-19_21-42-45.mp4";
 
 const LANGS = {
   fa: { name: "Persian (Farsi)", tts: "fa-IR", label: "فا", greet: "خوش آمدید. چه چیزی برایتان بخرم؟" },
