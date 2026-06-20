@@ -27,8 +27,6 @@ export default function ChaparConcierge() {
   useEffect(() => { speakingRef.current = speaking; }, [speaking]);
   useEffect(() => { loadingRef.current = loading; }, [loading]);
   useEffect(() => { listeningRef.current = listening; }, [listening]);
-  useEffect(() => { const v = videoRef.current; if (!v) return; v.muted = true; v.play().then(() => { if (!speakingRef.current) v.pause(); }).catch(() => {}); }, []);
-  useEffect(() => { const v = videoRef.current; if (!v) return; if (speaking) v.play().catch(() => {}); else v.pause(); }, [speaking]);
   useEffect(() => { window.speechSynthesis?.getVoices(); }, []);
   useEffect(() => { scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" }); }, [messages, loading]);
 
@@ -131,17 +129,9 @@ export default function ChaparConcierge() {
     <div dir="rtl" className="relative mx-auto flex h-[680px] w-full max-w-md flex-col overflow-hidden rounded-[28px] font-sans" style={{ background: "radial-gradient(130% 80% at 50% 25%, #0f1330, #05060d 70%)" }}>
       <style>{`@keyframes up{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}@keyframes pd{0%,100%{opacity:.4}50%{opacity:1}}`}</style>
       <div className="relative h-[290px] w-full shrink-0 overflow-hidden">
-        <video ref={videoRef} src={VIDEO_URL} loop muted playsInline preload="auto" className="absolute inset-0 h-full w-full object-cover"
+        <video ref={videoRef} src={VIDEO_URL} autoPlay loop muted playsInline preload="auto" className="absolute inset-0 h-full w-full object-cover"
           style={{ filter: speaking ? "brightness(1.18) saturate(1.25)" : loading ? "brightness(.92)" : "brightness(1.02)", transition: "filter .3s" }} />
         <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" />
-        <div className="pointer-events-none absolute inset-x-0 top-3 grid place-items-center">
-          <div className="text-center">
-            <div className="mb-1 text-sm font-bold tracking-wide text-white" style={{ textShadow: "0 1px 8px rgba(0,0,0,.7)" }}>Chapar AI Concierge</div>
-            <div className="flex items-center justify-center gap-2 text-xs text-cyan-100" style={{ textShadow: "0 1px 8px rgba(0,0,0,.7)" }}>
-              <span className="h-1.5 w-1.5 rounded-full bg-cyan-300" style={{ animation: "pd 1.5s infinite" }} /> {status}
-            </div>
-          </div>
-        </div>
       </div>
       <div ref={scrollRef} className="relative z-10 flex-1 space-y-2 overflow-y-auto px-4 pt-2">
         {messages.map((m, i) => (
