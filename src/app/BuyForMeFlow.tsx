@@ -624,12 +624,6 @@ export default function BuyForMeFlow({ onBack, onHome, t, isRTL, onNavigate, onN
           {mode === 'buyforme' && (
             <motion.div key="buyforme" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
               <ChaparConcierge />
-              <BuyForMeForm
-                t={t} isRTL={isRTL} onHome={onHome} onNavigate={onNavigate}
-                onNeedAuth={onNeedAuth}
-                product={product} setProduct={setProduct}
-                value={value} setValue={setValue}
-              />
             </motion.div>
           )}
 

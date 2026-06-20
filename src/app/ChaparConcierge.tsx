@@ -1,6 +1,7 @@
 // @ts-nocheck
 import { useState, useRef, useEffect } from "react";
 import { Send, Mic, Image as ImageIcon, Check, RotateCw, ExternalLink, ShoppingBag, MapPin, Volume2, VolumeX } from "lucide-react";
+import ChaparFormSimple from "./ChaparFormSimple";
 
 const VIDEO_URL = "https://chapar-cargo-scans.tor1.digitaloceanspaces.com/doc_2026-06-19_21-42-45.mp4";
 
@@ -20,6 +21,7 @@ export default function ChaparConcierge() {
   const [speaking, setSpeaking] = useState(false);
   const [listening, setListening] = useState(false);
   const [muted, setMuted] = useState(false);
+  const [orderProduct, setOrderProduct] = useState(null);
   const fileRef = useRef(null), scrollRef = useRef(null), canvasRef = useRef(null), videoRef = useRef(null);
   const speakingRef = useRef(false), loadingRef = useRef(false), listeningRef = useRef(false);
   const audioLevelRef = useRef(0), audioCtxRef = useRef(null), streamRef = useRef(null), analyserRef = useRef(null), micRafRef = useRef(null);
@@ -92,7 +94,7 @@ export default function ChaparConcierge() {
   }
   function send(txt) { const t = (txt ?? input).trim(); if (!t || loading) return; const next = [...messages, { role: "user", text: t, _api: { role: "user", content: t } }]; setMessages(next); setInput(""); callAI(next); }
   function more() { if (loading) return; const next = [...messages, { role: "user", text: "بیشتر بگردیم.", _api: { role: "user", content: "Suggest a different option." } }]; setMessages(next); callAI(next); }
-  function confirm() { setMessages((m) => [...m, { role: "assistant", text: "✅ تأیید شد — مرحلهٔ بعد.", handoff: true, _api: null }]); }
+  function confirm(p) { setOrderProduct(p); }
   function onImg(e) { const f = e.target.files?.[0]; if (!f) return; const rd = new FileReader(); rd.onload = () => { const d = String(rd.result), b = d.split(",")[1]; const next = [...messages, { role: "user", text: "📷", image: d, _api: { role: "user", content: "Identify this product." } }]; setMessages(next); callAI(next, { b64: b, mime: f.type || "image/jpeg" }); }; rd.readAsDataURL(f); e.target.value = ""; }
   async function startMic() {
     try {
@@ -123,51 +125,60 @@ export default function ChaparConcierge() {
   }
   function switchLang(l) { setLang(l); setMessages([{ role: "assistant", text: LANGS[l].greet, _api: null }]); }
 
-  const status = listening ? "در حالِ شنیدن…" : loading ? "در حالِ پردازش…" : speaking ? "در حالِ صحبت…" : "آماده‌ام";
-
   return (
-    <div dir="rtl" className="relative mx-auto flex h-[680px] w-full max-w-md flex-col overflow-hidden rounded-[28px] font-sans" style={{ background: "radial-gradient(130% 80% at 50% 25%, #0f1330, #05060d 70%)" }}>
+    <div dir="rtl" className="relative mx-auto flex w-full max-w-md flex-col overflow-hidden rounded-[28px] font-sans" style={{ background: "radial-gradient(130% 80% at 50% 25%, #0f1330, #05060d 70%)" }}>
       <style>{`@keyframes up{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}@keyframes pd{0%,100%{opacity:.4}50%{opacity:1}}`}</style>
+      {/* Video hero — always visible */}
       <div className="relative h-[290px] w-full shrink-0 overflow-hidden">
         <video ref={videoRef} src={VIDEO_URL} autoPlay loop muted playsInline preload="auto" className="absolute inset-0 h-full w-full object-cover"
           style={{ filter: speaking ? "brightness(1.18) saturate(1.25)" : loading ? "brightness(.92)" : "brightness(1.02)", transition: "filter .3s" }} />
         <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" />
       </div>
-      <div ref={scrollRef} className="relative z-10 flex-1 space-y-2 overflow-y-auto px-4 pt-2">
-        {messages.map((m, i) => (
-          <div key={i} className={`max-w-[86%] ${m.role === "user" ? "ms-auto" : "me-auto"}`} style={{ animation: "up .35s ease both" }}>
-            {m.image && <img src={m.image} alt="" className="mb-1 max-h-28 rounded-xl border border-white/15" />}
-            <div className="rounded-2xl px-3.5 py-2 text-sm leading-relaxed" style={m.role === "user" ? { background: "linear-gradient(135deg,#22d3eecc,#6366f1cc)", color: "#fff" } : { background: "rgba(255,255,255,.06)", border: "1px solid rgba(255,255,255,.1)", color: "#eaf2ff" }}>{m.text}</div>
-            {m.product && (
-              <div className="mt-2 rounded-2xl border border-white/10 p-3" style={{ background: "rgba(15,18,32,.7)" }}>
-                <div className="flex items-center gap-3">
-                  <div className="grid h-11 w-11 place-items-center rounded-xl text-cyan-300" style={{ background: "linear-gradient(135deg,#6366f14d,#22d3ee33)" }}><ShoppingBag size={20} /></div>
-                  <div className="flex-1"><div className="font-bold text-white">{m.product.title || `${m.product.brand} ${m.product.model}`}</div><div className="text-xs text-white/40">{[m.product.brand, m.product.country].filter(Boolean).join(" · ")}</div></div>
-                </div>
-                <a href={`https://www.google.com/search?tbm=shop&q=${encodeURIComponent(m.product.searchQuery || m.product.title || "")}`} target="_blank" rel="noopener noreferrer" className="mt-2 flex items-center justify-center gap-1 rounded-xl border border-white/10 bg-white/5 py-2 text-sm font-medium text-cyan-300">مشاهدهٔ محصول <ExternalLink size={14} /></a>
-                <div className="mt-2 flex gap-2">
-                  <button onClick={confirm} className="flex flex-1 items-center justify-center gap-1 rounded-xl py-2 text-sm font-bold text-white" style={{ background: "linear-gradient(135deg,#10b981,#22d3ee)" }}><Check size={15} /> بله، همین است</button>
-                  <button onClick={more} className="flex items-center gap-1 rounded-xl border border-white/15 px-3 py-2 text-sm text-white/70"><RotateCw size={14} /> بیشتر</button>
-                </div>
+
+      {orderProduct ? (
+        /* ── Recipient form ── */
+        <div className="overflow-y-auto">
+          <ChaparFormSimple product={orderProduct} onSubmit={() => {}} />
+        </div>
+      ) : (
+        /* ── Chat ── */
+        <>
+          <div ref={scrollRef} className="relative z-10 flex-1 space-y-2 overflow-y-auto px-4 pt-2" style={{ maxHeight: 390 }}>
+            {messages.map((m, i) => (
+              <div key={i} className={`max-w-[86%] ${m.role === "user" ? "ms-auto" : "me-auto"}`} style={{ animation: "up .35s ease both" }}>
+                {m.image && <img src={m.image} alt="" className="mb-1 max-h-28 rounded-xl border border-white/15" />}
+                <div className="rounded-2xl px-3.5 py-2 text-sm leading-relaxed" style={m.role === "user" ? { background: "linear-gradient(135deg,#22d3eecc,#6366f1cc)", color: "#fff" } : { background: "rgba(255,255,255,.06)", border: "1px solid rgba(255,255,255,.1)", color: "#eaf2ff" }}>{m.text}</div>
+                {m.product && (
+                  <div className="mt-2 rounded-2xl border border-white/10 p-3" style={{ background: "rgba(15,18,32,.7)" }}>
+                    <div className="flex items-center gap-3">
+                      <div className="grid h-11 w-11 place-items-center rounded-xl text-cyan-300" style={{ background: "linear-gradient(135deg,#6366f14d,#22d3ee33)" }}><ShoppingBag size={20} /></div>
+                      <div className="flex-1"><div className="font-bold text-white">{m.product.title || `${m.product.brand} ${m.product.model}`}</div><div className="text-xs text-white/40">{[m.product.brand, m.product.country].filter(Boolean).join(" · ")}</div></div>
+                    </div>
+                    <a href={`https://www.google.com/search?tbm=shop&q=${encodeURIComponent(m.product.searchQuery || m.product.title || "")}`} target="_blank" rel="noopener noreferrer" className="mt-2 flex items-center justify-center gap-1 rounded-xl border border-white/10 bg-white/5 py-2 text-sm font-medium text-cyan-300">مشاهدهٔ محصول <ExternalLink size={14} /></a>
+                    <div className="mt-2 flex gap-2">
+                      <button onClick={() => confirm(m.product)} className="flex flex-1 items-center justify-center gap-1 rounded-xl py-2 text-sm font-bold text-white" style={{ background: "linear-gradient(135deg,#10b981,#22d3ee)" }}><Check size={15} /> بله، همین است</button>
+                      <button onClick={more} className="flex items-center gap-1 rounded-xl border border-white/15 px-3 py-2 text-sm text-white/70"><RotateCw size={14} /> بیشتر</button>
+                    </div>
+                  </div>
+                )}
               </div>
-            )}
-            {m.handoff && <div className="mt-2 rounded-2xl border border-dashed border-cyan-400/30 p-2.5" style={{ background: "rgba(34,211,238,.07)" }}><div className="flex items-center gap-2 text-sm font-semibold text-cyan-300"><MapPin size={15} /> مرحلهٔ بعد</div></div>}
+            ))}
           </div>
-        ))}
-      </div>
-      <div className="relative z-10 p-3">
-        <div className="mb-2 flex items-center justify-between">
-          <div className="flex gap-1">{Object.keys(LANGS).map((l) => <button key={l} onClick={() => switchLang(l)} className={`rounded-full px-2 py-0.5 text-[11px] ${lang === l ? "bg-cyan-400 text-slate-900" : "bg-white/5 text-white/50"}`}>{LANGS[l].label}</button>)}</div>
-          <button onClick={() => setMuted(!muted)} className="text-white/60">{muted ? <VolumeX size={16} /> : <Volume2 size={16} />}</button>
-        </div>
-        <div className="flex items-center gap-2">
-          <button onClick={() => fileRef.current?.click()} className="grid h-10 w-10 place-items-center rounded-full bg-white/5 text-white/60"><ImageIcon size={19} /></button>
-          <input ref={fileRef} type="file" accept="image/*" hidden onChange={onImg} />
-          <button onClick={voice} className={`grid h-10 w-10 place-items-center rounded-full ${listening ? "bg-rose-500 text-white" : "bg-white/5 text-cyan-300"}`}><Mic size={19} /></button>
-          <input value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && send()} placeholder="بنویسید یا حرف بزنید…" className="flex-1 rounded-full border border-white/15 bg-white/5 px-4 py-2.5 text-sm text-white outline-none placeholder:text-white/35" />
-          <button onClick={() => send()} disabled={loading} className="grid h-10 w-10 place-items-center rounded-full text-white disabled:opacity-40" style={{ background: "linear-gradient(135deg,#22d3ee,#6366f1)" }}><Send size={18} /></button>
-        </div>
-      </div>
+          <div className="relative z-10 p-3">
+            <div className="mb-2 flex items-center justify-between">
+              <div className="flex gap-1">{Object.keys(LANGS).map((l) => <button key={l} onClick={() => switchLang(l)} className={`rounded-full px-2 py-0.5 text-[11px] ${lang === l ? "bg-cyan-400 text-slate-900" : "bg-white/5 text-white/50"}`}>{LANGS[l].label}</button>)}</div>
+              <button onClick={() => setMuted(!muted)} className="text-white/60">{muted ? <VolumeX size={16} /> : <Volume2 size={16} />}</button>
+            </div>
+            <div className="flex items-center gap-2">
+              <button onClick={() => fileRef.current?.click()} className="grid h-10 w-10 place-items-center rounded-full bg-white/5 text-white/60"><ImageIcon size={19} /></button>
+              <input ref={fileRef} type="file" accept="image/*" hidden onChange={onImg} />
+              <button onClick={voice} className={`grid h-10 w-10 place-items-center rounded-full ${listening ? "bg-rose-500 text-white" : "bg-white/5 text-cyan-300"}`}><Mic size={19} /></button>
+              <input value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && send()} placeholder="بنویسید یا حرف بزنید…" className="flex-1 rounded-full border border-white/15 bg-white/5 px-4 py-2.5 text-sm text-white outline-none placeholder:text-white/35" />
+              <button onClick={() => send()} disabled={loading} className="grid h-10 w-10 place-items-center rounded-full text-white disabled:opacity-40" style={{ background: "linear-gradient(135deg,#22d3ee,#6366f1)" }}><Send size={18} /></button>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }
