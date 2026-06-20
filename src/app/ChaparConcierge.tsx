@@ -2,6 +2,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Send, Mic, Image as ImageIcon, Check, RotateCw, ExternalLink, ShoppingBag, Volume2, VolumeX } from "lucide-react";
 import ChaparFormSimple from "./ChaparFormSimple";
+import { useLang } from "../lib/LangContext";
 
 const VIDEO_URL = "https://chapar-cargo-scans.tor1.digitaloceanspaces.com/doc_2026-06-19_21-42-45.mp4";
 
@@ -14,8 +15,9 @@ const LANGS = {
 };
 
 export default function ChaparConcierge() {
-  const [lang, setLang] = useState("fa");
-  const [messages, setMessages] = useState([{ role: "assistant", text: LANGS.fa.greet, _api: null }]);
+  const { lang: globalLang } = useLang();
+  const lang = LANGS[globalLang] ? globalLang : "fa";
+  const [messages, setMessages] = useState([{ role: "assistant", text: LANGS[lang].greet, _api: null }]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [speaking, setSpeaking] = useState(false);
@@ -29,10 +31,11 @@ export default function ChaparConcierge() {
 
   function speak(text) {
     if (muted || !window.speechSynthesis) return;
-    window.speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(text); u.lang = LANGS[lang].tts;
     const v = window.speechSynthesis.getVoices().find((x) => x.lang?.toLowerCase().startsWith(lang));
-    if (v) u.voice = v; u.onstart = () => setSpeaking(true); u.onend = () => setSpeaking(false);
+    if (!v) return;
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text); u.lang = LANGS[lang].tts; u.voice = v;
+    u.onstart = () => setSpeaking(true); u.onend = () => setSpeaking(false);
     window.speechSynthesis.speak(u);
   }
   async function callAI(hist, img) {
@@ -67,10 +70,8 @@ export default function ChaparConcierge() {
     rec.onerror = () => setListening(false);
     rec.start();
   }
-  function switchLang(l) { setLang(l); setMessages([{ role: "assistant", text: LANGS[l].greet, _api: null }]); }
-
   return (
-    <div dir="rtl" className="relative mx-auto flex w-full max-w-md flex-col overflow-hidden rounded-[28px] font-sans" style={{ background: "radial-gradient(130% 80% at 50% 25%, #0f1330, #05060d 70%)" }}>
+    <div dir={["fa","ar"].includes(lang) ? "rtl" : "ltr"} className="relative mx-auto flex w-full max-w-md flex-col overflow-hidden rounded-[28px] font-sans" style={{ background: "radial-gradient(130% 80% at 50% 25%, #0f1330, #05060d 70%)" }}>
       <style>{`@keyframes up{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}@keyframes pd{0%,100%{opacity:.4}50%{opacity:1}}`}</style>
       {/* Video hero — always visible */}
       <div className="relative h-[290px] w-full shrink-0 overflow-hidden">
@@ -107,8 +108,7 @@ export default function ChaparConcierge() {
             ))}
           </div>
           <div className="relative z-10 p-3">
-            <div className="mb-2 flex items-center justify-between">
-              <div className="flex gap-1">{Object.keys(LANGS).map((l) => <button key={l} onClick={() => switchLang(l)} className={`rounded-full px-2 py-0.5 text-[11px] ${lang === l ? "bg-cyan-400 text-slate-900" : "bg-white/5 text-white/50"}`}>{LANGS[l].label}</button>)}</div>
+            <div className="mb-2 flex items-center justify-end">
               <button onClick={() => setMuted(!muted)} className="text-white/60">{muted ? <VolumeX size={16} /> : <Volume2 size={16} />}</button>
             </div>
             <div className="flex items-center gap-2">
