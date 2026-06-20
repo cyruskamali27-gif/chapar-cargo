@@ -2,6 +2,8 @@
 import { useState, useRef, useEffect } from "react";
 import { Send, Mic, Image as ImageIcon, Check, RotateCw, ExternalLink, ShoppingBag, MapPin, Volume2, VolumeX } from "lucide-react";
 
+const VIDEO_URL = "https://chapar-cargo-scans.tor1.digitaloceanspaces.com/doc_2026-06-19_20-53-22.mp4";
+
 const LANGS = {
   fa: { name: "Persian (Farsi)", tts: "fa-IR", label: "فا", greet: "خوش آمدید. چه چیزی برایتان بخرم؟" },
   en: { name: "English", tts: "en-US", label: "EN", greet: "Welcome. What should I buy for you?" },
@@ -28,6 +30,7 @@ export default function ChaparConcierge() {
   useEffect(() => { window.speechSynthesis?.getVoices(); }, []);
   useEffect(() => { scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" }); }, [messages, loading]);
 
+  // reactive glow overlay (sits on top of the video; pulses when AI speaks, reacts to mic when user speaks)
   useEffect(() => {
     const cv = canvasRef.current; if (!cv) return;
     const ctx = cv.getContext("2d");
@@ -40,35 +43,21 @@ export default function ChaparConcierge() {
       ctx.clearRect(0, 0, w, h);
       ctx.globalCompositeOperation = "lighter";
       const sp = speakingRef.current, ld = loadingRef.current, ls = listeningRef.current, lvl = audioLevelRef.current;
-      t += sp ? 0.05 : ld ? 0.045 : 0.02;
-      const N = 110, baseR = Math.min(w, h) * 0.21;
-      const energy = sp ? 1 : ls ? (0.3 + lvl * 0.6) : ld ? 0.55 : 0.28;
-      for (let ring = 0; ring < 2; ring++) {
-        ctx.beginPath();
-        const rr = baseR * (0.62 - ring * 0.12) + Math.sin(t * 1.4 + ring) * 3 * dpr;
-        ctx.arc(cx, cy, rr, 0, Math.PI * 2);
-        ctx.strokeStyle = `hsla(${(t * 50 + ring * 120) % 360},90%,60%,0.25)`;
-        ctx.lineWidth = 1.5 * dpr; ctx.shadowBlur = 10 * dpr; ctx.shadowColor = `hsl(${(t * 50) % 360},90%,60%)`;
-        ctx.stroke();
-      }
-      for (let i = 0; i < N; i++) {
-        const a = (i / N) * Math.PI * 2 + t * 0.2;
-        const wave = Math.sin(a * 6 + t * 2) * 0.5 + Math.sin(a * 3 - t * 1.3) * 0.5;
-        const spike = sp ? Math.random() * 0.7 : ls ? lvl * Math.random() * 0.5 : ld ? Math.abs(Math.sin(a * 9 + t * 4)) * 0.3 : 0;
-        const len = baseR * (0.55 * energy) * (0.45 + 0.55 * Math.abs(wave) + spike);
-        const r1 = baseR, r2 = baseR + len;
-        const x1 = cx + Math.cos(a) * r1, y1 = cy + Math.sin(a) * r1;
-        const x2 = cx + Math.cos(a) * r2, y2 = cy + Math.sin(a) * r2;
-        const hue = (i / N * 300 + t * 40) % 360;
-        ctx.strokeStyle = `hsl(${hue},95%,62%)`;
-        ctx.lineWidth = 2.2 * dpr; ctx.shadowBlur = 14 * dpr; ctx.shadowColor = `hsl(${hue},95%,62%)`;
-        ctx.lineCap = "round";
-        ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
-      }
-      const cr = baseR * (0.32 + (sp ? Math.sin(t * 8) * 0.05 : 0));
-      const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, cr);
-      g.addColorStop(0, "rgba(120,220,255,0.30)"); g.addColorStop(1, "rgba(120,220,255,0)");
-      ctx.shadowBlur = 0; ctx.fillStyle = g; ctx.beginPath(); ctx.arc(cx, cy, cr, 0, Math.PI * 2); ctx.fill();
+      t += sp ? 0.06 : ld ? 0.04 : 0.02;
+      const energy = sp ? (0.55 + Math.abs(Math.sin(t * 6)) * 0.45)
+                   : ls ? (0.25 + lvl * 0.7)
+                   : ld ? (0.20 + Math.abs(Math.sin(t * 2)) * 0.20)
+                   : 0.12;
+      const maxR = Math.min(w, h) * 0.62;
+      const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, maxR);
+      g.addColorStop(0, `rgba(120,220,255,${0.05 + energy * 0.12})`);
+      g.addColorStop(0.55, `rgba(34,211,238,${0.04 + energy * 0.16})`);
+      g.addColorStop(1, "rgba(34,211,238,0)");
+      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(cx, cy, maxR, 0, Math.PI * 2); ctx.fill();
+      const R = Math.min(w, h) * (0.30 + energy * 0.04);
+      ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2);
+      ctx.strokeStyle = `rgba(150,230,255,${0.10 + energy * 0.35})`;
+      ctx.lineWidth = 2 * dpr; ctx.shadowBlur = 18 * dpr; ctx.shadowColor = "rgba(120,220,255,0.8)"; ctx.stroke();
       raf = requestAnimationFrame(draw);
     };
     draw();
@@ -139,18 +128,20 @@ export default function ChaparConcierge() {
   return (
     <div dir="rtl" className="relative mx-auto flex h-[680px] w-full max-w-md flex-col overflow-hidden rounded-[28px] font-sans" style={{ background: "radial-gradient(130% 80% at 50% 25%, #0f1330, #05060d 70%)" }}>
       <style>{`@keyframes up{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}@keyframes pd{0%,100%{opacity:.4}50%{opacity:1}}`}</style>
-      <div className="relative h-[290px] w-full shrink-0">
-        <canvas ref={canvasRef} className="h-full w-full" />
-        <div className="pointer-events-none absolute inset-0 grid place-items-center">
+      <div className="relative h-[290px] w-full shrink-0 overflow-hidden">
+        <video src={VIDEO_URL} autoPlay loop muted playsInline className="absolute inset-0 h-full w-full object-cover"
+          style={{ filter: speaking ? "brightness(1.18) saturate(1.25)" : loading ? "brightness(.92)" : "brightness(1.02)", transition: "filter .3s" }} />
+        <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" />
+        <div className="pointer-events-none absolute inset-x-0 top-3 grid place-items-center">
           <div className="text-center">
-            <div className="mb-1 text-sm font-bold tracking-wide text-white/90">Chapar AI Concierge</div>
-            <div className="flex items-center justify-center gap-2 text-xs text-cyan-200/90">
+            <div className="mb-1 text-sm font-bold tracking-wide text-white" style={{ textShadow: "0 1px 8px rgba(0,0,0,.7)" }}>Chapar AI Concierge</div>
+            <div className="flex items-center justify-center gap-2 text-xs text-cyan-100" style={{ textShadow: "0 1px 8px rgba(0,0,0,.7)" }}>
               <span className="h-1.5 w-1.5 rounded-full bg-cyan-300" style={{ animation: "pd 1.5s infinite" }} /> {status}
             </div>
           </div>
         </div>
       </div>
-      <div ref={scrollRef} className="relative z-10 flex-1 space-y-2 overflow-y-auto px-4">
+      <div ref={scrollRef} className="relative z-10 flex-1 space-y-2 overflow-y-auto px-4 pt-2">
         {messages.map((m, i) => (
           <div key={i} className={`max-w-[86%] ${m.role === "user" ? "ms-auto" : "me-auto"}`} style={{ animation: "up .35s ease both" }}>
             {m.image && <img src={m.image} alt="" className="mb-1 max-h-28 rounded-xl border border-white/15" />}
