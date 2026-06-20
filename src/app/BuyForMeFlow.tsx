@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { ArrowLeft, Home, ShoppingCart, Building2, CheckCircle, ExternalLink, AlertCircle, ChevronDown } from 'lucide-react';
 import { getLiveRate } from '../lib/store';
 import { useSession } from '../lib/SessionContext';
+import { useLang } from '../lib/LangContext';
 import type { Translations } from './i18n';
 import ProductFinder from './ProductFinder';
 import ChaparConcierge from './ChaparConcierge';
@@ -576,6 +577,8 @@ export default function BuyForMeFlow({ onBack, onHome, t, isRTL, onNavigate, onN
   onNavigate?: (page: string) => void;
   onNeedAuth?: () => void;
 }) {
+  const { lang } = useLang();
+  const { session } = useSession();
   const [mode, setMode] = useState<Mode>('selector');
   // Lifted state — shared between ProductFinder (lead) and BuyForMeForm
   const [product, setProduct] = useState<ProductInfo>({
@@ -623,7 +626,7 @@ export default function BuyForMeFlow({ onBack, onHome, t, isRTL, onNavigate, onN
           {/* ── Buy-For-Me: ProductFinder lead + order form ── */}
           {mode === 'buyforme' && (
             <motion.div key="buyforme" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
-              <ChaparConcierge />
+              <ChaparConcierge language={lang} userName={session?.firstName || ""} />
             </motion.div>
           )}
 
