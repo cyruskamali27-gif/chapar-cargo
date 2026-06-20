@@ -1,6 +1,6 @@
 // @ts-nocheck
 import { useState, useRef, useEffect } from "react";
-import { Send, Mic, Image as ImageIcon, Check, RotateCw, ExternalLink, ShoppingBag, MapPin, Volume2, VolumeX } from "lucide-react";
+import { Send, Mic, Image as ImageIcon, Check, RotateCw, ExternalLink, ShoppingBag, Volume2, VolumeX } from "lucide-react";
 import ChaparFormSimple from "./ChaparFormSimple";
 
 const VIDEO_URL = "https://chapar-cargo-scans.tor1.digitaloceanspaces.com/doc_2026-06-19_21-42-45.mp4";
@@ -22,49 +22,10 @@ export default function ChaparConcierge() {
   const [listening, setListening] = useState(false);
   const [muted, setMuted] = useState(false);
   const [orderProduct, setOrderProduct] = useState(null);
-  const fileRef = useRef(null), scrollRef = useRef(null), canvasRef = useRef(null), videoRef = useRef(null);
-  const speakingRef = useRef(false), loadingRef = useRef(false), listeningRef = useRef(false);
-  const audioLevelRef = useRef(0), audioCtxRef = useRef(null), streamRef = useRef(null), analyserRef = useRef(null), micRafRef = useRef(null);
+  const fileRef = useRef(null), scrollRef = useRef(null), videoRef = useRef(null);
 
-  useEffect(() => { speakingRef.current = speaking; }, [speaking]);
-  useEffect(() => { loadingRef.current = loading; }, [loading]);
-  useEffect(() => { listeningRef.current = listening; }, [listening]);
   useEffect(() => { window.speechSynthesis?.getVoices(); }, []);
   useEffect(() => { scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" }); }, [messages, loading]);
-
-  // reactive glow overlay (sits on top of the video; pulses when AI speaks, reacts to mic when user speaks)
-  useEffect(() => {
-    const cv = canvasRef.current; if (!cv) return;
-    const ctx = cv.getContext("2d");
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    let raf, t = 0;
-    const resize = () => { cv.width = cv.clientWidth * dpr; cv.height = cv.clientHeight * dpr; };
-    resize(); window.addEventListener("resize", resize);
-    const draw = () => {
-      const w = cv.width, h = cv.height, cx = w / 2, cy = h / 2;
-      ctx.clearRect(0, 0, w, h);
-      ctx.globalCompositeOperation = "lighter";
-      const sp = speakingRef.current, ld = loadingRef.current, ls = listeningRef.current, lvl = audioLevelRef.current;
-      t += sp ? 0.06 : ld ? 0.04 : 0.02;
-      const energy = sp ? (0.55 + Math.abs(Math.sin(t * 6)) * 0.45)
-                   : ls ? (0.25 + lvl * 0.7)
-                   : ld ? (0.20 + Math.abs(Math.sin(t * 2)) * 0.20)
-                   : 0.12;
-      const maxR = Math.min(w, h) * 0.62;
-      const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, maxR);
-      g.addColorStop(0, `rgba(120,220,255,${0.05 + energy * 0.12})`);
-      g.addColorStop(0.55, `rgba(34,211,238,${0.04 + energy * 0.16})`);
-      g.addColorStop(1, "rgba(34,211,238,0)");
-      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(cx, cy, maxR, 0, Math.PI * 2); ctx.fill();
-      const R = Math.min(w, h) * (0.30 + energy * 0.04);
-      ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2);
-      ctx.strokeStyle = `rgba(150,230,255,${0.10 + energy * 0.35})`;
-      ctx.lineWidth = 2 * dpr; ctx.shadowBlur = 18 * dpr; ctx.shadowColor = "rgba(120,220,255,0.8)"; ctx.stroke();
-      raf = requestAnimationFrame(draw);
-    };
-    draw();
-    return () => { cancelAnimationFrame(raf); window.removeEventListener("resize", resize); };
-  }, []);
 
   function speak(text) {
     if (muted || !window.speechSynthesis) return;
@@ -96,32 +57,15 @@ export default function ChaparConcierge() {
   function more() { if (loading) return; const next = [...messages, { role: "user", text: "بیشتر بگردیم.", _api: { role: "user", content: "Suggest a different option." } }]; setMessages(next); callAI(next); }
   function confirm(p) { setOrderProduct(p); }
   function onImg(e) { const f = e.target.files?.[0]; if (!f) return; const rd = new FileReader(); rd.onload = () => { const d = String(rd.result), b = d.split(",")[1]; const next = [...messages, { role: "user", text: "📷", image: d, _api: { role: "user", content: "Identify this product." } }]; setMessages(next); callAI(next, { b64: b, mime: f.type || "image/jpeg" }); }; rd.readAsDataURL(f); e.target.value = ""; }
-  async function startMic() {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true }); streamRef.current = stream;
-      const ctx = new (window.AudioContext || window.webkitAudioContext)(); audioCtxRef.current = ctx;
-      const src = ctx.createMediaStreamSource(stream); const an = ctx.createAnalyser(); an.fftSize = 256; src.connect(an); analyserRef.current = an;
-      const buf = new Uint8Array(an.frequencyBinCount);
-      const tick = () => { if (!analyserRef.current) return; an.getByteTimeDomainData(buf); let s = 0; for (let i = 0; i < buf.length; i++) { const v = (buf[i] - 128) / 128; s += v * v; } audioLevelRef.current = Math.min(1, Math.sqrt(s / buf.length) * 3.5); micRafRef.current = requestAnimationFrame(tick); };
-      tick();
-    } catch { audioLevelRef.current = 0; }
-  }
-  function stopMic() {
-    audioLevelRef.current = 0; cancelAnimationFrame(micRafRef.current);
-    try { streamRef.current?.getTracks().forEach((t) => t.stop()); } catch {}
-    try { audioCtxRef.current?.close(); } catch {}
-    analyserRef.current = null; streamRef.current = null; audioCtxRef.current = null;
-  }
   function voice() {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    setListening(true); startMic();
-    if (SR) {
-      const rec = new SR(); rec.lang = LANGS[lang].tts; rec.interimResults = false;
-      rec.onend = () => { setListening(false); stopMic(); };
-      rec.onresult = (e) => { setListening(false); stopMic(); send(e.results[0][0].transcript); };
-      rec.onerror = () => { setListening(false); stopMic(); };
-      rec.start();
-    } else { setTimeout(() => { setListening(false); stopMic(); }, 6000); }
+    if (!SR) return;
+    const rec = new SR(); rec.lang = LANGS[lang].tts; rec.interimResults = false; rec.continuous = false;
+    rec.onstart = () => setListening(true);
+    rec.onend = () => setListening(false);
+    rec.onresult = (e) => { setListening(false); send(e.results[0][0].transcript); };
+    rec.onerror = () => setListening(false);
+    rec.start();
   }
   function switchLang(l) { setLang(l); setMessages([{ role: "assistant", text: LANGS[l].greet, _api: null }]); }
 
@@ -130,9 +74,7 @@ export default function ChaparConcierge() {
       <style>{`@keyframes up{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}@keyframes pd{0%,100%{opacity:.4}50%{opacity:1}}`}</style>
       {/* Video hero — always visible */}
       <div className="relative h-[290px] w-full shrink-0 overflow-hidden">
-        <video ref={videoRef} src={VIDEO_URL} autoPlay loop muted playsInline preload="auto" className="absolute inset-0 h-full w-full object-cover"
-          style={{ filter: speaking ? "brightness(1.18) saturate(1.25)" : loading ? "brightness(.92)" : "brightness(1.02)", transition: "filter .3s" }} />
-        <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" />
+        <video ref={videoRef} src={VIDEO_URL} autoPlay loop muted playsInline preload="auto" className="absolute inset-0 h-full w-full object-cover" />
       </div>
 
       {orderProduct ? (
