@@ -1,6 +1,7 @@
 // @ts-nocheck
 import { useState, useEffect } from "react";
 import { ArrowLeft, Check } from "lucide-react";
+import { brandColor } from "./brandTheme";
 export default function ChaparStorePanel({ product, onContinue, onBack }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -25,6 +26,8 @@ export default function ChaparStorePanel({ product, onContinue, onBack }) {
   const selColor = colors.find((c) => c.label === color);
   const heroImg = selColor?.image || colors[0]?.image || product?.image;
   const canContinue = !sizes.length || !!size;
+  const accent = brandColor(brand, domain);
+  const accentTint = accent + "26"; // ~15% opacity tint for selected bg
   return (
     <div dir="rtl" className="p-5 font-sans text-white">
       <button onClick={onBack} className="mb-3 inline-flex items-center gap-1 text-sm text-white/50"><ArrowLeft size={15} /> بازگشت</button>
@@ -36,13 +39,13 @@ export default function ChaparStorePanel({ product, onContinue, onBack }) {
         <>
           {heroImg && <img src={heroImg} alt={title} className="mb-3 h-44 w-full rounded-2xl bg-white object-contain" />}
           <div className="mb-1 text-base font-bold">{title}</div>
-          {price != null && <div className="mb-4 text-cyan-300">از ${price}</div>}
+          {price != null && <div className="mb-4 font-medium" style={{ color: accent }}>از ${price}</div>}
           {colors.length > 0 && (
             <div className="mb-4">
               <div className="mb-2 text-xs text-white/45">رنگ</div>
               <div className="flex flex-wrap gap-2">
                 {colors.map((c, i) => (
-                  <button key={i} onClick={() => setColor(c.label)} className={`overflow-hidden rounded-xl border ${color === c.label ? "border-cyan-400" : "border-white/12"}`}>
+                  <button key={i} onClick={() => setColor(c.label)} className="overflow-hidden rounded-xl border transition-all" style={{ borderColor: color === c.label ? accent : "rgba(255,255,255,0.12)", boxShadow: color === c.label ? `0 0 0 2px ${accent}55` : "none" }}>
                     {c.image ? <img src={c.image} alt={c.label} className="h-14 w-14 object-cover" /> : <div className="grid h-14 w-14 place-items-center bg-white/5 px-1 text-center text-[10px] text-white/70">{c.label}</div>}
                   </button>
                 ))}
@@ -54,11 +57,11 @@ export default function ChaparStorePanel({ product, onContinue, onBack }) {
             <div className="mb-5">
               <div className="mb-2 text-xs text-white/45">سایز</div>
               <div dir="ltr" className="flex flex-wrap gap-2">
-                {sizes.map((s) => <button key={s} onClick={() => setSize(s)} className={`rounded-lg border px-3 py-2 text-sm ${size === s ? "border-cyan-400 bg-cyan-400/10 text-white" : "border-white/12 bg-white/[0.03] text-white/70"}`}>{s}</button>)}
+                {sizes.map((s) => <button key={s} onClick={() => setSize(s)} className="rounded-lg border px-3 py-2 text-sm transition-all" style={{ borderColor: size === s ? accent : "rgba(255,255,255,0.12)", background: size === s ? accentTint : "rgba(255,255,255,0.03)", color: size === s ? "#fff" : "rgba(255,255,255,0.7)" }}>{s}</button>)}
               </div>
             </div>
           )}
-          <button disabled={!canContinue} onClick={() => onContinue({ color, size, image: heroImg, link: selColor?.link || product?.link, priceUSD: price })} className="w-full rounded-2xl py-3.5 text-sm font-bold text-white disabled:opacity-40" style={{ background: "linear-gradient(135deg,#22d3ee,#6366f1)" }}>
+          <button disabled={!canContinue} onClick={() => onContinue({ color, size, image: heroImg, link: selColor?.link || product?.link, priceUSD: price })} className="w-full rounded-2xl py-3.5 text-sm font-bold text-white disabled:opacity-40" style={{ background: `linear-gradient(135deg, ${accent}, ${accent}aa)` }}>
             <span className="inline-flex items-center justify-center gap-1"><Check size={15} /> ادامه</span>
           </button>
         </>
