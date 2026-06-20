@@ -5,6 +5,7 @@ import { getLiveRate } from '../lib/store';
 import { useSession } from '../lib/SessionContext';
 import type { Translations } from './i18n';
 import ProductFinder from './ProductFinder';
+import ChaparConcierge from './ChaparConcierge';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -678,12 +679,7 @@ export default function BuyForMeFlow({ onBack, onHome, t, isRTL, onNavigate, onN
           {/* ── Buy-For-Me: ProductFinder lead + order form ── */}
           {mode === 'buyforme' && (
             <motion.div key="buyforme" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
-              <ProductFinder
-                onSelect={(p) => {
-                  setProduct(prev => ({ ...prev, title: p.title }));
-                  setValue({ amount: String(p.priceUSD), currency: 'USD' });
-                }}
-              />
+              <ChaparConcierge />
               <BuyForMeForm
                 t={t} isRTL={isRTL} onHome={onHome} onNavigate={onNavigate}
                 onNeedAuth={onNeedAuth}
