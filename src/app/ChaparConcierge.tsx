@@ -2,6 +2,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Send, Mic, Image as ImageIcon, Check, RotateCw, ExternalLink, ShoppingBag, Volume2, VolumeX } from "lucide-react";
 import ChaparFormSimple from "./ChaparFormSimple";
+import ChaparStorePanel from "./ChaparStorePanel";
 
 const VIDEO_URL = "https://chapar-cargo-scans.tor1.digitaloceanspaces.com/doc_2026-06-19_21-42-45.mp4";
 const LANGS = {
@@ -19,6 +20,7 @@ export default function ChaparConcierge({ language = "fa", userName = "" }) {
   const [input, setInput] = useState(""); const [loading, setLoading] = useState(false);
   const [speaking, setSpeaking] = useState(false); const [listening, setListening] = useState(false);
   const [muted, setMuted] = useState(false); const [orderProduct, setOrderProduct] = useState(null);
+  const [stage, setStage] = useState(null); const [variant, setVariant] = useState(null);
   const [voiceErr, setVoiceErr] = useState("");
   const fileRef = useRef(null), scrollRef = useRef(null), videoRef = useRef(null);
 
@@ -73,7 +75,7 @@ export default function ChaparConcierge({ language = "fa", userName = "" }) {
 
   function send(txt) { const t = (txt ?? input).trim(); if (!t || loading) return; const next = [...messages, { role: "user", text: t, _api: { role: "user", content: t } }]; setMessages(next); setInput(""); callAI(next); }
   function more() { if (loading) return; const next = [...messages, { role: "user", text: "بیشتر بگردیم.", _api: { role: "user", content: "Suggest a different option." } }]; setMessages(next); callAI(next); }
-  function confirmProduct(p) { setOrderProduct(p); }
+  function confirmProduct(p) { setOrderProduct(p); setStage("store"); }
   function onImg(e) { const f = e.target.files?.[0]; if (!f) return; const rd = new FileReader(); rd.onload = () => { const d = String(rd.result), b = d.split(",")[1]; const next = [...messages, { role: "user", text: "📷", image: d, _api: { role: "user", content: "Identify this product." } }]; setMessages(next); callAI(next, { b64: b, mime: f.type || "image/jpeg" }); }; rd.readAsDataURL(f); e.target.value = ""; }
   function voice() {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -93,9 +95,11 @@ export default function ChaparConcierge({ language = "fa", userName = "" }) {
       <div className="relative h-[34vh] max-h-[360px] w-full shrink-0 overflow-hidden">
         <video ref={videoRef} src={VIDEO_URL} autoPlay loop muted playsInline preload="auto" className="absolute inset-0 h-full w-full object-cover" />
       </div>
-      {orderProduct ? (
-        <div className="relative z-10 flex-1 overflow-y-auto"><ChaparFormSimple product={orderProduct} onSubmit={() => {}} /></div>
-      ) : (
+      {stage === "store"
+        ? <div className="relative z-10 flex-1 overflow-y-auto"><ChaparStorePanel product={orderProduct} onContinue={(v) => { setVariant(v); setStage("recipient"); }} onBack={() => { setStage(null); setOrderProduct(null); }} /></div>
+        : stage === "recipient"
+        ? <div className="relative z-10 flex-1 overflow-y-auto"><ChaparFormSimple product={{ ...(orderProduct || {}), ...(variant || {}) }} onSubmit={() => {}} /></div>
+        : (
         <>
           <div ref={scrollRef} className="relative z-10 flex-1 space-y-2 overflow-y-auto px-4 pt-2">
             {messages.map((m, i) => (
@@ -142,7 +146,7 @@ export default function ChaparConcierge({ language = "fa", userName = "" }) {
             </div>
           </div>
         </>
-      )}
+        )}
     </div>
   );
 }
