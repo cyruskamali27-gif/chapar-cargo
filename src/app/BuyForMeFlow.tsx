@@ -478,34 +478,9 @@ function BuyForMeForm({ t, isRTL, onHome, onNavigate, onNeedAuth, product, setPr
 
   return (
     <div className="space-y-5">
-      {/* Section 1: Product */}
-      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="ds-card p-6">
-        <SectionHeader title={t.bfm2ProdSection} />
-        {/* Tab switcher */}
-        <div className="flex bg-gray-100 rounded-xl p-1 mb-5">
-          {(['link', 'manual'] as const).map(k => (
-            <button key={k} onClick={() => setTab(k)}
-              className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${tab === k ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
-              {k === 'link' ? t.bfm2TabLink : t.bfm2TabManual}
-            </button>
-          ))}
-        </div>
-        <AnimatePresence mode="wait">
-          {tab === 'link' ? (
-            <motion.div key="link" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-              <LinkTab t={t} product={product} setProduct={syncValue} />
-            </motion.div>
-          ) : (
-            <motion.div key="manual" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-              <EditableProductFields t={t} product={product} setProduct={syncValue} />
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </motion.div>
-
-      {/* Section 2: Destination */}
+      {/* Section: Recipient + Destination */}
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }} className="ds-card p-6">
-        <SectionHeader title={t.bfm2DestSection} />
+        <SectionHeader title={t.bfm2RecipSection} />
         <div className="grid grid-cols-2 gap-3 mb-3">
           <div>
             <label className="ds-label">{t.bfm2DestCountry}</label>
@@ -518,7 +493,7 @@ function BuyForMeForm({ t, isRTL, onHome, onNavigate, onNeedAuth, product, setPr
               value={dest.city} onChange={e => setDest({ ...dest, city: e.target.value })} />
           </div>
         </div>
-        <div>
+        <div className="mb-3">
           <label className="ds-label">{t.bfm2DestType}</label>
           <div className="flex gap-3">
             {(['standard', 'express'] as const).map(dt => (
@@ -530,37 +505,6 @@ function BuyForMeForm({ t, isRTL, onHome, onNavigate, onNeedAuth, product, setPr
             ))}
           </div>
         </div>
-      </motion.div>
-
-      {/* Section 3: Value */}
-      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="ds-card p-6">
-        <SectionHeader title={t.bfm2ValSection} />
-        <div className="flex gap-3">
-          <div className="flex-1">
-            <label className="ds-label">{t.spAmount}</label>
-            <input type="number" className="ds-input" placeholder={t.spAmountPlaceholder} min="0" step="0.01"
-              value={value.amount} onChange={e => setValue({ ...value, amount: e.target.value })} />
-          </div>
-          <div className="w-28">
-            <label className="ds-label">{t.spCurrency}</label>
-            <select className="ds-input" value={value.currency}
-              onChange={e => setValue({ ...value, currency: e.target.value })}>
-              {CURRENCIES.map(c => (
-                <option key={c.code} value={c.code}>{c.flag} {c.code}</option>
-              ))}
-            </select>
-          </div>
-        </div>
-        {value.amount && (
-          <p className="text-xs text-gray-400 mt-2">
-            {t.spUsdEquiv} ~${getUSD(value.amount, value.currency).toFixed(2)} USD
-          </p>
-        )}
-      </motion.div>
-
-      {/* Section 4: Recipient */}
-      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="ds-card p-6">
-        <SectionHeader title={t.bfm2RecipSection} />
         <div className="grid grid-cols-2 gap-3 mb-3">
           <div>
             <label className="ds-label">{t.spRecFirstName}</label>
