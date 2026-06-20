@@ -13,6 +13,8 @@ const LANGS = {
   fr: { name: "French", tts: "fr-FR", greet: "Bienvenue. Que dois-je acheter pour vous ?" },
 };
 
+const CARD_BG = { background: "radial-gradient(130% 80% at 50% 25%, #0f1330, #05060d 70%)" };
+
 export default function ChaparConcierge({ language = "fa", userName = "" }) {
   const lang = LANGS[language] ? language : "fa";
   const rtl = ["fa", "ar"].includes(lang);
@@ -21,6 +23,7 @@ export default function ChaparConcierge({ language = "fa", userName = "" }) {
   const [speaking, setSpeaking] = useState(false); const [listening, setListening] = useState(false);
   const [muted, setMuted] = useState(false); const [orderProduct, setOrderProduct] = useState(null);
   const [stage, setStage] = useState(null); const [variant, setVariant] = useState(null);
+  const [gridResults, setGridResults] = useState([]);
   const [voiceErr, setVoiceErr] = useState("");
   const fileRef = useRef(null), scrollRef = useRef(null), videoRef = useRef(null);
 
@@ -90,63 +93,85 @@ export default function ChaparConcierge({ language = "fa", userName = "" }) {
   }
 
   return (
-    <div dir={rtl ? "rtl" : "ltr"} className="mx-auto flex h-[86vh] max-h-[880px] w-full max-w-2xl flex-col overflow-hidden rounded-[28px] font-sans" style={{ background: "radial-gradient(130% 80% at 50% 25%, #0f1330, #05060d 70%)" }}>
+    <div dir={rtl ? "rtl" : "ltr"} className="mx-auto w-full max-w-2xl space-y-4 p-3 font-sans">
       <style>{`@keyframes up{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}`}</style>
-      <div className="relative h-[34vh] max-h-[360px] w-full shrink-0 overflow-hidden">
-        <video ref={videoRef} src={VIDEO_URL} autoPlay loop muted playsInline preload="auto" className="absolute inset-0 h-full w-full object-cover" />
-      </div>
-      {stage === "store"
-        ? <div className="relative z-10 flex-1 overflow-y-auto"><ChaparStorePanel product={orderProduct} onContinue={(v) => { setVariant(v); setStage("recipient"); }} onBack={() => { setStage(null); setOrderProduct(null); }} /></div>
-        : stage === "recipient"
-        ? <div className="relative z-10 flex-1 overflow-y-auto"><ChaparFormSimple product={{ ...(orderProduct || {}), ...(variant || {}) }} onSubmit={() => {}} /></div>
-        : (
-        <>
-          <div ref={scrollRef} className="relative z-10 flex-1 space-y-2 overflow-y-auto px-4 pt-2">
-            {messages.map((m, i) => (
-              <div key={i} className={`max-w-[86%] ${m.role === "user" ? "ms-auto" : "me-auto"}`} style={{ animation: "up .35s ease both" }}>
-                {m.image && <img src={m.image} alt="" className="mb-1 max-h-28 rounded-xl border border-white/15" />}
-                <div className="rounded-2xl px-3.5 py-2 text-sm leading-relaxed" style={m.role === "user" ? { background: "linear-gradient(135deg,#22d3eecc,#6366f1cc)", color: "#fff" } : { background: "rgba(255,255,255,.06)", border: "1px solid rgba(255,255,255,.1)", color: "#eaf2ff" }}>{m.text}</div>
-                {m.product && (
-                  <div className="mt-2 rounded-2xl border border-white/10 p-3" style={{ background: "rgba(15,18,32,.7)" }}>
-                    {m.product.image && (m.product.image.startsWith("http") || m.product.image.startsWith("data:")) && (
-                      <img src={m.product.image} alt="" className="mb-2 h-32 w-full rounded-xl object-cover" />
+
+      {/* ── SECTION 1 — AI CARD (always visible) ── */}
+      <div className="overflow-hidden rounded-[28px]" style={CARD_BG}>
+        {/* video hero */}
+        <div className="relative h-[30vh] max-h-[320px] w-full overflow-hidden">
+          <video ref={videoRef} src={VIDEO_URL} autoPlay loop muted playsInline preload="auto" className="absolute inset-0 h-full w-full object-cover" />
+        </div>
+
+        {/* chat messages */}
+        <div ref={scrollRef} className="max-h-[40vh] space-y-2 overflow-y-auto px-4 pt-2">
+          {messages.map((m, i) => (
+            <div key={i} className={`max-w-[86%] ${m.role === "user" ? "ms-auto" : "me-auto"}`} style={{ animation: "up .35s ease both" }}>
+              {m.image && <img src={m.image} alt="" className="mb-1 max-h-28 rounded-xl border border-white/15" />}
+              <div className="rounded-2xl px-3.5 py-2 text-sm leading-relaxed" style={m.role === "user" ? { background: "linear-gradient(135deg,#22d3eecc,#6366f1cc)", color: "#fff" } : { background: "rgba(255,255,255,.06)", border: "1px solid rgba(255,255,255,.1)", color: "#eaf2ff" }}>{m.text}</div>
+              {m.product && (
+                <div className="mt-2 rounded-2xl border border-white/10 p-3" style={{ background: "rgba(15,18,32,.7)" }}>
+                  {m.product.image && (m.product.image.startsWith("http") || m.product.image.startsWith("data:")) && (
+                    <img src={m.product.image} alt="" className="mb-2 h-32 w-full rounded-xl object-cover" />
+                  )}
+                  <div className="flex items-center gap-3">
+                    {!(m.product.image && (m.product.image.startsWith("http") || m.product.image.startsWith("data:"))) && (
+                      <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl text-cyan-300" style={{ background: "linear-gradient(135deg,#6366f14d,#22d3ee33)" }}><ShoppingBag size={20} /></div>
                     )}
-                    <div className="flex items-center gap-3">
-                      {!(m.product.image && (m.product.image.startsWith("http") || m.product.image.startsWith("data:"))) && (
-                        <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl text-cyan-300" style={{ background: "linear-gradient(135deg,#6366f14d,#22d3ee33)" }}><ShoppingBag size={20} /></div>
-                      )}
-                      <div className="flex-1 min-w-0">
-                        <div className="truncate font-bold text-white">{m.product.title || `${m.product.brand || ""} ${m.product.model || ""}`.trim()}</div>
-                        <div className="text-xs text-white/40">
-                          {m.product.priceLoading
-                            ? "در حال یافتن بهترین قیمت…"
-                            : [m.product.priceUSD != null && `$${m.product.priceUSD}`, m.product.country].filter(Boolean).join(" · ")}
-                        </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="truncate font-bold text-white">{m.product.title || `${m.product.brand || ""} ${m.product.model || ""}`.trim()}</div>
+                      <div className="text-xs text-white/40">
+                        {m.product.priceLoading
+                          ? "در حال یافتن بهترین قیمت…"
+                          : [m.product.priceUSD != null && `$${m.product.priceUSD}`, m.product.country].filter(Boolean).join(" · ")}
                       </div>
                     </div>
-                    <a href={m.product.link || `https://www.google.com/search?tbm=shop&q=${encodeURIComponent(m.product.searchQuery || m.product.title || "")}`} target="_blank" rel="noopener noreferrer" className="mt-2 flex items-center justify-center gap-1 rounded-xl border border-white/10 bg-white/5 py-2 text-sm font-medium text-cyan-300">مشاهدهٔ محصول <ExternalLink size={14} /></a>
-                    <div className="mt-2 flex gap-2">
-                      <button onClick={() => confirmProduct(m.product)} className="flex flex-1 items-center justify-center gap-1 rounded-xl py-2 text-sm font-bold text-white" style={{ background: "linear-gradient(135deg,#10b981,#22d3ee)" }}><Check size={15} /> بله، همین است</button>
-                      <button onClick={more} className="flex items-center gap-1 rounded-xl border border-white/15 px-3 py-2 text-sm text-white/70"><RotateCw size={14} /> بیشتر</button>
-                    </div>
                   </div>
-                )}
-              </div>
-            ))}
-          </div>
-          <div className="relative z-10 p-3">
-            <div className="mb-2 flex items-center justify-end"><button onClick={() => setMuted(!muted)} className="text-white/60">{muted ? <VolumeX size={16} /> : <Volume2 size={16} />}</button></div>
-            {voiceErr && <div className="mb-1 text-center text-[11px] text-rose-300">{voiceErr}</div>}
-            <div className="flex items-center gap-2">
-              <button onClick={() => fileRef.current?.click()} className="grid h-10 w-10 place-items-center rounded-full bg-white/5 text-white/60"><ImageIcon size={19} /></button>
-              <input ref={fileRef} type="file" accept="image/*" hidden onChange={onImg} />
-              <button onClick={voice} className={`grid h-10 w-10 place-items-center rounded-full ${listening ? "bg-rose-500 text-white" : "bg-white/5 text-cyan-300"}`}><Mic size={19} /></button>
-              <input value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && send()} placeholder="بنویسید یا حرف بزنید…" className="flex-1 rounded-full border border-white/15 bg-white/5 px-4 py-2.5 text-sm text-white outline-none placeholder:text-white/35" />
-              <button onClick={() => send()} disabled={loading} className="grid h-10 w-10 place-items-center rounded-full text-white disabled:opacity-40" style={{ background: "linear-gradient(135deg,#22d3ee,#6366f1)" }}><Send size={18} /></button>
+                  <a href={m.product.link || `https://www.google.com/search?tbm=shop&q=${encodeURIComponent(m.product.searchQuery || m.product.title || "")}`} target="_blank" rel="noopener noreferrer" className="mt-2 flex items-center justify-center gap-1 rounded-xl border border-white/10 bg-white/5 py-2 text-sm font-medium text-cyan-300">مشاهدهٔ محصول <ExternalLink size={14} /></a>
+                  <div className="mt-2 flex gap-2">
+                    <button onClick={() => confirmProduct(m.product)} className="flex flex-1 items-center justify-center gap-1 rounded-xl py-2 text-sm font-bold text-white" style={{ background: "linear-gradient(135deg,#10b981,#22d3ee)" }}><Check size={15} /> بله، همین است</button>
+                    <button onClick={more} className="flex items-center gap-1 rounded-xl border border-white/15 px-3 py-2 text-sm text-white/70"><RotateCw size={14} /> بیشتر</button>
+                  </div>
+                </div>
+              )}
             </div>
+          ))}
+          {loading && <div className="me-auto max-w-[86%]"><div className="rounded-2xl px-3.5 py-2 text-sm text-white/40" style={{ background: "rgba(255,255,255,.06)", border: "1px solid rgba(255,255,255,.1)" }}>…</div></div>}
+        </div>
+
+        {/* input bar */}
+        <div className="p-3">
+          <div className="mb-2 flex items-center justify-end"><button onClick={() => setMuted(!muted)} className="text-white/60">{muted ? <VolumeX size={16} /> : <Volume2 size={16} />}</button></div>
+          {voiceErr && <div className="mb-1 text-center text-[11px] text-rose-300">{voiceErr}</div>}
+          <div className="flex items-center gap-2">
+            <button onClick={() => fileRef.current?.click()} className="grid h-10 w-10 place-items-center rounded-full bg-white/5 text-white/60"><ImageIcon size={19} /></button>
+            <input ref={fileRef} type="file" accept="image/*" hidden onChange={onImg} />
+            <button onClick={voice} className={`grid h-10 w-10 place-items-center rounded-full ${listening ? "bg-rose-500 text-white" : "bg-white/5 text-cyan-300"}`}><Mic size={19} /></button>
+            <input value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && send()} placeholder="بنویسید یا حرف بزنید…" className="flex-1 rounded-full border border-white/15 bg-white/5 px-4 py-2.5 text-sm text-white outline-none placeholder:text-white/35" />
+            <button onClick={() => send()} disabled={loading} className="grid h-10 w-10 place-items-center rounded-full text-white disabled:opacity-40" style={{ background: "linear-gradient(135deg,#22d3ee,#6366f1)" }}><Send size={18} /></button>
           </div>
-        </>
-        )}
+        </div>
+      </div>
+
+      {/* ── SECTION 2 — PROCESS CARD (only when stage !== null) ── */}
+      {stage && (
+        <div className="overflow-hidden rounded-[28px]" style={CARD_BG}>
+          {stage === "store" && (
+            <ChaparStorePanel
+              product={orderProduct}
+              onContinue={(v) => { setVariant(v); setStage("recipient"); }}
+              onBack={() => { if (gridResults.length) { setStage("grid"); } else { setOrderProduct(null); setStage(null); } }}
+            />
+          )}
+          {stage === "recipient" && (
+            <ChaparFormSimple
+              product={{ ...(orderProduct || {}), ...(variant || {}) }}
+              onBack={() => setStage("store")}
+              onSubmit={() => {}}
+            />
+          )}
+        </div>
+      )}
     </div>
   );
 }
