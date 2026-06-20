@@ -19,6 +19,7 @@ export default function ChaparConcierge({ language = "fa", userName = "" }) {
   const [input, setInput] = useState(""); const [loading, setLoading] = useState(false);
   const [speaking, setSpeaking] = useState(false); const [listening, setListening] = useState(false);
   const [muted, setMuted] = useState(false); const [orderProduct, setOrderProduct] = useState(null);
+  const [voiceErr, setVoiceErr] = useState("");
   const fileRef = useRef(null), scrollRef = useRef(null), videoRef = useRef(null);
   useEffect(() => { window.speechSynthesis?.getVoices(); }, []);
   useEffect(() => { scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" }); }, [messages, loading]);
@@ -48,12 +49,14 @@ export default function ChaparConcierge({ language = "fa", userName = "" }) {
   function onImg(e) { const f = e.target.files?.[0]; if (!f) return; const rd = new FileReader(); rd.onload = () => { const d = String(rd.result), b = d.split(",")[1]; const next = [...messages, { role: "user", text: "📷", image: d, _api: { role: "user", content: "Identify this product." } }]; setMessages(next); callAI(next, { b64: b, mime: f.type || "image/jpeg" }); }; rd.readAsDataURL(f); e.target.value = ""; }
   function voice() {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SR) return;
+    if (!SR) { setVoiceErr("این مرورگر تشخیصِ گفتار ندارد — از Chrome استفاده کنید"); return; }
+    setVoiceErr("");
     const rec = new SR(); rec.lang = LANGS[lang].tts; rec.interimResults = false; rec.continuous = false;
-    rec.onstart = () => setListening(true); rec.onend = () => setListening(false);
+    rec.onstart = () => setListening(true);
+    rec.onend = () => setListening(false);
     rec.onresult = (e) => { setListening(false); send(e.results[0][0].transcript); };
-    rec.onerror = () => setListening(false);
-    rec.start();
+    rec.onerror = (e) => { setListening(false); setVoiceErr("خطای میکروفون: " + (e.error || "نامشخص")); };
+    try { rec.start(); } catch (err) { setVoiceErr("خطا در شروع: " + (err?.message || err)); }
   }
 
   return (
@@ -89,6 +92,7 @@ export default function ChaparConcierge({ language = "fa", userName = "" }) {
           </div>
           <div className="relative z-10 p-3">
             <div className="mb-2 flex items-center justify-end"><button onClick={() => setMuted(!muted)} className="text-white/60">{muted ? <VolumeX size={16} /> : <Volume2 size={16} />}</button></div>
+            {voiceErr && <div className="mb-1 text-center text-[11px] text-rose-300">{voiceErr}</div>}
             <div className="flex items-center gap-2">
               <button onClick={() => fileRef.current?.click()} className="grid h-10 w-10 place-items-center rounded-full bg-white/5 text-white/60"><ImageIcon size={19} /></button>
               <input ref={fileRef} type="file" accept="image/*" hidden onChange={onImg} />
