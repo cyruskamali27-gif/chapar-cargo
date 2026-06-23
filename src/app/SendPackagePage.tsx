@@ -67,6 +67,15 @@ const CASH_KEYWORDS = [
   'banknote','نقدی','ارز نقدی',
 ];
 
+// Rotating guidance shown over the live camera during the continuous scan.
+const SCAN_HINTS = [
+  'کالا را آرام بچرخانید…',
+  'نمای جلو را نشان دهید…',
+  'نمای کنار را نشان دهید…',
+  'نمای پشت را نشان دهید…',
+];
+const SCAN_DURATION_MS = 8200;
+
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
 function rnd(min: number, max: number) { return Math.floor(Math.random() * (max - min + 1)) + min; }
@@ -217,6 +226,25 @@ export default function SendPackagePage({ onHome, cargoType = 'personal', onNavi
   const [videoDur,   setVideoDur]   = useState(0);
   const videoRef = useRef<HTMLInputElement>(null);
 
+  // ── Continuous video scan (MediaRecorder) ───────────────────────────────────
+  const [scanBlob, setScanBlob]   = useState<Blob | null>(null);
+  const [scanUrl,  setScanUrl]    = useState<string | null>(null);
+  const [recording, setRecording] = useState(false);
+  const [hintIdx,  setHintIdx]    = useState(0);
+  const [scanComplete, setScanComplete] = useState(false);
+  const [scanBlocked,  setScanBlocked]  = useState(false);
+  const [scanError,    setScanError]    = useState('');
+  const mediaRef     = useRef<MediaRecorder | null>(null);
+  const streamRef    = useRef<MediaStream | null>(null);
+  const chunksRef    = useRef<Blob[]>([]);
+  const framesRef    = useRef<Blob[]>([]);
+  const recMimeRef   = useRef<string>('video/webm');
+  const recStartRef  = useRef<number>(0);
+  const liveVideoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef    = useRef<HTMLCanvasElement>(null);
+  const hintTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const stopTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const [inspecting,    setInspecting]    = useState(false);
   const [inspDone,      setInspDone]      = useState(false);
   const [detectedItem,  setDetectedItem]  = useState('');
@@ -282,8 +310,15 @@ export default function SendPackagePage({ onHome, cargoType = 'personal', onNavi
 
   const [err, setErr] = useState('');
 
-  // Cleanup QR poll on unmount
-  useEffect(() => () => { if (qrPollRef.current) clearInterval(qrPollRef.current); }, []);
+  // Cleanup QR poll + live camera scan on unmount
+  useEffect(() => () => {
+    if (qrPollRef.current) clearInterval(qrPollRef.current);
+    if (hintTimerRef.current) clearInterval(hintTimerRef.current);
+    if (stopTimerRef.current) clearTimeout(stopTimerRef.current);
+    try { if (mediaRef.current && mediaRef.current.state !== 'inactive') mediaRef.current.stop(); } catch { /* noop */ }
+    if (streamRef.current) streamRef.current.getTracks().forEach(tk => tk.stop());
+    setScanUrl(prev => { if (prev) URL.revokeObjectURL(prev); return null; });
+  }, []);
 
   const today = new Date().toISOString().split('T')[0];
 
@@ -375,7 +410,7 @@ export default function SendPackagePage({ onHome, cargoType = 'personal', onNavi
         if (!date)   return t.spErrNoDate;
         return null;
       case 2:
-        if (photos.length < 4) return t.spErrNeedPhotos;
+        if (!videoReady) return t.spErrNeedVideo;
         return null;
       case 3:
         if (!videoReady) return t.spErrNeedVideo;
@@ -449,7 +484,145 @@ export default function SendPackagePage({ onHome, cargoType = 'personal', onNavi
     if (e.target) e.target.value = '';
   }
 
-  function runInspection() {
+  // ── Continuous video scan capture ──────────────────────────────────────────
+  function captureFrame() {
+    const v = liveVideoRef.current, c = canvasRef.current;
+    if (!v || !c || !v.videoWidth || !v.videoHeight) return;
+    c.width = v.videoWidth;
+    c.height = v.videoHeight;
+    const ctx = c.getContext('2d');
+    if (!ctx) return;
+    ctx.drawImage(v, 0, 0, c.width, c.height);
+    c.toBlob(b => { if (b) framesRef.current.push(b); }, 'image/jpeg', 0.82);
+  }
+
+  function stopScan() {
+    if (hintTimerRef.current) { clearInterval(hintTimerRef.current); hintTimerRef.current = null; }
+    if (stopTimerRef.current) { clearTimeout(stopTimerRef.current); stopTimerRef.current = null; }
+    captureFrame(); // grab one final frame before tearing down the stream
+    try { if (mediaRef.current && mediaRef.current.state !== 'inactive') mediaRef.current.stop(); } catch { /* noop */ }
+    if (streamRef.current) { streamRef.current.getTracks().forEach(tk => tk.stop()); streamRef.current = null; }
+    if (liveVideoRef.current) liveVideoRef.current.srcObject = null;
+    setRecording(false);
+  }
+
+  async function startScan() {
+    setScanError('');
+    setScanComplete(false);
+    if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') {
+      setScanError(t.spVideoErrShort || 'Camera recording is not supported on this device.');
+      return;
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false });
+      streamRef.current = stream;
+      if (liveVideoRef.current) {
+        liveVideoRef.current.srcObject = stream;
+        liveVideoRef.current.muted = true;
+        await liveVideoRef.current.play().catch(() => { /* autoplay policies — ignore */ });
+      }
+      const candidates = ['video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm', 'video/mp4'];
+      const mime = candidates.find(m => MediaRecorder.isTypeSupported(m)) || '';
+      recMimeRef.current = (mime || 'video/webm').split(';')[0];
+      const mr = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
+      mediaRef.current = mr;
+      chunksRef.current = [];
+      framesRef.current = [];
+      mr.ondataavailable = e => { if (e.data && e.data.size) chunksRef.current.push(e.data); };
+      mr.onstop = () => {
+        const blob = new Blob(chunksRef.current, { type: recMimeRef.current });
+        setScanBlob(blob);
+        setScanUrl(prev => { if (prev) URL.revokeObjectURL(prev); return URL.createObjectURL(blob); });
+        setVideoDur(Math.max(1, Math.round((performance.now() - recStartRef.current) / 1000)));
+        setVideoReady(true);
+      };
+      recStartRef.current = performance.now();
+      mr.start();
+      setRecording(true);
+      setHintIdx(0);
+      // Capture an initial frame shortly after the stream warms up, then rotate hints + grab frames.
+      setTimeout(captureFrame, 600);
+      let i = 0;
+      hintTimerRef.current = setInterval(() => {
+        i += 1;
+        setHintIdx(i % SCAN_HINTS.length);
+        captureFrame();
+      }, 2000);
+      stopTimerRef.current = setTimeout(() => stopScan(), SCAN_DURATION_MS);
+    } catch {
+      setScanError(t.spErrNeedVideo || 'Camera access was denied. Please allow camera to scan your package.');
+      setRecording(false);
+    }
+  }
+
+  function resetScan() {
+    stopScan();
+    setScanUrl(prev => { if (prev) URL.revokeObjectURL(prev); return null; });
+    setScanBlob(null);
+    framesRef.current = [];
+    setVideoReady(false);
+    setVideoDur(0);
+    setScanComplete(false);
+    setScanError('');
+  }
+
+  // ── Real scan pipeline: create(draft) → upload-urls → PUT → finalize → analyze → poll ──
+  async function runRealScan() {
+    if (!scanBlob || framesRef.current.length === 0) throw new Error('NO_SCAN');
+    const token = localStorage.getItem('cp_token') || '';
+    const H = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` };
+
+    // 1) Create a draft scan job (no listing exists yet — this is the pre-listing wizard scan)
+    const cRes = await fetch('/api/scan/create', {
+      method: 'POST', headers: H,
+      body: JSON.stringify({ draft: true, declaredItem: detectedItem || null, declaredCategory: detectedCat || null }),
+    });
+    const c = await cRes.json().catch(() => ({}));
+    if (!cRes.ok || !c.jobId) throw new Error(c.error || 'create failed');
+    const jobId: string = c.jobId;
+
+    // 2) Request upload URLs for the video + every extracted frame
+    const frames = framesRef.current;
+    const files = [{ kind: 'video', mime: recMimeRef.current }, ...frames.map(() => ({ kind: 'frame' }))];
+    const uRes = await fetch(`/api/scan/${jobId}/upload-urls`, {
+      method: 'POST', headers: H, body: JSON.stringify({ files }),
+    });
+    const u = await uRes.json().catch(() => ({}));
+    if (!uRes.ok || !Array.isArray(u.urls)) throw new Error(u.error || 'upload-urls failed');
+
+    const videoSlot  = u.urls.find((s: { kind: string }) => s.kind === 'video');
+    const frameSlots = u.urls.filter((s: { kind: string }) => s.kind === 'frame');
+    if (!videoSlot || frameSlots.length === 0) throw new Error('upload slots missing');
+
+    // 3) PUT bytes straight to Spaces (presigned URLs — Content-Type must match what was signed)
+    await fetch(videoSlot.uploadUrl, { method: 'PUT', headers: { 'Content-Type': recMimeRef.current }, body: scanBlob });
+    await Promise.all(frameSlots.map((slot: { uploadUrl: string }, idx: number) =>
+      fetch(slot.uploadUrl, { method: 'PUT', headers: { 'Content-Type': 'image/jpeg' }, body: frames[idx] })
+    ));
+
+    // 4) Finalize (verifies objects exist; triggers analysis)
+    const mediaKeys = [videoSlot.key, ...frameSlots.map((s: { key: string }) => s.key)];
+    const fRes = await fetch(`/api/scan/${jobId}/finalize`, {
+      method: 'POST', headers: H, body: JSON.stringify({ mediaKeys }),
+    });
+    if (!fRes.ok) { const d = await fRes.json().catch(() => ({})); throw new Error(d.error || 'finalize failed'); }
+
+    // 5) Kick analysis (finalize already triggers it; this is a best-effort nudge / retry hook)
+    await fetch(`/api/scan/${jobId}/analyze`, { method: 'POST', headers: H }).catch(() => { /* non-fatal */ });
+
+    // 6) Poll until terminal
+    for (let i = 0; i < 40; i++) {
+      await new Promise(r => setTimeout(r, 2500));
+      const jRes = await fetch(`/api/scan/${jobId}`, { headers: { Authorization: `Bearer ${token}` } });
+      if (!jRes.ok) continue;
+      const j = await jRes.json().catch(() => ({}));
+      const st = j.job?.status;
+      if (['verified', 'flagged', 'rejected', 'analysis_failed'].includes(st)) return j.job;
+    }
+    throw new Error('timeout');
+  }
+
+  async function runInspection() {
     setInspecting(true);
     setInspDone(false);
     setNameConfirmed(false);
@@ -457,41 +630,54 @@ export default function SendPackagePage({ onHome, cargoType = 'personal', onNavi
     setInspChecks([]);
     setIllegalBlocked(false);
     setCashFlagged(false);
+    setScanBlocked(false);
+    setScanComplete(false);
+    setScanError('');
     setDimManual(false);
+    setDims(null);
 
-    const allItems = CARGO_ITEMS.flatMap(c => c.items);
-    const item = allItems[Math.floor(Math.random() * allItems.length)];
-    const confOpts: Array<'high'|'medium'|'low'> = ['high','high','medium','medium','low'];
-    const riskOpts: Array<'low'|'review'|'high'>  = ['low','low','low','review','high'];
-    const conf = confOpts[Math.floor(Math.random() * confOpts.length)];
-    const risk = riskOpts[Math.floor(Math.random() * riskOpts.length)];
-    const l = rnd(20, 50), w = rnd(15, 40), h = rnd(10, 30);
-
-    setTimeout(() => {
+    let job;
+    try {
+      job = await runRealScan();
+    } catch (e) {
       setInspecting(false);
-      setDetectedItem(item);
-      setDetectedCat(item);
-      setConfidence(conf);
-      setRiskLevel(risk);
-      setDims({ l, w, h });
+      setScanComplete(false);
+      setScanError(
+        e instanceof Error && e.message === 'NO_SCAN'
+          ? (t.spErrNeedVideo || 'No scan recording found — please go back and record the package scan.')
+          : (e instanceof Error && e.message === 'timeout'
+              ? (t.scanHandoffErrFailed || 'Scan analysis timed out. Please try again.')
+              : (e instanceof Error ? e.message : (t.scanHandoffErrFailed || 'Scan failed. Please try again.')))
+      );
+      return;
+    }
 
-      const confLabels = { high: `${t.spConfLabel} ${t.spConfHigh}`, medium: `${t.spConfLabel} ${t.spConfMedium}`, low: `${t.spConfLabel} ${t.spConfLow}` };
-      const riskLabels = { low: t.spRiskLow, review: t.spRiskReview, high: t.spRiskHigh };
-      const checkTexts = [
-        t.spCheckMediaMatch,
-        `${t.spFraudRiskLabel} ${riskLabels[risk]}${risk === 'low' ? ' ✅' : ' ⚠️'}`,
-        confLabels[conf],
-      ];
-      checkTexts.forEach((txt, i) => {
-        setTimeout(() => setInspChecks(prev => [...prev, txt]), i * 200 + 80);
-      });
+    // Map the REAL Gemini analysis result onto the existing gating vars.
+    const r = job.analysisResult || {};
+    const matchConf = typeof r.match?.confidence === 'number' ? r.match.confidence : null;
+    const conf: 'high'|'medium'|'low' = matchConf == null ? 'medium' : matchConf >= 0.8 ? 'high' : matchConf >= 0.5 ? 'medium' : 'low';
+    const prohibited = r.prohibited?.prohibited === 'flagged';
+    const mismatch   = r.match?.match === 'mismatch';
+    const suspicious = r.valueCheck?.valueCheck === 'suspicious';
+    const bad = job.status === 'flagged' || job.status === 'rejected' || prohibited;
 
-      const lower = item.toLowerCase();
-      const isProhibited = PROHIBITED_KEYWORDS.some(kw => lower.includes(kw.toLowerCase()));
-      const isCash = CASH_KEYWORDS.some(kw => lower.includes(kw.toLowerCase()));
-      if (isProhibited) setIllegalBlocked(true);
-      if (isCash && !isProhibited) setCashFlagged(true);
-    }, 2500);
+    setConfidence(conf);
+    setRiskLevel(job.status === 'verified' ? 'low' : (bad ? 'high' : 'review'));
+    setScanBlocked(prohibited || job.status === 'rejected');
+    setIllegalBlocked(prohibited || job.status === 'rejected');
+    const cats = Array.isArray(r.prohibited?.categories) ? r.prohibited.categories.join(' ').toLowerCase() : '';
+    setCashFlagged(!prohibited && /cash|currenc|banknote|نقد|اسکناس/.test(cats));
+
+    const riskTxt = job.status === 'verified' ? t.spRiskLow : bad ? t.spRiskHigh : t.spRiskReview;
+    const checks: string[] = [];
+    checks.push(`${t.spCheckMediaMatch}${r.match?.match === 'match' ? ' ✅' : mismatch ? ' ⚠️' : ''}`);
+    checks.push(`${t.spFraudRiskLabel} ${riskTxt}${job.status === 'verified' ? ' ✅' : ' ⚠️'}`);
+    checks.push(`${t.spConfLabel} ${conf === 'high' ? t.spConfHigh : conf === 'medium' ? t.spConfMedium : t.spConfLow}`);
+    if (suspicious) checks.push(`${t.spFraudRiskLabel} ⚠️`);
+    setInspChecks(checks);
+
+    setScanComplete(true);
+    setInspecting(false);
   }
 
   function checkInspDone(nc: boolean, dc: boolean) {
@@ -510,8 +696,9 @@ export default function SendPackagePage({ onHome, cargoType = 'personal', onNavi
     setShowItemModal(false);
     checkInspDone(true, dimsConfirmed);
     const lower = item.toLowerCase();
-    setIllegalBlocked(PROHIBITED_KEYWORDS.some(kw => lower.includes(kw.toLowerCase())));
-    setCashFlagged(CASH_KEYWORDS.some(kw => lower.includes(kw.toLowerCase())));
+    // OR with the AI verdict so a clean-looking name can never un-block an AI-flagged scan.
+    setIllegalBlocked(scanBlocked || PROHIBITED_KEYWORDS.some(kw => lower.includes(kw.toLowerCase())));
+    setCashFlagged(prev => prev || CASH_KEYWORDS.some(kw => lower.includes(kw.toLowerCase())));
   }
 
   function confirmDims() {
@@ -685,7 +872,6 @@ export default function SendPackagePage({ onHome, cargoType = 'personal', onNavi
     setQrStatus('creating');
     setQrErrMsg('');
     setQrUrl(null);
-    setQrJobId(null);
     stopQrPoll();
     try {
       const token = localStorage.getItem('cp_token') || '';
@@ -918,58 +1104,55 @@ export default function SendPackagePage({ onHome, cargoType = 'personal', onNavi
             <p className="text-sm text-gray-400 mb-4">{t.spStep2Desc}</p>
 
             <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 mb-4 text-xs text-amber-700 flex gap-2">
-              <span>📋</span>
-              <span>{t.spPhotoHint}</span>
+              <span>🎥</span>
+              <span>{t.spVideoHint}</span>
             </div>
 
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-sm font-bold text-gray-700">{t.spPhotoProgress.replace('{n}', String(photos.length))}</span>
-              <span className="bg-gray-100 rounded-full px-3 py-1 text-xs font-bold text-cyan-600">{t.spPhotoCount.replace('{n}', String(photos.length))}</span>
+            {/* Always-mounted live preview (hidden until recording so the ref exists when the stream attaches) */}
+            <div className="relative mb-4" style={{ display: recording ? 'block' : 'none' }}>
+              <video ref={liveVideoRef} autoPlay playsInline muted
+                className="w-full rounded-2xl bg-black object-cover" style={{ aspectRatio: '3 / 4' }} />
+              <div className="absolute top-3 left-3 flex items-center gap-2 bg-red-600/90 text-white text-[11px] font-bold px-3 py-1 rounded-full">
+                <span className="w-2 h-2 rounded-full bg-white animate-pulse" /> REC
+              </div>
+              <div className="absolute inset-x-0 bottom-0 p-4 bg-gradient-to-t from-black/75 to-transparent text-center">
+                <span className="text-white text-sm font-extrabold drop-shadow">{SCAN_HINTS[hintIdx]}</span>
+              </div>
+              <button type="button" onClick={stopScan}
+                className="absolute top-3 right-3 bg-white/90 text-gray-800 text-xs font-bold px-3 py-1.5 rounded-full hover:bg-white transition-colors">
+                ⏹ {t.spVideoReRecord ?? 'Stop'}
+              </button>
             </div>
+            <canvas ref={canvasRef} className="hidden" />
 
-            <div className="grid grid-cols-2 gap-3 mb-3">
-              {([
-                { key: 'jolo'  as const, label: t.spShotFront, ref: jRef },
-                { key: 'posht' as const, label: t.spShotBack,  ref: pRef },
-                { key: 'chap'  as const, label: t.spShotLeft,  ref: cRef },
-                { key: 'rast'  as const, label: t.spShotRight, ref: rRef },
-              ]).map(btn => (
-                <button key={btn.key} type="button"
-                  onClick={() => btn.ref.current?.click()}
-                  className={`relative flex flex-col items-center gap-1.5 py-4 rounded-xl border-2 text-sm font-bold transition-all
-                    ${shots[btn.key]
-                      ? 'border-green-400 bg-green-50 text-green-700'
-                      : 'border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100'}`}>
-                  <span className="text-xl">{shots[btn.key] ? '✅' : '📷'}</span>
-                  <span>{btn.label}</span>
-                  <input ref={btn.ref} type="file" accept="image/*" capture="environment" className="hidden"
-                    onChange={e => { const f = e.target.files?.[0]; if (f) addPhoto(f, btn.key); e.target.value = ''; }} />
-                </button>
-              ))}
-            </div>
+            {!recording && !videoReady && (
+              <button type="button" onClick={startScan}
+                className="w-full border-2 border-dashed border-gray-300 rounded-xl py-10 flex flex-col items-center gap-3 hover:border-cyan-400 hover:bg-cyan-50/30 transition-all">
+                <span className="text-4xl">🎥</span>
+                <span className="text-sm font-bold text-gray-600">{t.spVideoRecord}</span>
+                <span className="text-xs text-gray-400">{t.spVideoClickToRecord}</span>
+              </button>
+            )}
 
-            <button type="button" onClick={() => exRef.current?.click()}
-              className="mb-4 inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold text-gray-500
-                border border-dashed border-gray-300 bg-gray-50 hover:bg-gray-100 transition-colors">
-              {t.spPhotoAdd}
-              <input ref={exRef} type="file" accept="image/*" capture="environment" className="hidden"
-                onChange={e => { const f = e.target.files?.[0]; if (f) addPhoto(f); e.target.value = ''; }} />
-            </button>
-
-            {photos.length > 0 && (
-              <div className="grid grid-cols-3 gap-2 mb-4">
-                {photos.map((src, i) => (
-                  <div key={i} className="relative aspect-square rounded-xl overflow-hidden bg-gray-100">
-                    <img src={src} alt="" className="w-full h-full object-cover" />
-                    <button onClick={() => removePhoto(i)}
-                      className="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/60 text-white text-xs flex items-center justify-center hover:bg-red-500 transition-colors">
-                      ✕
-                    </button>
-                  </div>
-                ))}
+            {!recording && videoReady && (
+              <div className="bg-green-50 border border-green-200 rounded-xl p-4 mb-2">
+                <div className="flex items-center gap-3 mb-3">
+                  <span className="bg-green-100 border border-green-300 rounded-full px-3 py-1 text-xs font-bold text-green-700">
+                    ✅ {videoDur} {t.spVideoSecs}
+                  </span>
+                  <button onClick={() => { resetScan(); startScan(); }}
+                    className="text-xs text-cyan-600 font-bold underline bg-transparent border-none cursor-pointer">
+                    {t.spVideoReRecord}
+                  </button>
+                </div>
+                {scanUrl && (
+                  <video src={scanUrl} controls playsInline
+                    className="w-full rounded-xl bg-black" style={{ maxHeight: 320 }} />
+                )}
               </div>
             )}
 
+            {scanError && <Err msg={scanError} />}
             <Err msg={err} />
             <div className="flex gap-3 mt-4">
               <button onClick={() => goStep(1)} className="ds-btn-secondary flex-shrink-0 px-5 py-3">{t.wizardPrev}</button>
@@ -991,25 +1174,29 @@ export default function SendPackagePage({ onHome, cargoType = 'personal', onNavi
             </div>
 
             {!videoReady ? (
-              <button type="button" onClick={() => videoRef.current?.click()}
-                className="w-full border-2 border-dashed border-gray-300 rounded-xl py-10 flex flex-col items-center gap-3 hover:border-cyan-400 hover:bg-cyan-50/30 transition-all">
+              <div className="w-full border-2 border-dashed border-gray-300 rounded-xl py-10 flex flex-col items-center gap-3 text-center">
                 <span className="text-4xl">🎥</span>
                 <span className="text-sm font-bold text-gray-600">{t.spVideoRecord}</span>
-                <span className="text-xs text-gray-400">{t.spVideoClickToRecord}</span>
-                <input ref={videoRef} type="file" accept="video/*" capture="environment" className="hidden"
-                  onChange={onVideoFile} />
-              </button>
+                <button onClick={() => goStep(2)}
+                  className="text-xs text-cyan-600 font-bold underline bg-transparent border-none cursor-pointer">
+                  {t.wizardPrev}
+                </button>
+              </div>
             ) : (
               <div className="bg-green-50 border border-green-200 rounded-xl p-4">
                 <div className="flex items-center gap-3 mb-3">
                   <span className="bg-green-100 border border-green-300 rounded-full px-3 py-1 text-xs font-bold text-green-700">
                     ✅ {videoDur} {t.spVideoSecs}
                   </span>
-                  <button onClick={() => { setVideoReady(false); setVideoDur(0); }}
+                  <button onClick={() => { resetScan(); goStep(2); }}
                     className="text-xs text-cyan-600 font-bold underline bg-transparent border-none cursor-pointer">
                     {t.spVideoReRecord}
                   </button>
                 </div>
+                {scanUrl && (
+                  <video src={scanUrl} controls playsInline
+                    className="w-full rounded-xl bg-black" style={{ maxHeight: 360 }} />
+                )}
               </div>
             )}
 
@@ -1040,11 +1227,24 @@ export default function SendPackagePage({ onHome, cargoType = 'personal', onNavi
               </div>
             )}
 
-            {!inspecting && detectedItem && (
+            {!inspecting && scanError && (
+              <div className="space-y-3 py-4">
+                <Err msg={scanError} />
+                <button onClick={runInspection}
+                  className="ds-btn-primary w-full py-2.5 flex items-center justify-center gap-2">
+                  <RefreshCw className="w-4 h-4" /> {t.scanRetryAnalysis ?? 'Retry'}
+                </button>
+                <button onClick={() => goStep(2)} className="ds-btn-secondary w-full py-2.5">{t.wizardPrev}</button>
+              </div>
+            )}
+
+            {!inspecting && !scanError && scanComplete && (
               <div className="space-y-4">
                 <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
                   <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">{t.spDetectedItem}</div>
-                  <div className="text-lg font-extrabold text-gray-900 mb-2">{detectedItem}</div>
+                  <div className="text-lg font-extrabold text-gray-900 mb-2">
+                    {detectedItem || <span className="text-base font-bold text-gray-400">{t.spCorrectItemName}</span>}
+                  </div>
                   <div className="flex gap-2 flex-wrap">
                     <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full border
                       ${confidence === 'high' ? 'bg-green-50 text-green-700 border-green-200' :
@@ -1084,73 +1284,37 @@ export default function SendPackagePage({ onHome, cargoType = 'personal', onNavi
                 )}
 
                 {!nameConfirmed ? (
-                  <div className="flex gap-3">
-                    <button onClick={confirmName}
-                      className="flex-1 py-2.5 bg-green-500 hover:bg-green-600 text-white text-sm font-bold rounded-xl transition-colors">
-                      {t.spConfirmItemName}
-                    </button>
-                    <button onClick={() => setShowItemModal(true)}
-                      className="flex-1 py-2.5 bg-amber-50 border border-amber-300 text-amber-700 text-sm font-bold rounded-xl hover:bg-amber-100 transition-colors">
-                      {t.spCorrectItemName}
-                    </button>
-                  </div>
+                  <button onClick={() => setShowItemModal(true)}
+                    className="w-full py-2.5 bg-amber-50 border border-amber-300 text-amber-700 text-sm font-bold rounded-xl hover:bg-amber-100 transition-colors">
+                    {t.spCorrectItemName}
+                  </button>
                 ) : (
                   <div className="bg-green-50 border border-green-200 rounded-xl px-4 py-2.5 text-sm font-bold text-green-700">
                     {t.spItemNameConfirmed}
                   </div>
                 )}
 
-                {dims && (
-                  <div>
-                    <div className="text-xs font-bold text-gray-500 mb-2">{t.spDimsEstimated}</div>
-                    <div className="grid grid-cols-3 gap-2 mb-3">
-                      {([[t.spDimLength, dims.l],[t.spDimWidth, dims.w],[t.spDimHeight, dims.h]] as [string, number][]).map(([lbl, val]) => (
-                        <div key={lbl} className="bg-blue-50 border border-blue-200 rounded-xl p-2.5 text-center">
-                          <div className="text-base font-extrabold text-cyan-600">{val}</div>
-                          <div className="text-[10px] text-gray-400 mt-0.5">{lbl} (cm)</div>
-                        </div>
-                      ))}
+                <div>
+                  <div className="text-xs font-bold text-gray-500 mb-2">{t.spManualDimsTitle}</div>
+                  {!dimsConfirmed ? (
+                    <div className="space-y-3">
+                      <div className="grid grid-cols-3 gap-3">
+                        {([[t.spDimLength, dimL, setDimL],[t.spDimWidth, dimW, setDimW],[t.spDimHeight, dimH, setDimH]] as [string,string,(v:string)=>void][]).map(([l,v,s]) => (
+                          <div key={l}>
+                            <label className="ds-label text-[11px]">{l}</label>
+                            <input type="number" className="ds-input text-sm" placeholder="cm" min="1" max="300"
+                              value={v} onChange={e => s(e.target.value)} style={{ direction: 'ltr' }} />
+                          </div>
+                        ))}
+                      </div>
+                      <button onClick={saveDims} className="ds-btn-primary w-full py-2.5">{t.spConfirmDims}</button>
                     </div>
-
-                    {!dimsConfirmed && !dimManual && (
-                      <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
-                        <div className="text-sm font-bold text-gray-700 mb-3">{t.spDimsCorrect}</div>
-                        <div className="flex gap-3">
-                          <button onClick={confirmDims}
-                            className="flex-1 py-2.5 bg-cyan-600 hover:bg-cyan-700 text-white text-sm font-bold rounded-xl transition-colors">
-                            {t.spConfirmDims}
-                          </button>
-                          <button onClick={() => setDimManual(true)}
-                            className="flex-1 py-2.5 border border-gray-300 text-gray-600 text-sm font-bold rounded-xl hover:bg-gray-50 transition-colors">
-                            {t.spManualDims}
-                          </button>
-                        </div>
-                      </div>
-                    )}
-
-                    {dimManual && (
-                      <div className="space-y-3">
-                        <div className="text-xs font-bold text-gray-500 mb-1">{t.spManualDimsTitle}</div>
-                        <div className="grid grid-cols-3 gap-3">
-                          {([[t.spDimLength, dimL, setDimL],[t.spDimWidth, dimW, setDimW],[t.spDimHeight, dimH, setDimH]] as [string,string,(v:string)=>void][]).map(([l,v,s]) => (
-                            <div key={l}>
-                              <label className="ds-label text-[11px]">{l}</label>
-                              <input type="number" className="ds-input text-sm" placeholder="cm" min="1" max="300"
-                                value={v} onChange={e => s(e.target.value)} style={{ direction: 'ltr' }} />
-                            </div>
-                          ))}
-                        </div>
-                        <button onClick={saveDims} className="ds-btn-primary w-full py-2.5">{t.spConfirmDims}</button>
-                      </div>
-                    )}
-
-                    {dimsConfirmed && (
-                      <div className="bg-green-50 border border-green-200 rounded-xl px-4 py-2.5 text-sm font-bold text-green-700">
-                        {t.spDimsConfirmed}
-                      </div>
-                    )}
-                  </div>
-                )}
+                  ) : (
+                    <div className="bg-green-50 border border-green-200 rounded-xl px-4 py-2.5 text-sm font-bold text-green-700">
+                      {t.spDimsConfirmed}
+                    </div>
+                  )}
+                </div>
 
                 {inspDone && (
                   <div className="bg-green-50 border border-green-200 rounded-2xl p-5 text-center">
