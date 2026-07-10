@@ -627,7 +627,7 @@ export default function BuyForMeFlow({ onBack, onHome, t, isRTL, onNavigate, onN
           {/* ── Buy-For-Me: ProductFinder lead + order form ── */}
           {mode === 'buyforme' && (
             <motion.div key="buyforme" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
-              <ChaparConcierge language={lang} userName={session?.firstName || ""} onPublished={onPublished} />
+              <ChaparConcierge language={lang} userName={session?.firstName || ""} userId={session?.userId} onNeedAuth={onNeedAuth} onPublished={onPublished} />
             </motion.div>
           )}
 

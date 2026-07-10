@@ -21,7 +21,7 @@ const COUNTRIES = [
   { code: "FR", label: "فرانسه 🇫🇷" }, { code: "TR", label: "ترکیه 🇹🇷" }, { code: "AE", label: "امارات 🇦🇪" },
 ];
 
-export default function ChaparConcierge({ language = "fa", userName = "", onPublished }: { language?: string; userName?: string; onPublished?: (orderId: string) => void }) {
+export default function ChaparConcierge({ language = "fa", userName = "", userId, onNeedAuth, onPublished }: { language?: string; userName?: string; userId?: string; onNeedAuth?: () => void; onPublished?: (orderId: string) => void }) {
   const lang = LANGS[language] ? language : "fa";
   const rtl = ["fa", "ar"].includes(lang);
   const [messages, setMessages] = useState([{ role: "assistant", text: LANGS[lang].greet, _api: null }]);
@@ -104,11 +104,13 @@ export default function ChaparConcierge({ language = "fa", userName = "", onPubl
   function more() { if (loading) return; const next = [...messages, { role: "user", text: "بیشتر بگردیم.", _api: { role: "user", content: "Suggest a different option." } }]; setMessages(next); callAI(next); }
   function confirmProduct(p) { setOrderProduct(p); setStage("store"); }
   async function doPublish() {
+    // Ownership guard: publishing requires a logged-in user — send them to auth instead of an anonymous post.
+    if (!userId) { onNeedAuth?.(); return; }
     setPublishing(true);
     try {
       const r = await fetch("/api/marketplace/publish", { method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ product: orderProduct, variant: variant || null,
-          priority: priority || "any", country: estCountry, specialRequest: specialRequest || "" }) });
+          priority: priority || "any", country: estCountry, specialRequest: specialRequest || "", userId }) });
       const d = await r.json();
       if (d.ok) { setPublishResult(d.orderId); if (onPublished) setTimeout(() => onPublished(d.orderId), 1800); } else setPublishResult(null);
     } catch { setPublishResult(null); }
@@ -321,6 +323,11 @@ export default function ChaparConcierge({ language = "fa", userName = "", onPubl
               })()}
               {publishResult
                 ? <div className="rounded-2xl border border-emerald-400/30 bg-emerald-400/10 p-4 text-center text-sm text-emerald-300">سفارش منتشر شد ✓<div className="mt-1 text-xs text-emerald-200/70">کد سفارش: {publishResult}</div></div>
+                : !userId
+                ? <button onClick={() => onNeedAuth?.()}
+                    className="w-full rounded-2xl border border-cyan-400/40 bg-cyan-400/10 py-3 text-sm font-bold text-cyan-200">
+                    برای انتشار در بازارگاه، وارد شوید
+                  </button>
                 : <button disabled={publishing || !orderProduct?.title || (orderProduct.title.trim().length <= 2) || !orderProduct?.priceUSD || !estCountry} onClick={doPublish}
                     className="w-full rounded-2xl bg-gradient-to-l from-cyan-400 to-blue-500 py-3 text-sm font-bold text-white disabled:opacity-50">
                     {publishing ? "در حال انتشار…" : "تأیید و انتشار در بازارگاه"}

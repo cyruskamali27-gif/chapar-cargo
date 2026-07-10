@@ -477,6 +477,7 @@ function MarketplaceListingCard({
 
 function MarketplacePage({ onBack, onHome, t, onBook, myOrderId, onClearMyOrder }: { onBack: () => void; onHome: () => void; t: typeof translations['en']; onBook: () => void; myOrderId?: string | null; onClearMyOrder?: () => void }) {
   const { isRTL } = useLang();
+  const { session } = useSession();
   const [from, setFrom] = useState('');
   const [to,   setTo]   = useState('');
   const [date, setDate] = useState('');
@@ -502,7 +503,8 @@ function MarketplacePage({ onBack, onHome, t, onBook, myOrderId, onClearMyOrder 
 
   const [buyerOrders, setBuyerOrders] = useState<any[]>([]);
   const [buyerLoading, setBuyerLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'travelers'|'buyers'>('travelers');
+  // Buyers (Buy-For-Me orders) are the core of Chapar — default to that tab.
+  const [activeTab, setActiveTab] = useState<'travelers'|'buyers'>('buyers');
 
   // Reset green highlight whenever a new order is shown
   useEffect(() => { if (myOrderId) setIsHighlighted(true); }, [myOrderId]);
@@ -853,10 +855,16 @@ function MarketplacePage({ onBack, onHome, t, onBook, myOrderId, onClearMyOrder 
                 <p className="text-sm">اولین نفری باشید که از هوش مصنوعی درخواست خرید ثبت می‌کند</p>
               </div>
             )}
-            {!buyerLoading && buyerOrders.map(order => (
+            {!buyerLoading && buyerOrders
+              .slice()
+              .sort((a, b) => ((b.userId && b.userId === session?.userId) ? 1 : 0) - ((a.userId && a.userId === session?.userId) ? 1 : 0))
+              .map(order => (
               <MarketplaceListingCard
                 key={order.orderId}
                 title={<>
+                  {order.userId && order.userId === session?.userId && (
+                    <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-500 text-white flex-shrink-0">آگهی‌های من</span>
+                  )}
                   <span className="truncate">{order.product?.title || '—'}</span>
                   {order.product?.brand && (
                     <>
