@@ -37,6 +37,7 @@ export default function ChaparConcierge({ language = "fa", userName = "", onPubl
   const [publishing, setPublishing] = useState(false);
   const [publishResult, setPublishResult] = useState(null);
   const fileRef = useRef(null), scrollRef = useRef(null);
+  const [reduceMotion] = useState(() => typeof window !== "undefined" && !!window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches);
 
   useEffect(() => { window.speechSynthesis?.getVoices(); }, []);
   useEffect(() => { scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" }); }, [messages, loading]);
@@ -126,9 +127,24 @@ export default function ChaparConcierge({ language = "fa", userName = "", onPubl
     try { rec.start(); } catch (err) { setVoiceErr("خطا در شروع: " + (err?.message || err)); }
   }
 
+  const _lastMsg = messages[messages.length - 1];
+  // Contextual status: after the reply is shown we're fetching product results; otherwise still thinking.
+  const thinkingStatus = (loading && _lastMsg?.role === "assistant") ? "در حال جست‌وجو…" : "در حال فکر کردن…";
+
   return (
     <div dir={rtl ? "rtl" : "ltr"} className="mx-auto w-full max-w-2xl space-y-4 p-3 font-sans">
-      <style>{`@keyframes up{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}`}</style>
+      <style>{`@keyframes up{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+@keyframes cc-spin{to{transform:rotate(360deg)}}
+@keyframes cc-breathe{0%,100%{transform:scale(.75);box-shadow:0 0 6px 0 #22d3ee}50%{transform:scale(1.15);box-shadow:0 0 18px 3px #22d3ee}}
+.cc-orbit{position:relative;width:30px;height:30px;flex:0 0 auto}
+.cc-orbit .cc-core{position:absolute;inset:0;margin:auto;width:10px;height:10px;border-radius:50%;background:radial-gradient(circle,#fff,#22d3ee);animation:cc-breathe 1.8s infinite ease-in-out}
+.cc-orbit .cc-ring{position:absolute;inset:0;animation:cc-spin linear infinite}
+.cc-orbit .cc-ring:nth-child(2){animation-duration:1.4s}
+.cc-orbit .cc-ring:nth-child(3){animation-duration:2.1s;animation-direction:reverse}
+.cc-orbit .cc-ring:nth-child(4){animation-duration:2.8s}
+.cc-orbit .cc-ring i{position:absolute;top:-1px;left:50%;width:5px;height:5px;margin-left:-2.5px;border-radius:50%;background:#22d3ee;box-shadow:0 0 8px -1px #22d3ee}
+.cc-orbit .cc-ring:nth-child(3) i{background:#6366f1;box-shadow:0 0 8px -1px #6366f1}
+.cc-orbit .cc-ring:nth-child(4) i{background:#3b82f6;box-shadow:0 0 8px -1px #3b82f6}`}</style>
 
       {/* video hero */}
       <div className="relative h-[30vh] max-h-[320px] w-full overflow-hidden rounded-3xl mb-4">
@@ -172,7 +188,20 @@ export default function ChaparConcierge({ language = "fa", userName = "", onPubl
               )}
             </div>
           ))}
-          {loading && <div className="me-auto max-w-[86%]"><div className="rounded-2xl px-3.5 py-2 text-sm text-white/40" style={{ background: "rgba(255,255,255,.06)", border: "1px solid rgba(255,255,255,.1)" }}>…</div></div>}
+          {loading && (
+            <div className="me-auto max-w-[86%]" style={{ animation: "up .35s ease both" }}>
+              <div className="flex items-center gap-2.5 rounded-2xl px-3.5 py-2.5" style={{ background: "rgba(255,255,255,.06)", border: "1px solid rgba(255,255,255,.1)" }}>
+                {reduceMotion ? (
+                  <span className="text-sm text-white/45">در حال پردازش…</span>
+                ) : (
+                  <>
+                    <span className="cc-orbit"><span className="cc-core" /><span className="cc-ring"><i /></span><span className="cc-ring"><i /></span><span className="cc-ring"><i /></span></span>
+                    <span className="text-xs text-white/45">{thinkingStatus}</span>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* input bar */}
