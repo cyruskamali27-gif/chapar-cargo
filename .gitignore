@@ -16,3 +16,9 @@ node_modules/
 
 # Local Netlify folder
 .netlify
+
+# local scratch — deploy snapshots, editor backups, Claude tooling/notes
+.deploy-backups/
+*.bak
+*.bak*
+.claude/
