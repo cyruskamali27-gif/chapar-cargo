@@ -569,17 +569,18 @@ function BuyForMeForm({ t, isRTL, onHome, onNavigate, onNeedAuth, product, setPr
 
 // ── Public export ─────────────────────────────────────────────────────────────
 
-export default function BuyForMeFlow({ onBack, onHome, t, isRTL, onNavigate, onNeedAuth }: {
+export default function BuyForMeFlow({ onBack, onHome, t, isRTL, onNavigate, onNeedAuth, initialMode, onPublished }: {
   onBack: () => void;
   onHome: () => void;
   t: Translations;
   isRTL: boolean;
   onNavigate?: (page: string) => void;
   onNeedAuth?: () => void;
+  initialMode?: Mode;
 }) {
   const { lang } = useLang();
   const { session } = useSession();
-  const [mode, setMode] = useState<Mode>('selector');
+  const [mode, setMode] = useState<Mode>(initialMode ?? 'selector');
   // Lifted state — shared between ProductFinder (lead) and BuyForMeForm
   const [product, setProduct] = useState<ProductInfo>({
     title: '', store: '', price: '', currency: 'USD', qty: '1', imageUrl: '', productUrl: '',
@@ -596,19 +597,19 @@ export default function BuyForMeFlow({ onBack, onHome, t, isRTL, onNavigate, onN
   return (
     <div className="min-h-screen bg-[#F8FAFC]" dir={isRTL ? 'rtl' : 'ltr'}>
       {/* Header */}
-      <div className="sticky top-0 z-30 bg-white/95 backdrop-blur border-b border-gray-100 px-4 py-3 flex items-center gap-3">
+      <div className="sticky top-16 z-40 bg-white/95 backdrop-blur border-b border-gray-100 px-4 py-3 flex items-center gap-3">
         <button onClick={goBack} className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-gray-100 transition-colors text-gray-500">
           <ArrowLeft className="w-5 h-5" />
         </button>
         <div className="flex-1 min-w-0">
           <h1 className="text-base font-extrabold text-gray-900 leading-tight truncate">{headingLabel}</h1>
         </div>
-        <button onClick={onHome} className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-gray-100 transition-colors text-gray-500">
-          <Home className="w-5 h-5" />
+        <button onClick={onHome} className="w-12 h-12 flex items-center justify-center rounded-xl hover:bg-gray-100 transition-colors text-gray-500">
+          <Home className="w-7 h-7" />
         </button>
       </div>
 
-      <div className="max-w-lg mx-auto px-4 pt-6 pb-12">
+      <div className="max-w-lg mx-auto px-4 pt-20 pb-12">
         <AnimatePresence mode="wait">
 
           {/* ── Selector: choose Buy-For-Me or Commercial ── */}
@@ -626,7 +627,7 @@ export default function BuyForMeFlow({ onBack, onHome, t, isRTL, onNavigate, onN
           {/* ── Buy-For-Me: ProductFinder lead + order form ── */}
           {mode === 'buyforme' && (
             <motion.div key="buyforme" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
-              <ChaparConcierge language={lang} userName={session?.firstName || ""} />
+              <ChaparConcierge language={lang} userName={session?.firstName || ""} onPublished={onPublished} />
             </motion.div>
           )}
 

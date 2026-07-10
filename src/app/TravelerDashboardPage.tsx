@@ -10,6 +10,7 @@ interface Trip {
   destination?: string; destCity?: string; date: string;
   capacity?: number; minPricePerKg?: number; phone?: string;
   cargoOptions?: string[]; description?: string; status: string; createdAt?: number;
+  serverTripId?: string;
 }
 interface Order {
   trackId: string; userId?: string; firstName?: string; lastName?: string;
@@ -52,6 +53,24 @@ function fmtShortNum(n: number): string {
 
 interface Props { onBack: () => void; onHome: () => void; t: Record<string,string>; onNewTrip: () => void; onNavigate: (page: string) => void; }
 
+// Normalize a server trip record (/api/trips/listings) into the dashboard Trip card shape.
+function adaptServerTrip(s: { tripId: string; userId?: string; from?: string; to?: string; date?: string; capacityKg?: number; minPricePerKg?: number; travelerName?: string }): Trip {
+  return {
+    id:            s.tripId,
+    serverTripId:  s.tripId,
+    userId:        s.userId || '',
+    origin:        s.from || '',
+    originCity:    s.from || '',
+    destination:   s.to || '',
+    destCity:      s.to || '',
+    date:          s.date || '',
+    capacity:      s.capacityKg ?? undefined,
+    minPricePerKg: s.minPricePerKg ?? undefined,
+    cargoOptions:  [],
+    status:        'active',
+  };
+}
+
 export default function TravelerDashboardPage({ onHome, onNewTrip, onNavigate }: Props) {
   const { session } = useSession();
   const { t, isRTL } = useLang();
@@ -70,6 +89,8 @@ export default function TravelerDashboardPage({ onHome, onNewTrip, onNavigate }:
   const TODAY = new Date().toISOString().split('T')[0];
 
   const [tab, setTab]             = useState<'trips'|'orders'|'myoffers'>('trips');
+  const [tripView, setTripView]   = useState<'mine'|'market'>('mine'); // sub-view of the trips tab
+  const [marketTrips, setMarketTrips] = useState<Trip[]>([]);          // server-backed open trips (all travelers)
   const [myTrips, setMyTrips]     = useState<Trip[]>([]);
   const [allOrders, setAllOrders] = useState<Order[]>([]);
   const [statuses, setStatuses]   = useState<Record<string,string>>({});
@@ -114,6 +135,19 @@ export default function TravelerDashboardPage({ onHome, onNewTrip, onNavigate }:
   }, [session]);
 
   useEffect(() => { loadData(); }, [loadData]);
+
+  // Server-backed market view: every traveler's open trips (read-only).
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const r = await fetch('/api/trips/listings');
+        const d = await r.json();
+        if (!cancelled && d.ok) setMarketTrips((d.trips || []).map(adaptServerTrip));
+      } catch { /* non-fatal */ }
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
   if (!session) return null; // App.tsx redirects to auth
 
@@ -210,10 +244,18 @@ export default function TravelerDashboardPage({ onHome, onNewTrip, onNavigate }:
     showToast(t.tdashCounterRejected, false); loadData();
   }
 
-  function doDeleteTrip(tripId: string) {
+  async function doDeleteTrip(trip: Trip) {
     if (!confirm(t.tdashConfirmDeleteTrip)) return;
     const all = Store.get<Trip[]>('trips') ?? [];
-    Store.set('trips', all.map(tr => tr.id === tripId ? { ...tr, status: 'deleted' } : tr));
+    Store.set('trips', all.map(tr => tr.id === trip.id ? { ...tr, status: 'deleted' } : tr));
+    if (trip.serverTripId) {
+      try {
+        await fetch('/api/trips/delete', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ tripId: trip.serverTripId, userId: session.userId }),
+        });
+      } catch { /* non-fatal */ }
+    }
     showToast(t.tdashTripDeleted, false); loadData();
   }
 
@@ -230,15 +272,29 @@ export default function TravelerDashboardPage({ onHome, onNewTrip, onNavigate }:
     setEtMinPx(String(trip.minPricePerKg ?? ''));
   }
 
-  function saveEdit() {
+  async function saveEdit() {
     if (!etDate || !editTrip) { showToast(t.tdashErrDate, false); return; }
+    const edited = editTrip;
     const all = Store.get<Trip[]>('trips') ?? [];
-    Store.set('trips', all.map(tr => tr.id !== editTrip.id ? tr : {
+    Store.set('trips', all.map(tr => tr.id !== edited.id ? tr : {
       ...tr, date: etDate,
       capacity: parseFloat(etCap) || undefined,
       minPricePerKg: parseFloat(etMinPx) || undefined,
       updatedAt: Date.now(),
     }));
+    if (edited.serverTripId) {
+      try {
+        await fetch('/api/trips/update', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            tripId: edited.serverTripId, userId: session.userId,
+            date: etDate,
+            capacityKg: parseFloat(etCap) || null,
+            minPricePerKg: parseFloat(etMinPx) || null,
+          }),
+        });
+      } catch { /* non-fatal */ }
+    }
     setEditTrip(null); showToast(t.tdashTripEdited); loadData();
   }
 
@@ -331,6 +387,14 @@ export default function TravelerDashboardPage({ onHome, onNewTrip, onNavigate }:
 
         {/* ─── Tab: My Trips ─── */}
         {tab === 'trips' && (
+          <>
+          <div dir="rtl" className="mb-4 flex gap-2">
+            <button onClick={() => setTripView('mine')}
+              className={"rounded-full px-4 py-1.5 text-sm font-bold border " + (tripView === 'mine' ? "bg-cyan-50 text-cyan-700 border-cyan-300" : "bg-white text-gray-500 border-gray-200")}>سفرهای من</button>
+            <button onClick={() => setTripView('market')}
+              className={"rounded-full px-4 py-1.5 text-sm font-bold border " + (tripView === 'market' ? "bg-cyan-50 text-cyan-700 border-cyan-300" : "bg-white text-gray-500 border-gray-200")}>بازار سفرها</button>
+          </div>
+          {tripView === 'mine' ? (
           sortedTrips.length === 0 ? (
             <div className="text-center py-12 text-gray-400">
               <div className="text-5xl mb-3">✈️</div>
@@ -435,7 +499,7 @@ export default function TravelerDashboardPage({ onHome, onNewTrip, onNavigate }:
                           {t.tdashEdit}
                         </button>
                       )}
-                      <button onClick={() => doDeleteTrip(trip.id)}
+                      <button onClick={() => doDeleteTrip(trip)}
                         className="flex-1 h-9 bg-red-50 border border-red-200 text-red-600 text-xs font-bold rounded-xl hover:bg-red-100 transition-colors">
                         {t.tdashDelete}
                       </button>
@@ -445,6 +509,38 @@ export default function TravelerDashboardPage({ onHome, onNewTrip, onNavigate }:
               })}
             </div>
           )
+          ) : (
+          marketTrips.length === 0 ? (
+            <div className="text-center py-12 text-gray-400">
+              <div className="text-5xl mb-3">🌍</div>
+              <div className="text-base font-bold text-gray-700 mb-1">{t.tdashNoTrips}</div>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {marketTrips.map(trip => {
+                const owned = trip.userId === session.userId;
+                return (
+                  <div key={trip.id} className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm">
+                    <div className="flex items-start justify-between mb-2">
+                      <div>
+                        <div className="text-base font-extrabold text-gray-900">
+                          {trip.originCity || trip.origin || '—'} ✈ {trip.destCity || trip.destination || '—'}
+                        </div>
+                        <div className="text-[10px] text-gray-400 font-mono tracking-wide mt-0.5">{trip.id}</div>
+                      </div>
+                      {owned && <span className="text-[10px] font-extrabold px-2.5 py-0.5 rounded-full border bg-cyan-50 text-cyan-700 border-cyan-200">{t.tdashTripActive}</span>}
+                    </div>
+                    <div className="flex flex-wrap gap-3 text-xs text-gray-500">
+                      <span>📅 {fmtDate(trip.date)}</span>
+                      {trip.capacity != null && <span>⚖️ {trip.capacity} kg</span>}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )
+          )}
+          </>
         )}
 
         {/* ─── Tab: Open Orders ─── */}
