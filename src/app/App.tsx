@@ -305,9 +305,9 @@ function PageHeader({ title, desc, onHome }: { title: string; desc: string; onBa
   );
 }
 
-function BuyForMePage({ onBack, onHome, t, onNavigate, onNeedAuth }: { onBack: () => void; onHome: () => void; t: typeof translations['en']; onNavigate?: (page: string) => void; onNeedAuth?: () => void }) {
+function BuyForMePage({ onBack, onHome, t, onNavigate, onNeedAuth, initialMode, onPublished }: { onBack: () => void; onHome: () => void; t: typeof translations['en']; onNavigate?: (page: string) => void; onNeedAuth?: () => void; initialMode?: 'selector' | 'buyforme' | 'commercial'; onPublished?: (orderId: string) => void }) {
   const { isRTL } = useLang();
-  return <BuyForMeFlow onBack={onBack} onHome={onHome} t={t} isRTL={isRTL} onNavigate={onNavigate} onNeedAuth={onNeedAuth} />;
+  return <BuyForMeFlow onBack={onBack} onHome={onHome} t={t} isRTL={isRTL} onNavigate={onNavigate} onNeedAuth={onNeedAuth} initialMode={initialMode} onPublished={onPublished} />;
 }
 
 // ─── Traveler Acceptance Preview ─────────────────────────────────────────────
@@ -413,7 +413,69 @@ function TravelerPage({ onBack, onHome, t, onNavigate }: { onBack: () => void; o
   return <TravelerPageFull onBack={onBack} onHome={onHome} t={t as unknown as Record<string, string>} onNavigate={onNavigate} />;
 }
 
-function MarketplacePage({ onBack, onHome, t, onBook }: { onBack: () => void; onHome: () => void; t: typeof translations['en']; onBook: () => void }) {
+// ── Shared marketplace card ─────────────────────────────────────────────────
+// ONE card implementation used by BOTH the travelers tab and the buyers tab.
+// The two tabs differ ONLY in the text/content passed in via props — the card
+// shell, spacing, borders, hover, progress bar and CTA are byte-for-byte identical.
+type MktCardMeta = { icon: string; text: React.ReactNode; ltr?: boolean };
+function MarketplaceListingCard({
+  title, id, meta, barLabel, barValue, barColor = '#f59e0b', barPct,
+  note, extra, buttonLabel, onButtonClick,
+}: {
+  title: React.ReactNode;
+  id: React.ReactNode;
+  meta: MktCardMeta[];
+  barLabel: React.ReactNode;
+  barValue: React.ReactNode;
+  barColor?: string;
+  barPct: number;
+  note?: React.ReactNode;
+  extra?: React.ReactNode;
+  buttonLabel: React.ReactNode;
+  onButtonClick?: () => void;
+}) {
+  return (
+    <div className="bg-white border-2 border-gray-100 rounded-2xl overflow-hidden hover:border-cyan-200 hover:shadow-md transition-all">
+      <div className="p-4 pb-0">
+        <div className="text-lg font-extrabold text-gray-900 flex items-center gap-2 mb-1">{title}</div>
+        <div className="text-[10px] text-gray-400 font-mono tracking-wider mb-3">{id}</div>
+      </div>
+      <div className="px-4">
+        <div className="flex flex-wrap gap-4 mb-3">
+          {meta.map((m, i) => (
+            <div key={i} className="flex items-center gap-1.5 text-xs text-gray-500">
+              <span>{m.icon}</span><span style={m.ltr ? { direction: 'ltr' } : undefined}>{m.text}</span>
+            </div>
+          ))}
+        </div>
+        <div className="mb-3">
+          <div className="flex items-center justify-between mb-1.5">
+            <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wide">{barLabel}</span>
+            <span className="text-sm font-extrabold" style={{ color: barColor }}>{barValue}</span>
+          </div>
+          <div className="h-1.5 rounded-full bg-gray-100 overflow-hidden">
+            <div className="h-full rounded-full transition-all duration-700"
+              style={{ width: `${barPct}%`, background: `linear-gradient(90deg, ${barColor}, ${barColor}cc)` }} />
+          </div>
+        </div>
+        {note && (
+          <div className="text-xs text-gray-500 bg-gray-50 border border-gray-100 rounded-xl px-3 py-2 mb-3 leading-relaxed">
+            {note}
+          </div>
+        )}
+        {extra}
+      </div>
+      <div className="px-4 pb-4">
+        <button onClick={onButtonClick}
+          className="flex items-center justify-center gap-2 w-full py-2.5 bg-gradient-to-r from-cyan-500 to-blue-600 text-white text-sm font-bold rounded-xl hover:opacity-90 transition-opacity">
+          {buttonLabel}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function MarketplacePage({ onBack, onHome, t, onBook, myOrderId, onClearMyOrder }: { onBack: () => void; onHome: () => void; t: typeof translations['en']; onBook: () => void; myOrderId?: string | null; onClearMyOrder?: () => void }) {
   const { isRTL } = useLang();
   const [from, setFrom] = useState('');
   const [to,   setTo]   = useState('');
@@ -425,6 +487,55 @@ function MarketplacePage({ onBack, onHome, t, onBook }: { onBack: () => void; on
   const [mktError, setMktError]   = useState('');
 
   const TODAY = new Date().toISOString().split('T')[0];
+
+  // ── My published order (from AI concierge) ──────────────────────────────────
+  type MyOrder = { orderId: string; product: { title: string; store?: string; price?: string; imageUrl?: string }; priority: string; country: string; specialRequest: string; status: string; };
+  const [myOrder, setMyOrder]   = useState<MyOrder | null>(null);
+  const [myOrderErr, setMyOrderErr] = useState('');
+  const [editMode, setEditMode]  = useState(false);
+  const [editPrio,  setEditPrio]  = useState('any');
+  const [editCountry, setEditCountry] = useState('');
+  const [editReq, setEditReq]    = useState('');
+  const [saving, setSaving]      = useState(false);
+  const [saveOk, setSaveOk]      = useState(false);
+  const [isHighlighted, setIsHighlighted] = useState(true); // green tint until user taps
+
+  const [buyerOrders, setBuyerOrders] = useState<any[]>([]);
+  const [buyerLoading, setBuyerLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<'travelers'|'buyers'>('travelers');
+
+  // Reset green highlight whenever a new order is shown
+  useEffect(() => { if (myOrderId) setIsHighlighted(true); }, [myOrderId]);
+
+  useEffect(() => {
+    if (!myOrderId) { setMyOrder(null); return; }
+    fetch(`/api/marketplace/listings/${myOrderId}`)
+      .then(r => r.json())
+      .then(d => {
+        if (d.ok) {
+          setMyOrder(d.order);
+          setEditPrio(d.order.priority || 'any');
+          setEditCountry(d.order.country || '');
+          setEditReq(d.order.specialRequest || '');
+        } else { setMyOrderErr('خطا در دریافت اگهی'); }
+      })
+      .catch(() => setMyOrderErr('خطای اتصال'));
+  }, [myOrderId]);
+
+  async function saveEdit() {
+    if (!myOrder) return;
+    setSaving(true); setSaveOk(false);
+    try {
+      const r = await fetch('/api/marketplace/update', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderId: myOrder.orderId, priority: editPrio, country: editCountry, specialRequest: editReq })
+      });
+      const d = await r.json();
+      if (d.ok) { setMyOrder(d.order); setEditMode(false); setSaveOk(true); setTimeout(() => setSaveOk(false), 2500); }
+    } catch {}
+    setSaving(false);
+  }
+
 
   type MktTrip = {
     id: string; origin?: string; originCity?: string;
@@ -441,6 +552,13 @@ function MarketplacePage({ onBack, onHome, t, onBook }: { onBack: () => void; on
       .then(r => r.ok ? r.json() : Promise.reject(r.statusText))
       .then(d => { setApiTrips(d.listings ?? []); setMktLoading(false); })
       .catch(() => { setMktError(t.mktErrorLoad); setMktLoading(false); });
+  }, []);
+
+  useEffect(() => {
+    fetch('/api/marketplace/listings')
+      .then(r => r.ok ? r.json() : Promise.reject(r.statusText))
+      .then(d => { setBuyerOrders(d.listings ?? []); setBuyerLoading(false); })
+      .catch(() => { setBuyerLoading(false); });
   }, []);
 
   const activeTrips = apiTrips.filter(t => t.date >= TODAY);
@@ -485,6 +603,128 @@ function MarketplacePage({ onBack, onHome, t, onBook }: { onBack: () => void; on
       <PageHeader title={t.marketplaceTitle} desc={t.mktBrowseDesc} onBack={onBack} onHome={onHome} backLabel={t.backHome} />
 
       <div className="max-w-2xl mx-auto px-4 pb-24" dir={isRTL ? 'rtl' : 'ltr'}>
+
+        {/* My published listing v3 — title full-width, badge next to ID, ✕ at bottom */}
+        {myOrderId && (
+          <div
+            onClick={() => setIsHighlighted(false)}
+            dir="rtl"
+            className={`mb-5 border-2 rounded-2xl overflow-hidden transition-all duration-500 cursor-pointer
+              ${isHighlighted
+                ? 'bg-emerald-50 border-emerald-300 shadow-md shadow-emerald-100'
+                : 'bg-white border-gray-100 hover:border-cyan-200 hover:shadow-md'}`}
+          >
+            {/* Section 1: p-4 pb-0 — like traveler: full-width bold title + ID */}
+            <div className="p-4 pb-0">
+              <div className="text-lg font-extrabold text-gray-900 mb-1">
+                {myOrder?.product?.title}
+              </div>
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500 text-white">آگهی شما ✓</span>
+                <span className="text-[10px] text-gray-400 font-mono tracking-wider">{myOrder?.orderId}</span>
+              </div>
+            </div>
+
+            {/* Section 2: px-4 — like traveler: details row + bar + optional note */}
+            <div className="px-4">
+              <div className="flex flex-wrap gap-4 mb-3">
+                {myOrder?.country && (
+                  <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                    <span>🌍</span><span>{myOrder.country}</span>
+                  </div>
+                )}
+                <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                  <span>{myOrder?.priority === 'fast' ? '⚡' : '🌐'}</span>
+                  <span>اولویت {myOrder?.priority === 'fast' ? 'سریع' : 'عادی'}</span>
+                </div>
+              </div>
+
+              <div className="mb-3">
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wide">وضعیت آگهی</span>
+                  <span className="text-sm font-extrabold text-emerald-500">
+                    {saveOk ? 'ذخیره شد ✓' : 'در انتظار مسافر'}
+                  </span>
+                </div>
+                <div className="h-1.5 rounded-full bg-gray-100 overflow-hidden">
+                  <div className="h-full rounded-full transition-all duration-700"
+                    style={{ width: '35%', background: 'linear-gradient(90deg, #10b981, #059669)' }} />
+                </div>
+              </div>
+
+              {myOrder?.specialRequest && (
+                <div className="text-xs text-gray-500 bg-gray-50 border border-gray-100 rounded-xl px-3 py-2 mb-3 leading-relaxed">
+                  {myOrder.specialRequest}
+                </div>
+              )}
+
+              {myOrderErr && <p className="text-xs text-red-500 mb-3">{myOrderErr}</p>}
+
+              {myOrder && editMode && (
+                <div className="space-y-3 mb-3">
+                  <div>
+                    <label className="text-xs text-gray-500 block mb-1">اولویت</label>
+                    <div className="flex gap-2">
+                      {(['any','fast'] as const).map(p => (
+                        <button key={p} onClick={e => { e.stopPropagation(); setEditPrio(p); }}
+                          className={`text-xs px-3 py-1 rounded-lg border transition-colors ${editPrio===p ? 'bg-emerald-500 text-white border-emerald-500' : 'border-gray-300 text-gray-600 hover:bg-gray-50'}`}>
+                          {p === 'fast' ? 'سریع' : 'عادی'}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-500 block mb-1">کشور خرید</label>
+                    <input value={editCountry} onChange={e => setEditCountry(e.target.value)}
+                      className="ds-input w-full text-sm" style={{ direction: 'ltr' }} placeholder="مثال: UAE" />
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-500 block mb-1">درخواست ویژه</label>
+                    <textarea value={editReq} onChange={e => setEditReq(e.target.value)} rows={2}
+                      className="ds-input w-full text-sm resize-none" placeholder="توضیحات اضافی..." />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Section 3: px-4 pb-4 — like traveler: action button */}
+            <div className="px-4 pb-4">
+              {!editMode ? (
+                <div className="flex gap-2">
+                  <button onClick={e => { e.stopPropagation(); setEditMode(true); setIsHighlighted(false); }}
+                    className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-sm font-bold rounded-xl hover:opacity-90 transition-opacity">
+                    ✏️ ویرایش آگهی
+                  </button>
+                  {onClearMyOrder && (
+                    <button onClick={e => { e.stopPropagation(); setMyOrder(null); onClearMyOrder(); }}
+                      className="py-2.5 px-3 rounded-xl border-2 border-gray-100 text-gray-400 hover:bg-gray-50 transition-colors">
+                      ✕
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <button onClick={e => { e.stopPropagation(); saveEdit(); }} disabled={saving}
+                  className="flex items-center justify-center gap-2 w-full py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-sm font-bold rounded-xl hover:opacity-90 transition-opacity disabled:opacity-50">
+                  {saving ? 'در حال ارسال...' : 'ارسال برای بررسی ادمین ✓'}
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Tab switcher */}
+        <div className="flex gap-2 mb-5">
+          <button onClick={() => setActiveTab('travelers')}
+            className={`flex-1 py-2.5 rounded-xl text-sm font-bold border-2 transition-colors ${activeTab==='travelers' ? 'bg-cyan-500 border-cyan-500 text-white' : 'bg-white border-gray-200 text-gray-500 hover:border-cyan-200'}`}>
+            ✈️ سفرهای مسافران
+          </button>
+          <button onClick={() => setActiveTab('buyers')}
+            className={`flex-1 py-2.5 rounded-xl text-sm font-bold border-2 transition-colors ${activeTab==='buyers' ? 'bg-emerald-500 border-emerald-500 text-white' : 'bg-white border-gray-200 text-gray-500 hover:border-emerald-200'}`}>
+            🛍️ درخواست‌های خرید{buyerOrders.length > 0 && <span className="mr-1.5 bg-emerald-100 text-emerald-700 text-[10px] font-bold px-1.5 py-0.5 rounded-full">{buyerOrders.length}</span>}
+          </button>
+        </div>
+
+        {activeTab === 'travelers' && (<>
 
         {/* Search filters */}
         <div className="bg-gray-50 border border-gray-200 rounded-2xl p-5 mb-5">
@@ -563,63 +803,82 @@ function MarketplacePage({ onBack, onHome, t, onBook }: { onBack: () => void; on
               const clr         = capColor(trip.capacity ?? 0);
               const meetsCap    = reqWeight > 0 && (trip.capacity ?? 0) >= reqWeight;
               return (
-                <div key={trip.id} className="bg-white border-2 border-gray-100 rounded-2xl overflow-hidden hover:border-cyan-200 hover:shadow-md transition-all">
-                  <div className="p-4 pb-0">
-                    <div className="text-lg font-extrabold text-gray-900 flex items-center gap-2 mb-1">
-                      <span>{trip.originCity || trip.origin || '—'}</span>
-                      <span className="text-cyan-500 text-base">✈</span>
-                      <span>{trip.destCity || trip.destination || '—'}</span>
+                <MarketplaceListingCard
+                  key={trip.id}
+                  title={<>
+                    <span>{trip.originCity || trip.origin || '—'}</span>
+                    <span className="text-cyan-500 text-base">✈</span>
+                    <span>{trip.destCity || trip.destination || '—'}</span>
+                  </>}
+                  id={trip.id}
+                  meta={[
+                    { icon: '📅', text: fmtDate(trip.date) },
+                    ...(trip.phone ? [{ icon: '📞', text: maskPhone(trip.phone), ltr: true }] : []),
+                  ]}
+                  barLabel={t.mktCapacityLabel}
+                  barValue={<>{trip.capacity} kg{meetsCap ? ' ✓' : ''}</>}
+                  barColor={clr}
+                  barPct={pct}
+                  note={trip.description || undefined}
+                  extra={avgRating > 0 ? (
+                    <div className="text-sm text-amber-500 mb-3">
+                      {'⭐'.repeat(Math.round(avgRating))}{'☆'.repeat(5 - Math.round(avgRating))}
+                      <span className="font-bold text-amber-600 mr-1">{avgRating.toFixed(1)}</span>
+                      <span className="text-xs text-gray-400">({tripRatings.length} {t.mktReviewSuffix})</span>
                     </div>
-                    <div className="text-[10px] text-gray-400 font-mono tracking-wider mb-3">{trip.id}</div>
-                  </div>
-                  <div className="px-4">
-                    <div className="flex flex-wrap gap-4 mb-3">
-                      <div className="flex items-center gap-1.5 text-xs text-gray-500">
-                        <span>📅</span><span>{fmtDate(trip.date)}</span>
-                      </div>
-                      {trip.phone && (
-                        <div className="flex items-center gap-1.5 text-xs text-gray-500">
-                          <span>📞</span><span style={{ direction: 'ltr' }}>{maskPhone(trip.phone)}</span>
-                        </div>
-                      )}
-                    </div>
-                    <div className="mb-3">
-                      <div className="flex items-center justify-between mb-1.5">
-                        <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wide">{t.mktCapacityLabel}</span>
-                        <span className="text-sm font-extrabold" style={{ color: clr }}>
-                          {trip.capacity} kg{meetsCap ? ' ✓' : ''}
-                        </span>
-                      </div>
-                      <div className="h-1.5 rounded-full bg-gray-100 overflow-hidden">
-                        <div className="h-full rounded-full transition-all duration-700"
-                          style={{ width: `${pct}%`, background: `linear-gradient(90deg, ${clr}, ${clr}cc)` }} />
-                      </div>
-                    </div>
-                    {trip.description && (
-                      <div className="text-xs text-gray-500 bg-gray-50 border border-gray-100 rounded-xl px-3 py-2 mb-3 leading-relaxed">
-                        {trip.description}
-                      </div>
-                    )}
-                    {avgRating > 0 && (
-                      <div className="text-sm text-amber-500 mb-3">
-                        {'⭐'.repeat(Math.round(avgRating))}{'☆'.repeat(5 - Math.round(avgRating))}
-                        <span className="font-bold text-amber-600 mr-1">{avgRating.toFixed(1)}</span>
-                        <span className="text-xs text-gray-400">({tripRatings.length} {t.mktReviewSuffix})</span>
-                      </div>
-                    )}
-                  </div>
-                  <div className="px-4 pb-4">
-                    <button onClick={onBook}
-                      className="flex items-center justify-center gap-2 w-full py-2.5 bg-gradient-to-r from-cyan-500 to-blue-600 text-white text-sm font-bold rounded-xl hover:opacity-90 transition-opacity">
-                      {t.mktBookBtn}
-                    </button>
-                  </div>
-                </div>
+                  ) : undefined}
+                  buttonLabel={t.mktBookBtn}
+                  onButtonClick={onBook}
+                />
               );
             })}
           </div>
         )}
         </>)}
+
+        </>)}
+
+        {activeTab === 'buyers' && (
+          <div className="space-y-4">
+            {buyerLoading && (
+              <div className="text-center py-10 text-gray-400">
+                <div className="text-3xl mb-2 animate-pulse">🛍️</div>
+                <div className="text-sm">در حال بارگذاری...</div>
+              </div>
+            )}
+            {!buyerLoading && buyerOrders.length === 0 && (
+              <div className="text-center py-16 text-gray-400">
+                <div className="text-5xl mb-3">🛍️</div>
+                <div className="text-base font-bold text-gray-700 mb-1">درخواستی ثبت نشده</div>
+                <p className="text-sm">اولین نفری باشید که از هوش مصنوعی درخواست خرید ثبت می‌کند</p>
+              </div>
+            )}
+            {!buyerLoading && buyerOrders.map(order => (
+              <MarketplaceListingCard
+                key={order.orderId}
+                title={<>
+                  <span className="truncate">{order.product?.title || '—'}</span>
+                  {order.product?.brand && (
+                    <>
+                      <span className="text-cyan-500 text-base flex-shrink-0">·</span>
+                      <span className="text-gray-500 text-sm font-medium flex-shrink-0">{order.product.brand}</span>
+                    </>
+                  )}
+                </>}
+                id={order.orderId}
+                meta={[
+                  ...(order.createdAt ? [{ icon: '📅', text: new Date(order.createdAt).toLocaleDateString('fa-IR') }] : []),
+                  ...(order.country ? [{ icon: '🌍', text: order.country }] : []),
+                ]}
+                barLabel="قیمت تخمینی"
+                barValue={order.product?.priceUSD ? `$${order.product.priceUSD}` : 'در انتظار مسافر'}
+                barPct={35}
+                note={order.specialRequest || undefined}
+                buttonLabel="🤝 آماده پیشنهاد توسط مسافر"
+              />
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -1002,27 +1261,7 @@ function HeroSection({ t, setPage, isRTL }: { t: typeof translations['en']; setP
               {t.subheadline}
             </motion.p>
 
-            {/* 3 equal-width glass CTA buttons */}
-            <motion.div
-              className="flex gap-2.5 mb-10"
-              initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.5 }}
-            >
-              {heroButtons.map((btn, i) => (
-                <motion.button
-                  key={btn.page}
-                  onClick={() => setPage(btn.page)}
-                  className={`flex-1 py-3.5 rounded-xl font-bold text-sm transition-all text-center ${
-                    btn.primary
-                      ? 'bg-gradient-to-r from-cyan-500/90 to-blue-600/90 text-white shadow-lg shadow-cyan-500/20 hover:from-cyan-400 hover:to-blue-500 border border-cyan-400/30 backdrop-blur-sm'
-                      : 'text-white backdrop-blur-md border border-white/20 hover:border-white/35 hover:bg-white/10'
-                  }`}
-                  style={!btn.primary ? { background: 'rgba(255,255,255,0.07)' } : {}}
-                  whileHover={{ scale: 1.03, y: -2 }} whileTap={{ scale: 0.97 }}
-                >
-                  {btn.label}
-                </motion.button>
-              ))}
-            </motion.div>
+
 
             {/* Trust badges */}
             <motion.div
@@ -1478,8 +1717,6 @@ function HomePage({ t, setPage, isRTL }: { t: typeof translations['en']; setPage
     <>
       <HeroSection t={t} setPage={setPage} isRTL={isRTL} />
 
-      {/* Service Cards — photo-backed */}
-      <ServiceCardsSection t={t} setPage={setPage} />
 
       {/* What we do — Video Section */}
       <VideoSection />
@@ -1948,7 +2185,17 @@ export default function App() {
     const valid: Page[] = ['home','buy-for-me','send-package','traveler','marketplace','trust-safety','investors','faq','auth','my-orders','wallet','receipt','profile','notifications','traveler-dashboard','smart-tester','cargo-scan'];
     return valid.includes(p as Page) ? (p as Page) : 'home';
   });
+  // Read ?mode=buyforme from URL to skip ModeSelector when arriving from kharid.html
+  const [initialBuyMode] = useState<'buyforme' | null>(() => {
+    const m = new URLSearchParams(window.location.search).get('mode');
+    return m === 'buyforme' ? 'buyforme' : null;
+  });
   const [receiptId, setReceiptId] = useState<string | null>(null);
+  const [myOrderId, setMyOrderId] = useState<string | null>(() => {
+    try { return localStorage.getItem('chapar_order_id'); } catch { return null; }
+  });
+  // Persist myOrderId across page refreshes
+  // (useEffect is defined later in this component)
   const [scanListingId, setScanListingId] = useState<string | undefined>(undefined);
   const [isScrolled, setIsScrolled] = useState(false);
   const [showAICopilot, setShowAICopilot] = useState(false);
@@ -2010,6 +2257,14 @@ export default function App() {
   if (!session && AUTH_PROTECTED.includes(currentPage) && !isHandoffScan) {
     returnPageRef.current = currentPage;
   }
+  // Sync myOrderId to localStorage whenever it changes
+  useEffect(() => {
+    try {
+      if (myOrderId) localStorage.setItem('chapar_order_id', myOrderId);
+      else localStorage.removeItem('chapar_order_id');
+    } catch {}
+  }, [myOrderId]);
+
   const renderPage: Page = (!session && AUTH_PROTECTED.includes(currentPage) && !isHandoffScan) ? 'auth' : currentPage;
 
   return (
@@ -2050,22 +2305,6 @@ export default function App() {
         )}
       </AnimatePresence>
 
-      <motion.button onClick={() => setShowAICopilot(!showAICopilot)}
-        className="fixed bottom-6 right-6 z-50 w-14 h-14 bg-gradient-to-br from-purple-600 to-blue-600 rounded-full shadow-2xl flex items-center justify-center"
-        whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
-        <Sparkles className="w-6 h-6 text-white" />
-      </motion.button>
-
-      {/* Smart Tester trigger */}
-      <motion.button
-        onClick={() => setShowSmartTester(true)}
-        className="fixed bottom-24 right-6 z-50 w-10 h-10 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-full shadow-lg flex items-center justify-center"
-        title="Smart Tester"
-        whileHover={{ scale: 1.12 }} whileTap={{ scale: 0.92 }}
-      >
-        <Activity className="w-4 h-4 text-white" />
-      </motion.button>
-
       {/* Smart Tester modal */}
       {showSmartTester && <SmartTester onClose={() => setShowSmartTester(false)} />}
 
@@ -2079,20 +2318,10 @@ export default function App() {
         initial={{ y: -100 }} animate={{ y: 0 }} transition={{ duration: 0.6, ease: 'easeOut' }}>
         <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16 sm:h-18">
-            {/* Logo */}
-            <motion.button className="flex items-center gap-2.5 flex-shrink-0" onClick={() => setCurrentPage('home')} whileHover={{ scale: 1.04 }}>
-              <div className="w-8 h-8 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
-                <Plane className="w-4 h-4 text-white -rotate-45" />
-              </div>
-              <span className="text-lg sm:text-xl font-bold tracking-tight text-white">Chapar</span>
-            </motion.button>
 
             {/* Desktop Nav */}
             <div className="hidden lg:flex items-center gap-0.5">
               {[
-                { label: t.buyForMe, page: 'buy-for-me' as Page },
-                { label: t.sendPackage, page: 'send-package' as Page },
-                { label: t.becomeTraveler, page: 'traveler' as Page },
                 { label: t.marketplace, page: 'marketplace' as Page },
                 { label: t.trustSafety, page: 'trust-safety' as Page },
                 { label: t.investors, page: 'investors' as Page },
@@ -2148,26 +2377,29 @@ export default function App() {
                   </motion.button>
                 </>
               ) : (
-                <>
-                  <motion.button
-                    onClick={() => setCurrentPage('auth')}
-                    className="px-4 py-2 text-sm font-medium text-gray-300 hover:text-white hover:bg-white/5 rounded-lg transition-all"
-                    whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}>
-                    {t.signIn}
-                  </motion.button>
-                  <motion.button
+                <motion.button
                     onClick={() => setCurrentPage('auth')}
                     className="px-5 py-2 text-sm font-bold bg-gradient-to-r from-cyan-500 to-blue-600 text-white rounded-xl shadow-lg shadow-cyan-500/25 hover:shadow-cyan-500/45 hover:from-cyan-400 hover:to-blue-500 transition-all"
                     whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}>
-                    {t.getStarted}
+                    ورود / عضویت
                   </motion.button>
-                </>
               )}
               <LanguageSelector lang={lang} setLang={setLang} />
             </div>
 
             {/* Mobile */}
             <div className="lg:hidden flex items-center gap-2">
+              {/* Chapar Logo mobile */}
+              <button
+                onClick={() => setCurrentPage('home')}
+                className="flex items-center gap-1 px-3 py-2 rounded-lg hover:bg-white/8 transition-all"
+              >
+                <span className="text-[16px] font-extrabold tracking-widest uppercase"
+                  style={{ background: 'linear-gradient(90deg, #22d3ee, #6366f1)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+                  CHAPAR
+                </span>
+              </button>
+
               <LanguageSelector lang={lang} setLang={setLang} />
               <button
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -2189,9 +2421,6 @@ export default function App() {
               >
                 <div className="space-y-1 mb-4">
                   {[
-                    { label: t.buyForMe, page: 'buy-for-me' as Page },
-                    { label: t.sendPackage, page: 'send-package' as Page },
-                    { label: t.becomeTraveler, page: 'traveler' as Page },
                     { label: t.marketplace, page: 'marketplace' as Page },
                     { label: t.trustSafety, page: 'trust-safety' as Page },
                     { label: t.investors, page: 'investors' as Page },
@@ -2232,16 +2461,10 @@ export default function App() {
                       </button>
                     </div>
                   ) : (
-                    <>
-                      <button onClick={() => { setCurrentPage('auth'); setMobileMenuOpen(false); }}
-                        className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-300 border border-white/10 rounded-xl hover:bg-white/5 transition-colors">
-                        {t.signIn}
-                      </button>
-                      <button onClick={() => { setCurrentPage('auth'); setMobileMenuOpen(false); }}
-                        className="flex-1 px-4 py-2.5 text-sm font-bold bg-gradient-to-r from-cyan-500 to-blue-600 text-white rounded-xl">
-                        {t.getStarted}
-                      </button>
-                    </>
+                    <button onClick={() => { setCurrentPage('auth'); setMobileMenuOpen(false); }}
+                      className="flex-1 px-4 py-2.5 text-sm font-bold bg-gradient-to-r from-cyan-500 to-blue-600 text-white rounded-xl hover:opacity-90 transition-opacity">
+                      ورود / عضویت
+                    </button>
                   )}
                 </div>
               </motion.div>
@@ -2269,25 +2492,25 @@ export default function App() {
       <AnimatePresence mode="wait">
         <motion.div key={renderPage} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.25 }}>
           {renderPage === 'home' && <HomePage t={t} setPage={setCurrentPage} isRTL={isRTL} />}
-          {renderPage === 'buy-for-me' && <BuyForMePage onBack={() => setCurrentPage('home')} onHome={() => setCurrentPage('home')} t={t} onNavigate={(p) => { setCurrentPage(p as Page); }} onNeedAuth={() => { returnPageRef.current = 'buy-for-me'; setCurrentPage('auth'); }} />}
-          {renderPage === 'send-package' && <SendPackagePage onBack={() => setCurrentPage('home')} onHome={() => setCurrentPage('home')} t={t} onNavigate={(p) => { setCurrentPage(p as Page); }} onVerifyCargo={(id) => { setScanListingId(id); setCurrentPage('cargo-scan'); }} />}
-          {renderPage === 'traveler' && <TravelerPage onBack={() => setCurrentPage('home')} onHome={() => setCurrentPage('home')} t={t} onNavigate={(p) => { setCurrentPage(p as Page); }} />}
-          {renderPage === 'marketplace' && <MarketplacePage onBack={() => setCurrentPage('home')} onHome={() => setCurrentPage('home')} t={t} onBook={() => setCurrentPage('send-package')} />}
-          {renderPage === 'trust-safety' && <TrustSafetyPage onBack={() => setCurrentPage('home')} onHome={() => setCurrentPage('home')} t={t} />}
-          {renderPage === 'investors' && <InvestorsPage onBack={() => setCurrentPage('home')} onHome={() => setCurrentPage('home')} t={t} />}
-          {renderPage === 'faq'  && <FAQPage  onBack={() => setCurrentPage('home')} onHome={() => setCurrentPage('home')} t={t} />}
-          {renderPage === 'auth' && <AuthPage onHome={() => setCurrentPage('home')} onSuccess={() => setCurrentPage(returnPageRef.current)} />}
-          {renderPage === 'my-orders' && <MyOrdersPage onBack={() => setCurrentPage('home')} onHome={() => setCurrentPage('home')} t={t} onOpenReceipt={(id) => { setReceiptId(id); setCurrentPage('receipt'); }} />}
-          {renderPage === 'wallet' && <WalletPage onBack={() => setCurrentPage('home')} onHome={() => setCurrentPage('home')} t={t} />}
-          {renderPage === 'receipt' && <ReceiptPage onBack={() => setCurrentPage('my-orders')} onHome={() => setCurrentPage('home')} t={t} trackId={receiptId} />}
-          {renderPage === 'profile' && <ProfilePage onBack={() => setCurrentPage('home')} onHome={() => setCurrentPage('home')} t={t} onOpenWallet={() => setCurrentPage('wallet')} onOpenOrders={() => setCurrentPage('my-orders')} />}
-          {renderPage === 'notifications' && <NotificationsPage onBack={() => setCurrentPage('home')} onHome={() => setCurrentPage('home')} t={t} onNavigate={(p) => setCurrentPage(p as Page)} />}
-          {renderPage === 'traveler-dashboard' && <TravelerDashboardPage onBack={() => setCurrentPage('home')} onHome={() => setCurrentPage('home')} t={t} onNewTrip={() => setCurrentPage('traveler')} onNavigate={(p) => setCurrentPage(p as Page)} />}
-          {renderPage === 'smart-tester' && <SmartTester onHome={() => setCurrentPage('home')} />}
+          {renderPage === 'buy-for-me' && <BuyForMePage onBack={() => window.history.back()} onHome={() => { window.location.href = 'https://chaparcargo.com/'; }} t={t} onNavigate={(p) => { setCurrentPage(p as Page); }} onNeedAuth={() => { returnPageRef.current = 'buy-for-me'; setCurrentPage('auth'); }} initialMode={initialBuyMode ?? undefined} onPublished={(id) => { setMyOrderId(id); setCurrentPage('marketplace'); }} />}
+          {renderPage === 'send-package' && <SendPackagePage onBack={() => window.history.back()} onHome={() => { window.location.href = 'https://chaparcargo.com/'; }} t={t} onNavigate={(p) => { setCurrentPage(p as Page); }} onVerifyCargo={(id) => { setScanListingId(id); setCurrentPage('cargo-scan'); }} />}
+          {renderPage === 'traveler' && <TravelerPage onBack={() => window.history.back()} onHome={() => { window.location.href = 'https://chaparcargo.com/'; }} t={t} onNavigate={(p) => { setCurrentPage(p as Page); }} />}
+          {renderPage === 'marketplace' && <MarketplacePage onBack={() => window.history.back()} onHome={() => { window.location.href = 'https://chaparcargo.com/'; }} t={t} onBook={() => setCurrentPage('send-package')} myOrderId={myOrderId} onClearMyOrder={() => setMyOrderId(null)} />}
+          {renderPage === 'trust-safety' && <TrustSafetyPage onBack={() => window.history.back()} onHome={() => { window.location.href = 'https://chaparcargo.com/'; }} t={t} />}
+          {renderPage === 'investors' && <InvestorsPage onBack={() => window.history.back()} onHome={() => { window.location.href = 'https://chaparcargo.com/'; }} t={t} />}
+          {renderPage === 'faq'  && <FAQPage  onBack={() => window.history.back()} onHome={() => { window.location.href = 'https://chaparcargo.com/'; }} t={t} />}
+          {renderPage === 'auth' && <AuthPage onHome={() => { window.location.href = 'https://chaparcargo.com/'; }} onSuccess={() => setCurrentPage(returnPageRef.current)} />}
+          {renderPage === 'my-orders' && <MyOrdersPage onBack={() => window.history.back()} onHome={() => { window.location.href = 'https://chaparcargo.com/'; }} t={t} onOpenReceipt={(id) => { setReceiptId(id); setCurrentPage('receipt'); }} />}
+          {renderPage === 'wallet' && <WalletPage onBack={() => window.history.back()} onHome={() => { window.location.href = 'https://chaparcargo.com/'; }} t={t} />}
+          {renderPage === 'receipt' && <ReceiptPage onBack={() => setCurrentPage('my-orders')} onHome={() => { window.location.href = 'https://chaparcargo.com/'; }} t={t} trackId={receiptId} />}
+          {renderPage === 'profile' && <ProfilePage onBack={() => window.history.back()} onHome={() => { window.location.href = 'https://chaparcargo.com/'; }} t={t} onOpenWallet={() => setCurrentPage('wallet')} onOpenOrders={() => setCurrentPage('my-orders')} />}
+          {renderPage === 'notifications' && <NotificationsPage onBack={() => window.history.back()} onHome={() => { window.location.href = 'https://chaparcargo.com/'; }} t={t} onNavigate={(p) => setCurrentPage(p as Page)} />}
+          {renderPage === 'traveler-dashboard' && <TravelerDashboardPage onBack={() => window.history.back()} onHome={() => { window.location.href = 'https://chaparcargo.com/'; }} t={t} onNewTrip={() => setCurrentPage('traveler')} onNavigate={(p) => setCurrentPage(p as Page)} />}
+          {renderPage === 'smart-tester' && <SmartTester onHome={() => { window.location.href = 'https://chaparcargo.com/'; }} />}
           {renderPage === 'cargo-scan' && (
             mobileHandoffToken
-              ? <ScanHandoffEntry token={mobileHandoffToken} onBack={() => setCurrentPage('home')} onHome={() => setCurrentPage('home')} />
-              : <CargoScanPage listingId={scanListingId} onBack={() => setCurrentPage('send-package')} onHome={() => setCurrentPage('home')} />
+              ? <ScanHandoffEntry token={mobileHandoffToken} onBack={() => window.history.back()} onHome={() => { window.location.href = 'https://chaparcargo.com/'; }} />
+              : <CargoScanPage listingId={scanListingId} onBack={() => setCurrentPage('send-package')} onHome={() => { window.location.href = 'https://chaparcargo.com/'; }} />
           )}
         </motion.div>
       </AnimatePresence>
