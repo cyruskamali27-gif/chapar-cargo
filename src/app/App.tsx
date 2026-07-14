@@ -636,10 +636,40 @@ function MarketplacePage({ onBack, onHome, t, onBook, myOrderId, onClearMyOrder 
                   </div>
                 )}
                 <div className="flex items-center gap-1.5 text-xs text-gray-500">
-                  <span>{myOrder?.priority === 'fast' ? '⚡' : '🌐'}</span>
-                  <span>اولویت {myOrder?.priority === 'fast' ? 'سریع' : 'عادی'}</span>
+                  <span>{myOrder?.priority === 'fast' ? '⚡' : myOrder?.priority === 'cheapest' ? '💰' : '🌐'}</span>
+                  <span>اولویت {myOrder?.priority === 'fast' ? 'سریع' : myOrder?.priority === 'cheapest' ? 'ارزان‌ترین' : 'عادی'}</span>
                 </div>
               </div>
+
+              {/* The price the buyer actually picked out of the cross-country comparison,
+                  with the shop it came from — so the traveler bids against real evidence. */}
+              {myOrder?.priceQuote?.priceUSD && (
+                <div className="mb-3 flex items-center gap-2 rounded-xl border border-emerald-100 bg-emerald-50/60 px-3 py-2">
+                  <span className="text-base leading-none">
+                    {{ AE: '🇦🇪', CA: '🇨🇦', US: '🇺🇸', GB: '🇬🇧', TR: '🇹🇷', DE: '🇩🇪', FR: '🇫🇷' }[myOrder.priceQuote.country] || '🌍'}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-xs font-bold text-emerald-800">
+                      ${myOrder.priceQuote.priceUSD}
+                      {myOrder.priceQuote.priceLocal && (
+                        <span className="font-normal text-emerald-700/70">
+                          {' '}· {myOrder.priceQuote.priceLocal.toLocaleString('en-US')} {myOrder.priceQuote.currency}
+                        </span>
+                      )}
+                    </div>
+                    <div className="truncate text-[10px] text-emerald-700/60">
+                      {myOrder.priceQuote.shop || '—'} · قیمت فروشگاه، بدون مالیات و حمل
+                    </div>
+                  </div>
+                  {myOrder.priceQuote.link && (
+                    <a href={myOrder.priceQuote.link} target="_blank" rel="noopener noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                      className="shrink-0 rounded-lg border border-emerald-200 bg-white px-2 py-1 text-[10px] font-bold text-emerald-700">
+                      مشاهده
+                    </a>
+                  )}
+                </div>
+              )}
 
               <div className="mb-3">
                 <div className="flex items-center justify-between mb-1.5">

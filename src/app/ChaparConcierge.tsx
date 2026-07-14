@@ -21,6 +21,17 @@ const COUNTRIES = [
   { code: "FR", label: "فرانسه 🇫🇷" }, { code: "TR", label: "ترکیه 🇹🇷" }, { code: "AE", label: "امارات 🇦🇪" },
 ];
 
+// The corridors we actually price. TR is in the fan-out on purpose even though the retailer
+// allowlist currently leaves it dark: showing "Turkey — no verified result" is information,
+// silently dropping Turkey from the comparison is not. See retailers.json → _turkeyIsDark.
+const PRICE_MARKETS = ["AE", "CA", "US", "GB", "TR"];
+const MARKET_META = {
+  AE: { flag: "🇦🇪", name: "امارات" }, CA: { flag: "🇨🇦", name: "کانادا" },
+  US: { flag: "🇺🇸", name: "آمریکا" }, GB: { flag: "🇬🇧", name: "انگلیس" },
+  TR: { flag: "🇹🇷", name: "ترکیه" }, DE: { flag: "🇩🇪", name: "آلمان" }, FR: { flag: "🇫🇷", name: "فرانسه" },
+};
+const fmtLocal = (v, c) => (v == null ? null : `${Number(v).toLocaleString("en-US", { maximumFractionDigits: 2 })} ${c || ""}`.trim());
+
 export default function ChaparConcierge({ language = "fa", userName = "", userId, onNeedAuth, onPublished }: { language?: string; userName?: string; userId?: string; onNeedAuth?: () => void; onPublished?: (orderId: string) => void }) {
   const lang = LANGS[language] ? language : "fa";
   const rtl = ["fa", "ar"].includes(lang);
@@ -36,6 +47,8 @@ export default function ChaparConcierge({ language = "fa", userName = "", userId
   const [specialRequest, setSpecialRequest] = useState("");
   const [publishing, setPublishing] = useState(false);
   const [publishResult, setPublishResult] = useState(null);
+  const [compare, setCompare] = useState({ loading: false, data: null, error: false });
+  const [quote, setQuote] = useState(null);   // the country the buyer picked out of the comparison
   const fileRef = useRef(null), scrollRef = useRef(null);
   const [reduceMotion] = useState(() => typeof window !== "undefined" && !!window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches);
 
@@ -60,6 +73,34 @@ export default function ChaparConcierge({ language = "fa", userName = "", userId
       const c = d.cheapest;
       return { title: c.title || null, priceUSD: c.priceUSD ?? null, currency: c.currency || null, country: c.country || null, link: c.link || null, image: c.image || null };
     } catch { return null; }
+  }
+
+  // Fan out the cheapest-country comparison. Cold, this is a real wait (~15-35s: five live
+  // SERP fetches), which is why it gets the ذرات هوشمند indicator and its own stage rather
+  // than blocking the chat.
+  async function runCompare() {
+    const q = orderProduct?.searchQuery || orderProduct?.title;
+    if (!q) { setCompare({ loading: false, data: null, error: true }); return; }
+    setCompare({ loading: true, data: null, error: false });
+    try {
+      const r = await fetch("/api/product/price", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query: q, countries: PRICE_MARKETS }),
+      });
+      const d = await r.json();
+      if (!d.ok) { setCompare({ loading: false, data: null, error: true }); return; }
+      setCompare({ loading: false, data: d, error: false });
+    } catch { setCompare({ loading: false, data: null, error: true }); }
+  }
+
+  function pickCountry(row) {
+    setQuote({
+      country: row.country, currency: row.currency, priceLocal: row.priceLocal,
+      priceUSD: row.priceUSD, shop: row.shop, title: row.title, link: row.link,
+      fetchedAt: compare.data?.fetchedAt || null,
+    });
+    setEstCountry(row.country);
+    setStage("publish");
   }
 
   async function callAI(hist, img) {
@@ -100,7 +141,7 @@ export default function ChaparConcierge({ language = "fa", userName = "", userId
     } catch { setMessages((m) => [...m, { role: "assistant", text: "ارتباط برقرار نشد.", _api: null }]); } finally { setLoading(false); }
   }
 
-  function send(txt) { const t = (txt ?? input).trim(); if (!t || loading) return; const next = [...messages, { role: "user", text: t, _api: { role: "user", content: t } }]; setStage(null); setOrderProduct(null); setPublishResult(null); setGridResults([]); setMessages(next); setInput(""); callAI(next); }
+  function send(txt) { const t = (txt ?? input).trim(); if (!t || loading) return; const next = [...messages, { role: "user", text: t, _api: { role: "user", content: t } }]; setStage(null); setOrderProduct(null); setPublishResult(null); setGridResults([]); setQuote(null); setCompare({ loading: false, data: null, error: false }); setMessages(next); setInput(""); callAI(next); }
   function more() { if (loading) return; const next = [...messages, { role: "user", text: "بیشتر بگردیم.", _api: { role: "user", content: "Suggest a different option." } }]; setMessages(next); callAI(next); }
   function confirmProduct(p) { setOrderProduct(p); setStage("store"); }
   async function doPublish() {
@@ -110,7 +151,8 @@ export default function ChaparConcierge({ language = "fa", userName = "", userId
     try {
       const r = await fetch("/api/marketplace/publish", { method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ product: orderProduct, variant: variant || null,
-          priority: priority || "any", country: estCountry, specialRequest: specialRequest || "", userId }) });
+          priority: priority || "any", country: estCountry, specialRequest: specialRequest || "",
+          priceQuote: quote || null, userId }) });
       const d = await r.json();
       if (d.ok) { setPublishResult(d.orderId); if (onPublished) setTimeout(() => onPublished(d.orderId), 1800); } else setPublishResult(null);
     } catch { setPublishResult(null); }
@@ -292,6 +334,11 @@ export default function ChaparConcierge({ language = "fa", userName = "", userId
                   <div className="text-sm font-bold text-white">سریع می‌خواهم ⚡</div>
                   <div className="mt-1 text-xs text-white/50">از کشورهایی که مسافر فعال دارند</div>
                 </button>
+                <button onClick={() => { setPriority("cheapest"); setStage("cheapest"); runCompare(); }}
+                  className="rounded-2xl border border-white/10 bg-white/[0.04] p-4 text-right hover:bg-white/[0.08]">
+                  <div className="text-sm font-bold text-white">ارزان‌ترین 💰</div>
+                  <div className="mt-1 text-xs text-white/50">قیمت را در ۵ کشور مقایسه می‌کنیم و خودتان انتخاب می‌کنید</div>
+                </button>
                 <button onClick={() => { setPriority("any"); setStage("publish"); }}
                   className="rounded-2xl border border-white/10 bg-white/[0.04] p-4 text-right hover:bg-white/[0.08]">
                   <div className="text-sm font-bold text-white">فرقی نمی‌کند 🌍</div>
@@ -300,20 +347,142 @@ export default function ChaparConcierge({ language = "fa", userName = "", userId
               </div>
             </div>
           )}
-          {stage === "publish" && (
+
+          {/* ── CHEAPEST — live cross-country comparison ────────────────────────────
+              Three outcomes share this screen as equals: a price, "no verified result"
+              (calm, muted — the honest-match filter found nothing it could stand behind),
+              and "temporary network error" (retryable — we never got to look). None of
+              them is an error toast. */}
+          {stage === "cheapest" && (
             <div dir="rtl" className="p-5 text-white">
               <button onClick={() => setStage("priority")} className="mb-3 inline-flex items-center gap-1 text-sm text-white/50">→ بازگشت</button>
+              <div className="mb-1 text-base font-bold">مقایسهٔ قیمت</div>
+              <div className="mb-4 truncate text-xs text-white/50">{orderProduct?.title}</div>
+
+              {compare.loading && (
+                <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+                  {reduceMotion
+                    ? <span className="text-sm text-white/50">در حال مقایسهٔ قیمت در ۵ کشور…</span>
+                    : (<>
+                        <span className="cc-orbit"><span className="cc-core" /><span className="cc-ring"><i /></span><span className="cc-ring"><i /></span><span className="cc-ring"><i /></span></span>
+                        <div>
+                          <div className="text-sm text-white/70">در حال مقایسهٔ قیمت در ۵ کشور…</div>
+                          <div className="mt-0.5 text-[11px] text-white/35">اولین بار تا نیم دقیقه طول می‌کشد</div>
+                        </div>
+                      </>)}
+                </div>
+              )}
+
+              {compare.error && !compare.loading && (
+                <div className="rounded-2xl border border-amber-400/25 bg-amber-400/[0.07] p-4">
+                  <div className="text-sm text-amber-200">مقایسهٔ قیمت انجام نشد</div>
+                  <div className="mt-1 text-xs text-amber-200/60">خطای موقت شبکه — دوباره تلاش کنید</div>
+                  <button onClick={runCompare} className="mt-3 rounded-xl border border-amber-400/30 bg-amber-400/10 px-4 py-2 text-xs font-bold text-amber-200">تلاش دوباره</button>
+                </div>
+              )}
+
+              {compare.data && !compare.loading && (() => {
+                const { ranked = [], unavailable = [], fetchedAt, degraded } = compare.data;
+                return (
+                  <>
+                    {ranked.length > 0 && (
+                      <div className="space-y-2">
+                        {ranked.map((r, i) => {
+                          const m = MARKET_META[r.country] || { flag: "🏳️", name: r.country };
+                          return (
+                            <button key={r.country} onClick={() => pickCountry(r)}
+                              className={"flex w-full items-center gap-3 rounded-2xl border p-3 text-right transition-colors " +
+                                (i === 0 ? "border-emerald-400/35 bg-emerald-400/[0.07] hover:bg-emerald-400/[0.12]"
+                                         : "border-white/10 bg-white/[0.04] hover:bg-white/[0.08]")}>
+                              <span className="text-xl leading-none">{m.flag}</span>
+                              <span className="min-w-0 flex-1">
+                                <span className="flex items-baseline gap-2">
+                                  <span className="text-sm font-bold text-white">{m.name}</span>
+                                  {i === 0 && <span className="rounded-full bg-emerald-400/20 px-2 py-0.5 text-[10px] font-bold text-emerald-300">ارزان‌ترین</span>}
+                                </span>
+                                <span className="mt-0.5 block truncate text-[11px] text-white/45">
+                                  {[r.shop, fmtLocal(r.priceLocal, r.currency)].filter(Boolean).join(" · ")}
+                                </span>
+                                {r.meta && (
+                                  <span className="mt-0.5 block text-[10px] text-white/30">
+                                    از {r.meta.considered} نتیجه، {r.meta.allowlisted} معتبر ✓
+                                  </span>
+                                )}
+                              </span>
+                              <span className="shrink-0 text-base font-extrabold text-cyan-300">${r.priceUSD}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {/* Countries with nothing to show — a first-class outcome, not a failure. */}
+                    {unavailable.length > 0 && (
+                      <div className="mt-2 space-y-2">
+                        {unavailable.map((u) => {
+                          const m = MARKET_META[u.country] || { flag: "🏳️", name: u.country };
+                          return (
+                            <div key={u.country}
+                              className={"flex items-center gap-3 rounded-2xl border p-3 " +
+                                (u.retryable ? "border-amber-400/20 bg-amber-400/[0.05]" : "border-white/[0.07] bg-white/[0.02]")}>
+                              <span className="text-xl leading-none opacity-40 grayscale">{m.flag}</span>
+                              <div className="min-w-0 flex-1">
+                                <div className={"text-sm font-medium " + (u.retryable ? "text-amber-200/80" : "text-white/40")}>{m.name}</div>
+                                <div className={"mt-0.5 text-[11px] leading-relaxed " + (u.retryable ? "text-amber-200/50" : "text-white/30")}>
+                                  {u.retryable ? u.label : "نتیجهٔ معتبری پیدا نشد — قیمت نهایی را مسافرها پیشنهاد می‌دهند"}
+                                </div>
+                              </div>
+                              {u.retryable && (
+                                <button onClick={runCompare} className="shrink-0 rounded-lg border border-amber-400/30 px-2.5 py-1 text-[11px] font-bold text-amber-200">تلاش دوباره</button>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {ranked.length === 0 && (
+                      <div className="mt-3 rounded-2xl border border-white/10 bg-white/[0.03] p-3 text-center text-xs leading-relaxed text-white/45">
+                        در هیچ‌کدام از کشورها قیمت معتبری پیدا نشد. می‌توانید بدون قیمت پایه ادامه دهید — مسافرها قیمت را پیشنهاد می‌دهند.
+                        <button onClick={() => setStage("publish")} className="mt-3 block w-full rounded-xl border border-white/15 bg-white/5 py-2 text-xs font-bold text-white/70">ادامه بدون قیمت پایه</button>
+                      </div>
+                    )}
+
+                    <div className="mt-4 rounded-xl border border-white/10 bg-white/[0.03] p-3 text-[11px] leading-relaxed text-white/40">
+                      قیمت کالا در فروشگاه است — مالیات، عوارض گمرکی و هزینهٔ حمل حساب نشده.
+                      {" "}قیمت‌ها تا ۱۲ ساعت ذخیره می‌شوند{degraded ? "" : fetchedAt ? ` (آخرین بروزرسانی: ${new Date(fetchedAt).toLocaleString("fa-IR")})` : ""}.
+                      {" "}قیمت نهایی را مسافرها پیشنهاد می‌دهند.
+                    </div>
+                  </>
+                );
+              })()}
+            </div>
+          )}
+          {stage === "publish" && (
+            <div dir="rtl" className="p-5 text-white">
+              <button onClick={() => setStage(priority === "cheapest" ? "cheapest" : "priority")} className="mb-3 inline-flex items-center gap-1 text-sm text-white/50">→ بازگشت</button>
               <div className="mb-1 text-base font-bold">انتشار در بازارگاه</div>
               <div className="mb-4 text-xs text-white/50">سفارش در بازارگاه منتشر می‌شود تا مسافرها پیشنهاد بدهند.</div>
               <div className="mb-4 rounded-2xl border border-white/10 bg-white/[0.04] p-3 text-sm">
                 <div className="font-medium text-white">{orderProduct?.title}</div>
                 {variant && <div className="mt-1 text-xs text-white/50">{[variant.color, variant.size].filter(Boolean).join(" · ")}</div>}
-                <div className="mt-1 text-xs text-white/50">{priority === "fast" ? "اولویت: سریع ⚡" : "اولویت: فرقی نمی‌کند 🌍"}</div>
+                <div className="mt-1 text-xs text-white/50">{priority === "fast" ? "اولویت: سریع ⚡" : priority === "cheapest" ? "اولویت: ارزان‌ترین 💰" : "اولویت: فرقی نمی‌کند 🌍"}</div>
+                {quote && (
+                  <div className="mt-2 flex items-center gap-2 rounded-xl border border-emerald-400/20 bg-emerald-400/[0.07] px-2.5 py-2 text-xs">
+                    <span>{MARKET_META[quote.country]?.flag}</span>
+                    <span className="min-w-0 flex-1 truncate text-emerald-200/70">
+                      {[MARKET_META[quote.country]?.name, quote.shop, fmtLocal(quote.priceLocal, quote.currency)].filter(Boolean).join(" · ")}
+                    </span>
+                    <span className="shrink-0 font-bold text-emerald-300">${quote.priceUSD}</span>
+                  </div>
+                )}
               </div>
               {(() => {
                 const missing = [];
                 if (!orderProduct?.title || orderProduct.title.trim().length <= 2) missing.push("نام محصول معتبر");
-                if (!orderProduct?.priceUSD) missing.push("قیمت تخمینی");
+                // A quote IS the price — a cheapest-flow order carries its own base price even
+                // when the chat never resolved one.
+                if (!orderProduct?.priceUSD && !quote?.priceUSD) missing.push("قیمت تخمینی");
                 if (!estCountry) missing.push("کشور مقصد");
                 return missing.length > 0 ? (
                   <div className="mb-3 rounded-2xl border border-amber-400/30 bg-amber-400/10 p-3 text-xs text-amber-200">
@@ -328,7 +497,7 @@ export default function ChaparConcierge({ language = "fa", userName = "", userId
                     className="w-full rounded-2xl border border-cyan-400/40 bg-cyan-400/10 py-3 text-sm font-bold text-cyan-200">
                     برای انتشار در بازارگاه، وارد شوید
                   </button>
-                : <button disabled={publishing || !orderProduct?.title || (orderProduct.title.trim().length <= 2) || !orderProduct?.priceUSD || !estCountry} onClick={doPublish}
+                : <button disabled={publishing || !orderProduct?.title || (orderProduct.title.trim().length <= 2) || (!orderProduct?.priceUSD && !quote?.priceUSD) || !estCountry} onClick={doPublish}
                     className="w-full rounded-2xl bg-gradient-to-l from-cyan-400 to-blue-500 py-3 text-sm font-bold text-white disabled:opacity-50">
                     {publishing ? "در حال انتشار…" : "تأیید و انتشار در بازارگاه"}
                   </button>}
