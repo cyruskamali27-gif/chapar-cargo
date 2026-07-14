@@ -115,7 +115,7 @@ function ModeSelector({ t, isRTL, onSelectBuyForMe, onSelectCommercial }: {
   const modes = [
     {
       key: 'buyforme',
-      icon: <ShoppingCart className="w-7 h-7 text-cyan-500" />,
+      icon: <ShoppingCart className="w-7 h-7 text-cyan-600" />,
       title: t.buyForMe,
       desc: t.buyForMeDesc,
       gradient: 'from-cyan-50 to-blue-50',
@@ -273,7 +273,7 @@ function LinkTab({ t, product, setProduct }: {
             )}
           </div>
           {url && (
-            <a href={url} target="_blank" rel="noopener noreferrer" className="flex-shrink-0 text-gray-400 hover:text-cyan-500">
+            <a href={url} target="_blank" rel="noopener noreferrer" className="flex-shrink-0 text-gray-400 hover:text-cyan-600">
               <ExternalLink className="w-4 h-4" />
             </a>
           )}
@@ -350,7 +350,7 @@ function EditableProductFields({ t, product, setProduct }: {
                   className={`w-full flex items-center gap-3 px-5 py-3.5 hover:bg-gray-50 transition-colors ${product.currency === c.code ? 'bg-cyan-50' : ''}`}>
                   <span className="text-xl">{c.flag}</span>
                   <span className="text-sm font-extrabold text-cyan-600 w-14 text-left">{c.code}</span>
-                  {product.currency === c.code && <CheckCircle className="w-4 h-4 text-cyan-500 ml-auto" />}
+                  {product.currency === c.code && <CheckCircle className="w-4 h-4 text-cyan-600 ml-auto" />}
                 </button>
               ))}
             </div>

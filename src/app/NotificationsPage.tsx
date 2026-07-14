@@ -129,7 +129,7 @@ export default function NotificationsPage({ onHome, onNavigate }: Props) {
           <div className="mr-auto flex items-center gap-2">
             <h1 className="text-lg font-extrabold text-gray-900">{t.notifTitle}</h1>
             {unreadCount > 0 && (
-              <span className="inline-flex items-center justify-center bg-cyan-500 text-white text-[10px] font-extrabold min-w-[18px] h-[18px] rounded-full px-1">
+              <span className="inline-flex items-center justify-center bg-cyan-700 text-white text-[10px] font-extrabold min-w-[18px] h-[18px] rounded-full px-1">
                 {unreadCount}
               </span>
             )}

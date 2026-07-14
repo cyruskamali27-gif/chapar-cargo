@@ -111,7 +111,7 @@ export default function ProductFinder({ onSelect }: Props) {
     return (
       <div className="bg-gradient-to-br from-cyan-50 to-blue-50 border border-cyan-200 rounded-2xl p-4 mb-5">
         <div className="flex items-center gap-2 mb-3">
-          <Search className="w-4 h-4 text-cyan-500" />
+          <Search className="w-4 h-4 text-cyan-600" />
           <span className="text-sm font-bold text-cyan-700">جستجوی هوشمند محصول</span>
         </div>
         <textarea
@@ -127,7 +127,7 @@ export default function ProductFinder({ onSelect }: Props) {
         <button
           onClick={identify}
           disabled={loading || !query.trim()}
-          className="mt-2 w-full py-2.5 rounded-xl bg-cyan-500 text-white text-sm font-bold hover:bg-cyan-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+          className="mt-2 w-full py-2.5 rounded-xl bg-cyan-700 text-white text-sm font-bold hover:bg-cyan-800 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
         >
           {loading ? <><Spinner />در حال شناسایی...</> : 'پیدا کن'}
         </button>
@@ -172,7 +172,7 @@ export default function ProductFinder({ onSelect }: Props) {
             <button
               onClick={identify}
               disabled={loading}
-              className="w-full py-2.5 rounded-xl bg-cyan-500 text-white text-sm font-bold hover:bg-cyan-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              className="w-full py-2.5 rounded-xl bg-cyan-700 text-white text-sm font-bold hover:bg-cyan-800 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {loading ? <><Spinner />در حال شناسایی...</> : 'دوباره شناسایی کن'}
             </button>
@@ -184,7 +184,7 @@ export default function ProductFinder({ onSelect }: Props) {
             <button
               onClick={findPrices}
               disabled={loading}
-              className="w-full py-2.5 rounded-xl bg-cyan-500 text-white text-sm font-bold hover:bg-cyan-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              className="w-full py-2.5 rounded-xl bg-cyan-700 text-white text-sm font-bold hover:bg-cyan-800 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {loading ? <><Spinner />در حال جستجو...</> : 'بله، قیمت‌ها را پیدا کن'}
             </button>
@@ -235,7 +235,7 @@ export default function ProductFinder({ onSelect }: Props) {
                 className={`bg-white rounded-2xl border-2 p-4 flex gap-3 relative ${i === 0 ? 'border-cyan-400 shadow-sm' : 'border-gray-200'}`}
               >
                 {i === 0 && (
-                  <span className="absolute top-2 left-2 text-xs font-bold bg-cyan-500 text-white px-2 py-0.5 rounded-full">
+                  <span className="absolute top-2 left-2 text-xs font-bold bg-cyan-700 text-white px-2 py-0.5 rounded-full">
                     ارزان‌ترین
                   </span>
                 )}
@@ -295,7 +295,7 @@ export default function ProductFinder({ onSelect }: Props) {
                       className={`flex items-center gap-1 text-xs font-bold px-3 py-1 rounded-lg border-2 transition-all ${
                         selectedIdx === i
                           ? 'bg-green-50 border-green-400 text-green-700'
-                          : 'bg-cyan-500 border-cyan-500 text-white hover:bg-cyan-600'
+                          : 'bg-cyan-700 border-cyan-700 text-white hover:bg-cyan-800'
                       }`}
                     >
                       {selectedIdx === i

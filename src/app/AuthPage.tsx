@@ -556,7 +556,7 @@ export default function AuthPage({ onHome, onSuccess, defaultTab = 'login' }: Pr
               <div className="w-14 h-14 rounded-full bg-cyan-50 border-2 border-cyan-100 flex items-center justify-center mx-auto mb-5">
                 {otpChannel.channel === 'telegram'
                   ? <Send className="w-7 h-7 text-[#229ED9]" />
-                  : <Mail className="w-7 h-7 text-cyan-500" />}
+                  : <Mail className="w-7 h-7 text-cyan-600" />}
               </div>
               <OtpChannelPanel hook={otpChannel} identifier={vIdentifier} />
             </div>

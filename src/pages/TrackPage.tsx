@@ -1023,7 +1023,7 @@ export default function TrackPage({ initialCode = '' }: TrackPageProps) {
       {/* Header overlay */}
       <div className="relative z-20 flex items-center justify-between px-4 sm:px-6 py-4 bg-gradient-to-b from-[#04070f]/90 to-transparent pointer-events-none">
         <a href="/" className="flex items-center gap-2 pointer-events-auto">
-          <div className="w-7 h-7 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-lg flex items-center justify-center">
+          <div className="w-7 h-7 bg-gradient-to-br from-cyan-700 to-blue-700 rounded-lg flex items-center justify-center">
             <svg className="w-3.5 h-3.5 text-white -rotate-45" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3l14 9-14 9V3z" />
             </svg>
@@ -1067,7 +1067,7 @@ export default function TrackPage({ initialCode = '' }: TrackPageProps) {
                         onChange={e => setDemoInput(e.target.value.toUpperCase())}
                         dir="ltr"
                       />
-                      <button type="submit" className="px-5 py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-sm font-bold text-white hover:from-cyan-400 hover:to-blue-500 transition-all">
+                      <button type="submit" className="px-5 py-3 rounded-xl bg-gradient-to-r from-cyan-700 to-blue-700 text-sm font-bold text-white hover:from-cyan-400 hover:to-blue-500 transition-all">
                         {t.trkDemoBtn}
                       </button>
                     </form>

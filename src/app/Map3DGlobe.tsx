@@ -778,11 +778,11 @@ export default function Map3DGlobe({ className, onReady }: { className?: string;
           aria-label="Scroll to next section"
           style={{ touchAction: 'none' }}
         >
-          <span className="text-[9px] uppercase tracking-widest text-white/25 group-hover:text-white/55 transition-colors font-semibold select-none">
+          <span className="text-[9px] uppercase tracking-widest text-white/50 group-hover:text-white/55 transition-colors font-semibold select-none">
             scroll
           </span>
           <svg
-            className="w-5 h-8 text-white/40 group-hover:text-white/80 transition-colors drop-shadow-[0_0_6px_rgba(255,255,255,0.3)]"
+            className="w-5 h-8 text-white/50 group-hover:text-white/80 transition-colors drop-shadow-[0_0_6px_rgba(255,255,255,0.3)]"
             fill="none" stroke="currentColor" viewBox="0 0 24 20"
           >
             <path className="chevron-a" strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 3l8 7 8-7" />

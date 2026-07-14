@@ -116,7 +116,7 @@ export default function EarthPreview() {
       <div className="absolute top-0 left-0 right-0 z-20 flex items-center justify-between px-4 sm:px-6 py-4">
         {/* Logo */}
         <a href="/" className="flex items-center gap-2.5 group">
-          <div className="w-9 h-9 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-cyan-500/25">
+          <div className="w-9 h-9 bg-gradient-to-br from-cyan-700 to-blue-700 rounded-xl flex items-center justify-center shadow-lg shadow-cyan-500/25">
             <svg className="w-4.5 h-4.5 text-white -rotate-45" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3l14 9-14 9V3z" />
             </svg>
@@ -147,7 +147,7 @@ export default function EarthPreview() {
           </div>
           <button
             type="submit"
-            className="px-4 py-2.5 rounded-2xl bg-gradient-to-r from-cyan-500 to-blue-600 text-sm font-bold text-white hover:from-cyan-400 hover:to-blue-500 transition-all shadow-lg shadow-cyan-500/25"
+            className="px-4 py-2.5 rounded-2xl bg-gradient-to-r from-cyan-700 to-blue-700 text-sm font-bold text-white hover:from-cyan-400 hover:to-blue-500 transition-all shadow-lg shadow-cyan-500/25"
           >
             زوم
           </button>

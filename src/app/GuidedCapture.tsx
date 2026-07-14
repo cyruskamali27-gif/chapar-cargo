@@ -1081,7 +1081,7 @@ export default function GuidedCapture({
               disabled={!selectedDocType}
               className={`w-full py-4 font-bold rounded-2xl text-base transition-all ${
                 selectedDocType
-                  ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-lg shadow-cyan-500/25 hover:from-cyan-400 hover:to-blue-500'
+                  ? 'bg-gradient-to-r from-cyan-700 to-blue-700 text-white shadow-lg shadow-cyan-500/25 hover:from-cyan-400 hover:to-blue-500'
                   : 'bg-white/10 text-gray-500 cursor-not-allowed'
               }`}
             >
@@ -1134,7 +1134,7 @@ export default function GuidedCapture({
             <motion.button
               whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
               onClick={handleConsent}
-              className="w-full py-4 bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold rounded-2xl text-base shadow-lg shadow-cyan-500/25 hover:from-cyan-400 hover:to-blue-500 transition-all mb-3"
+              className="w-full py-4 bg-gradient-to-r from-cyan-700 to-blue-700 text-white font-bold rounded-2xl text-base shadow-lg shadow-cyan-500/25 hover:from-cyan-400 hover:to-blue-500 transition-all mb-3"
             >
               {t.scanConsentAccept}
             </motion.button>
@@ -1284,7 +1284,7 @@ export default function GuidedCapture({
                 <motion.button
                   whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
                   onClick={handleRetryAnalysis}
-                  className="flex items-center justify-center gap-2 w-full py-3 bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold rounded-xl mb-3"
+                  className="flex items-center justify-center gap-2 w-full py-3 bg-gradient-to-r from-cyan-700 to-blue-700 text-white font-bold rounded-xl mb-3"
                 >
                   <RefreshCw className="w-4 h-4" />
                   {t.scanRetryAnalysis}
@@ -1365,7 +1365,7 @@ export default function GuidedCapture({
                 <motion.button
                   whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
                   onClick={handleConsent}
-                  className="flex items-center justify-center gap-2 w-full py-3 bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold rounded-xl mb-3"
+                  className="flex items-center justify-center gap-2 w-full py-3 bg-gradient-to-r from-cyan-700 to-blue-700 text-white font-bold rounded-xl mb-3"
                 >
                   <RefreshCw className="w-4 h-4" />
                   {t.lcLivenessRetry}

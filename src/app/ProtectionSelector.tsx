@@ -80,7 +80,7 @@ export default function SecuritySelector({
                     </span>
                   </div>
                   {opt.recommended && (
-                    <span className="text-[10px] font-bold bg-cyan-500 text-white px-2 py-0.5 rounded-full">{t.protRecommended}</span>
+                    <span className="text-[10px] font-bold bg-cyan-700 text-white px-2 py-0.5 rounded-full">{t.protRecommended}</span>
                   )}
                 </div>
                 <p className={`text-xs leading-relaxed ${active ? 'text-cyan-600' : 'text-gray-500'}`}>{opt.sub}</p>

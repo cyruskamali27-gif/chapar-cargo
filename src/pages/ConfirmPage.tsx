@@ -112,7 +112,7 @@ export default function ConfirmPage() {
           {state === 'ready' && info && (
             <>
               <div className="flex items-center justify-center w-16 h-16 rounded-full bg-cyan-50 border-2 border-cyan-100 mx-auto mb-5">
-                <Package className="w-8 h-8 text-cyan-500" />
+                <Package className="w-8 h-8 text-cyan-600" />
               </div>
               <h2 className="text-xl font-extrabold text-gray-900 mb-3">{t.confirmTitle}</h2>
               <p className="text-sm text-gray-500 leading-relaxed mb-5">{t.confirmSubtitle}</p>

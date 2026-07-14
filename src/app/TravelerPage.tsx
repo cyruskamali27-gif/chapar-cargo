@@ -64,13 +64,13 @@ function StepPills({ step }: { step: number }) {
             )}
             <div className="flex flex-col items-center gap-1">
               <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-colors
-                ${done   ? 'bg-cyan-500 text-white'
+                ${done   ? 'bg-cyan-700 text-white'
                 : active ? 'bg-cyan-600 text-white ring-4 ring-cyan-100'
                 :          'bg-gray-100 text-gray-400'}`}>
                 {done ? '✓' : n}
               </div>
               <span className={`text-[10px] font-semibold whitespace-nowrap hidden sm:block
-                ${active ? 'text-cyan-600' : done ? 'text-cyan-500' : 'text-gray-400'}`}>
+                ${active ? 'text-cyan-700' : done ? 'text-cyan-700' : 'text-gray-500'}`}>
                 {label}
               </span>
             </div>

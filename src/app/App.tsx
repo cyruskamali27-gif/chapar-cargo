@@ -200,7 +200,7 @@ function MarketplaceRouteBoard() {
                 {route.trend === 'up' ? '↗' : route.trend === 'down' ? '↘' : '→'} {route.trend}
               </span>
               <motion.button
-                className="px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 text-white rounded-lg text-xs font-semibold hover:opacity-90 transition-opacity"
+                className="px-4 py-2 bg-gradient-to-r from-cyan-700 to-blue-700 text-white rounded-lg text-xs font-semibold hover:opacity-90 transition-opacity"
                 whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}
               >
                 View Route
@@ -387,7 +387,7 @@ function TravelerAcceptancePreview({ securityLevel }: { securityLevel: SecurityL
             <motion.button
               whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
               onClick={() => setAccepted(true)}
-              className="py-2 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 text-white text-xs font-semibold hover:opacity-90 transition-opacity"
+              className="py-2 rounded-lg bg-gradient-to-r from-cyan-700 to-blue-700 text-white text-xs font-semibold hover:opacity-90 transition-opacity"
             >
               {t.appAcceptAccept}
             </motion.button>
@@ -467,7 +467,7 @@ function MarketplaceListingCard({
       </div>
       <div className="px-4 pb-4">
         <button onClick={onButtonClick}
-          className="flex items-center justify-center gap-2 w-full py-2.5 bg-gradient-to-r from-cyan-500 to-blue-600 text-white text-sm font-bold rounded-xl hover:opacity-90 transition-opacity">
+          className="flex items-center justify-center gap-2 w-full py-2.5 bg-gradient-to-r from-cyan-700 to-blue-700 text-white text-sm font-bold rounded-xl hover:opacity-90 transition-opacity">
           {buttonLabel}
         </button>
       </div>
@@ -1944,7 +1944,7 @@ function HomePage({ t, setPage, isRTL }: { t: typeof translations['en']; setPage
           <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-12 mb-12">
             <div className="lg:col-span-2">
               <div className="flex items-center gap-2.5 mb-6">
-                <div className="w-8 h-8 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                <div className="w-8 h-8 bg-gradient-to-br from-cyan-700 to-blue-700 rounded-lg flex items-center justify-center flex-shrink-0">
                   <Plane className="w-4 h-4 text-white -rotate-45" />
                 </div>
                 <span className="text-xl font-bold tracking-tight text-white">Chapar</span>
@@ -2033,7 +2033,7 @@ function NavTrackingPanel({ onClose }: { onClose: () => void }) {
               />
               <button
                 onClick={doSearch}
-                className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-sm font-bold text-white hover:from-cyan-400 hover:to-blue-500 transition-all"
+                className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-cyan-700 to-blue-700 text-sm font-bold text-white hover:from-cyan-400 hover:to-blue-500 transition-all"
               >
                 {t.homeTrkSearch}
               </button>
@@ -2400,7 +2400,7 @@ export default function App() {
                     onClick={() => setCurrentPage('profile')}
                     className="flex items-center gap-2 px-2.5 py-1.5 rounded-xl bg-white/8 border border-white/12 hover:bg-white/14 transition-all"
                     whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
-                    <div className="w-7 h-7 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-white text-xs font-extrabold flex-shrink-0">
+                    <div className="w-7 h-7 rounded-full bg-gradient-to-br from-cyan-700 to-blue-700 flex items-center justify-center text-white text-xs font-extrabold flex-shrink-0">
                       {(session.firstName || session.email || '?').charAt(0).toUpperCase()}
                     </div>
                     {session.firstName && (
@@ -2417,7 +2417,7 @@ export default function App() {
               ) : (
                 <motion.button
                     onClick={() => setCurrentPage('auth')}
-                    className="px-5 py-2 text-sm font-bold bg-gradient-to-r from-cyan-500 to-blue-600 text-white rounded-xl shadow-lg shadow-cyan-500/25 hover:shadow-cyan-500/45 hover:from-cyan-400 hover:to-blue-500 transition-all"
+                    className="px-5 py-2 text-sm font-bold bg-gradient-to-r from-cyan-700 to-blue-700 text-white rounded-xl shadow-lg shadow-cyan-500/25 hover:shadow-cyan-500/45 hover:from-cyan-400 hover:to-blue-500 transition-all"
                     whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}>
                     ورود / عضویت
                   </motion.button>
@@ -2488,7 +2488,7 @@ export default function App() {
                     <div className="flex flex-col gap-2 flex-1">
                       <button onClick={() => { setCurrentPage('profile'); setMobileMenuOpen(false); }}
                         className="flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium text-gray-200 border border-white/10 rounded-xl hover:bg-white/8 transition-colors">
-                        <div className="w-6 h-6 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-white text-xs font-extrabold flex-shrink-0">
+                        <div className="w-6 h-6 rounded-full bg-gradient-to-br from-cyan-700 to-blue-700 flex items-center justify-center text-white text-xs font-extrabold flex-shrink-0">
                           {(session.firstName || session.email || '?').charAt(0).toUpperCase()}
                         </div>
                         <span>{session.firstName || session.email || t.profTitle}</span>
@@ -2500,7 +2500,7 @@ export default function App() {
                     </div>
                   ) : (
                     <button onClick={() => { setCurrentPage('auth'); setMobileMenuOpen(false); }}
-                      className="flex-1 px-4 py-2.5 text-sm font-bold bg-gradient-to-r from-cyan-500 to-blue-600 text-white rounded-xl hover:opacity-90 transition-opacity">
+                      className="flex-1 px-4 py-2.5 text-sm font-bold bg-gradient-to-r from-cyan-700 to-blue-700 text-white rounded-xl hover:opacity-90 transition-opacity">
                       ورود / عضویت
                     </button>
                   )}

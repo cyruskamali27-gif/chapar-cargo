@@ -167,7 +167,7 @@ export default function TrackingSearchPanel({ onSubmit, loading, error }: Tracki
       <button
         type="submit"
         disabled={loading || !form.senderCity || !form.senderCountry || !form.receiverCity || !form.receiverCountry}
-        className="w-full py-4 rounded-2xl text-sm font-bold text-white bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-cyan-500/20 hover:shadow-cyan-500/35"
+        className="w-full py-4 rounded-2xl text-sm font-bold text-white bg-gradient-to-r from-cyan-700 to-blue-700 hover:from-cyan-400 hover:to-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-cyan-500/20 hover:shadow-cyan-500/35"
       >
         {loading ? (
           <span className="flex items-center justify-center gap-2">

@@ -111,7 +111,7 @@ export default function TrackingPreview() {
       {/* Header */}
       <header className="flex-shrink-0 bg-[#04070f]/95 backdrop-blur-xl border-b border-white/8 px-6 py-4 flex items-center justify-between z-20">
         <a href="/" className="flex items-center gap-2.5">
-          <div className="w-8 h-8 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-lg flex items-center justify-center">
+          <div className="w-8 h-8 bg-gradient-to-br from-cyan-700 to-blue-700 rounded-lg flex items-center justify-center">
             <svg className="w-4 h-4 text-white -rotate-45" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3l14 9-14 9V3z" />
             </svg>

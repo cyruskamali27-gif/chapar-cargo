@@ -482,7 +482,7 @@ export default function GoogleEarthPreview() {
 
         {/* Logo */}
         <a href="/" className="flex items-center gap-2 flex-shrink-0">
-          <div className="w-8 h-8 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-cyan-500/20">
+          <div className="w-8 h-8 bg-gradient-to-br from-cyan-700 to-blue-700 rounded-xl flex items-center justify-center shadow-lg shadow-cyan-500/20">
             <svg className="w-4 h-4 text-white -rotate-45" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3l14 9-14 9V3z" />
             </svg>
@@ -512,7 +512,7 @@ export default function GoogleEarthPreview() {
             )}
           </div>
           <button type="submit"
-            className="px-4 py-2.5 rounded-2xl bg-gradient-to-r from-cyan-500 to-blue-600 text-sm font-bold text-white hover:from-cyan-400 hover:to-blue-500 transition-all shadow-lg shadow-cyan-500/20 flex-shrink-0">
+            className="px-4 py-2.5 rounded-2xl bg-gradient-to-r from-cyan-700 to-blue-700 text-sm font-bold text-white hover:from-cyan-400 hover:to-blue-500 transition-all shadow-lg shadow-cyan-500/20 flex-shrink-0">
             Track
           </button>
           {selectedCode && (

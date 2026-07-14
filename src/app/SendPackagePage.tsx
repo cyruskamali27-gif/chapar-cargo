@@ -105,13 +105,13 @@ function StepPills({ step }: { step: number }) {
             )}
             <div className="flex flex-col items-center gap-0.5">
               <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold transition-colors
-                ${done   ? 'bg-cyan-500 text-white'
+                ${done   ? 'bg-cyan-700 text-white'
                 : active ? 'bg-cyan-600 text-white ring-4 ring-cyan-100'
                 :          'bg-gray-100 text-gray-400'}`}>
                 {done ? '✓' : n}
               </div>
               <span className={`text-[9px] font-semibold whitespace-nowrap hidden sm:block
-                ${active ? 'text-cyan-600' : done ? 'text-cyan-500' : 'text-gray-400'}`}>
+                ${active ? 'text-cyan-700' : done ? 'text-cyan-700' : 'text-gray-500'}`}>
                 {label}
               </span>
             </div>
@@ -1660,7 +1660,7 @@ export default function SendPackagePage({ onHome, cargoType = 'personal', onNavi
                   <span className="text-xl">{c.flag}</span>
                   <span className="text-sm font-extrabold text-cyan-600 w-14 text-left">{c.code}</span>
                   <span className="flex-1 text-sm font-bold text-gray-700 text-right">{CURR_LABELS[c.code] ?? c.code}</span>
-                  {selectedCurr === c.code && <CheckCircle className="w-4 h-4 text-cyan-500 flex-shrink-0" />}
+                  {selectedCurr === c.code && <CheckCircle className="w-4 h-4 text-cyan-600 flex-shrink-0" />}
                 </button>
               ))}
             </div>
