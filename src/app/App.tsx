@@ -53,7 +53,7 @@ function WhatsAppIcon({ className }: { className?: string }) {
     </svg>
   );
 }
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, useInView, AnimatePresence } from 'motion/react';
 import Map3DGlobe from './Map3DGlobe';
 import { LangCode, RTL_LANGS, langMeta, translations } from './i18n';
@@ -509,8 +509,13 @@ function MarketplacePage({ onBack, onHome, t, onBook, myOrderId, onClearMyOrder 
   // Reset green highlight whenever a new order is shown
   useEffect(() => { if (myOrderId) setIsHighlighted(true); }, [myOrderId]);
 
-  useEffect(() => {
-    if (!myOrderId) { setMyOrder(null); return; }
+  // بازارگاه هوشمند — the counter-offer a traveler triggered on this order.
+  const [counter, setCounter] = useState<any>(null);
+  const [counterBusy, setCounterBusy] = useState(false);
+  const [counterMsg, setCounterMsg] = useState('');
+
+  const reloadMyOrder = useCallback(() => {
+    if (!myOrderId) { setMyOrder(null); setCounter(null); return; }
     fetch(`/api/marketplace/listings/${myOrderId}`)
       .then(r => r.json())
       .then(d => {
@@ -519,10 +524,42 @@ function MarketplacePage({ onBack, onHome, t, onBook, myOrderId, onClearMyOrder 
           setEditPrio(d.order.priority || 'any');
           setEditCountry(d.order.country || '');
           setEditReq(d.order.specialRequest || '');
+          if (d.order.status === 'buyer_counter_offered' && d.order.counterOfferId) {
+            fetch(`/api/offers?orderId=${myOrderId}`)
+              .then(r => r.json())
+              .then(od => setCounter((od.offers || []).find((o: any) => o.offerId === d.order.counterOfferId) || null))
+              .catch(() => setCounter(null));
+          } else setCounter(null);
         } else { setMyOrderErr('خطا در دریافت اگهی'); }
       })
       .catch(() => setMyOrderErr('خطای اتصال'));
   }, [myOrderId]);
+  useEffect(() => { reloadMyOrder(); }, [reloadMyOrder]);
+
+  // Poll while a traveler's acceptance is being priced — the counter-offer builds asynchronously
+  // (a real SERP fetch for the traveler's country, ~20s), so the buyer must not be left staring
+  // at a stale "waiting" state.
+  useEffect(() => {
+    if (myOrder?.status !== 'traveler_accepted') return;
+    const id = setInterval(reloadMyOrder, 5000);
+    return () => clearInterval(id);
+  }, [myOrder?.status, reloadMyOrder]);
+
+  async function respondCounter(action: 'accept' | 'decline', confirmPriceChange = false) {
+    if (!myOrderId || !session?.userId || counterBusy) return;
+    setCounterBusy(true); setCounterMsg('');
+    try {
+      const r = await fetch('/api/marketplace/buyer-respond', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderId: myOrderId, userId: session.userId, action, confirmPriceChange }),
+      });
+      const d = await r.json();
+      if (r.ok && d.ok) setCounterMsg(action === 'accept' ? 'تأیید شد ✓' : 'رد شد — دوباره به مسافرها پیشنهاد می‌شود');
+      else setCounterMsg(d.message || 'انجام نشد — دوباره تلاش کنید');
+    } catch { setCounterMsg('ارتباط برقرار نشد'); }
+    setCounterBusy(false);
+    reloadMyOrder();
+  }
 
   async function saveEdit() {
     if (!myOrder) return;
@@ -692,6 +729,89 @@ function MarketplacePage({ onBack, onHome, t, onBook, myOrderId, onClearMyOrder 
                     <div className="h-1.5 rounded-full bg-gray-100 overflow-hidden">
                       <div className="h-full rounded-full transition-all duration-700"
                         style={{ width: st.pct, background: 'linear-gradient(90deg, #10b981, #059669)' }} />
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* ── بازارگاه هوشمند — the traveler's counter-offer ────────────────────
+                  A traveler in a DIFFERENT country accepted. Show the honest price for THEIR
+                  country next to what the buyer originally chose, and let them decide. Three
+                  states, all first-class: a price, no-honest-result, and still-being-priced. */}
+              {myOrder?.status === 'traveler_accepted' && (
+                <div className="mb-3 rounded-xl border border-cyan-200 bg-cyan-50 p-3">
+                  <div className="text-xs font-bold text-cyan-800 mb-0.5">مسافری پیشنهاد را پذیرفت</div>
+                  <div className="text-[11px] text-cyan-700 leading-relaxed">
+                    در حال گرفتن قیمت معتبر برای کشور مسافر… چند لحظه صبر کنید.
+                  </div>
+                </div>
+              )}
+
+              {myOrder?.status === 'buyer_counter_offered' && counter && (() => {
+                const FLAG: Record<string,string> = { AE:'🇦🇪', CA:'🇨🇦', US:'🇺🇸', GB:'🇬🇧', TR:'🇹🇷', DE:'🇩🇪', FR:'🇫🇷' };
+                const NAME: Record<string,string> = { AE:'امارات', CA:'کانادا', US:'آمریکا', GB:'انگلیس', TR:'ترکیه', DE:'آلمان', FR:'فرانسه' };
+                const cq   = counter.counterQuote;
+                const from = counter.fromCountry;
+                const orig = myOrder.priceQuote;
+                const cheaper = cq && orig && cq.priceUSD < orig.priceUSD;
+                return (
+                  <div className="mb-3 rounded-2xl border-2 border-cyan-300 bg-cyan-50 p-3.5">
+                    <div className="text-sm font-extrabold text-cyan-900 mb-1">
+                      پیشنهاد مسافر {FLAG[from] || '🌍'}
+                    </div>
+                    <div className="text-[11px] text-cyan-800 leading-relaxed mb-3">
+                      مسافری از {NAME[from] || from} این سفارش را می‌آورد
+                      {orig ? ` (شما ${NAME[orig.country] || orig.country} را انتخاب کرده بودید).` : '.'}
+                    </div>
+
+                    {cq ? (
+                      <div className="rounded-xl bg-white border border-cyan-200 p-3 mb-3">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="min-w-0">
+                            <div className="text-[10px] text-gray-500 mb-0.5">قیمت در {NAME[from] || from}</div>
+                            <div className="text-base font-extrabold text-gray-900">
+                              ${cq.priceUSD}
+                              {cq.priceLocal && <span className="text-xs font-normal text-gray-500"> · {cq.priceLocal.toLocaleString('en-US')} {cq.currency}</span>}
+                            </div>
+                            <div className="text-[10px] text-gray-500 truncate">{cq.shop}</div>
+                          </div>
+                          {orig && (
+                            <div className="text-left shrink-0">
+                              <div className="text-[10px] text-gray-500 mb-0.5">انتخاب قبلی شما</div>
+                              <div className="text-sm font-bold text-gray-500 line-through">${orig.priceUSD}</div>
+                            </div>
+                          )}
+                        </div>
+                        {cheaper && (
+                          <div className="mt-2 text-[11px] font-bold text-emerald-700">
+                            ${(orig.priceUSD - cq.priceUSD).toFixed(2)} ارزان‌تر از انتخاب قبلی
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      /* No honest result for the traveler's country — calm, first-class, never an error. */
+                      <div className="rounded-xl bg-white border border-gray-200 p-3 mb-3">
+                        <div className="text-xs text-gray-600 leading-relaxed">
+                          نتیجهٔ معتبری برای {NAME[from] || from} پیدا نشد — قیمت نهایی را مسافر پیشنهاد می‌دهد.
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="text-[10px] text-gray-600 leading-relaxed mb-3">
+                      قیمت فروشگاه است — مالیات، گمرک و حمل حساب نشده. قیمت نهایی را مسافر پیشنهاد می‌دهد.
+                    </div>
+
+                    {counterMsg && <div className="mb-2 text-[11px] font-bold text-cyan-800">{counterMsg}</div>}
+
+                    <div className="flex gap-2">
+                      <button disabled={counterBusy} onClick={e => { e.stopPropagation(); respondCounter('accept'); }}
+                        className="flex-1 py-2.5 rounded-xl bg-cyan-700 text-white text-sm font-bold disabled:opacity-50">
+                        {counterBusy ? 'در حال ثبت…' : 'قبول دارم'}
+                      </button>
+                      <button disabled={counterBusy} onClick={e => { e.stopPropagation(); respondCounter('decline'); }}
+                        className="px-4 py-2.5 rounded-xl border border-gray-300 text-gray-600 text-sm font-bold disabled:opacity-50">
+                        نه
+                      </button>
                     </div>
                   </div>
                 );
