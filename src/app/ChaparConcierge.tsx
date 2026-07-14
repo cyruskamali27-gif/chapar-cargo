@@ -14,12 +14,10 @@ const LANGS = {
 
 const CARD_BG = { background: "radial-gradient(130% 80% at 50% 25%, #0f1330, #05060d 70%)" };
 
-const TAX = { CA: 0.13, US: 0.07, GB: 0.20, DE: 0.19, FR: 0.20, TR: 0.20, AE: 0.05 };
-const COUNTRIES = [
-  { code: "CA", label: "کانادا 🇨🇦" }, { code: "US", label: "آمریکا 🇺🇸" },
-  { code: "GB", label: "انگلیس 🇬🇧" }, { code: "DE", label: "آلمان 🇩🇪" },
-  { code: "FR", label: "فرانسه 🇫🇷" }, { code: "TR", label: "ترکیه 🇹🇷" }, { code: "AE", label: "امارات 🇦🇪" },
-];
+// The old "تخمین هزینه" screen's TAX table and 7-country chip row lived here. Both are gone
+// with it: the buyer now names a country exactly once, in the honest price comparison, and the
+// tax rate is applied server-side (MARKET_TAX in orders/server.js) against the quote they
+// actually accepted — instead of client-side against a country they merely tapped.
 
 // The corridors we actually price. TR is in the fan-out on purpose even though the retailer
 // allowlist currently leaves it dark: showing "Turkey — no verified result" is information,
@@ -43,7 +41,11 @@ export default function ChaparConcierge({ language = "fa", userName = "", userId
   const [gridResults, setGridResults] = useState([]);
   const [voiceErr, setVoiceErr] = useState("");
   const [priority, setPriority] = useState(null);   // "fast" | "any"
-  const [estCountry, setEstCountry] = useState("CA");
+  // Set ONLY by the honest price comparison (pickCountry). It has no default: on the
+  // سریع / فرقی‌نمی‌کند paths the buyer never names a country — that is the whole meaning of
+  // those options, the traveler's route decides — and defaulting to "CA" would have silently
+  // stamped every one of those orders as Canada.
+  const [estCountry, setEstCountry] = useState(null);
   const [specialRequest, setSpecialRequest] = useState("");
   const [publishing, setPublishing] = useState(false);
   const [publishResult, setPublishResult] = useState(null);
@@ -275,58 +277,13 @@ export default function ChaparConcierge({ language = "fa", userName = "", userId
           {stage === "store" && (
             <ChaparStorePanel
               product={orderProduct}
-              onContinue={(v) => { setVariant(v); setStage("estimate"); }}
+              onContinue={(v) => { setVariant(v); setStage("priority"); }}
               onBack={() => { if (gridResults.length) { setStage("grid"); } else { setOrderProduct(null); setStage(null); } }}
             />
           )}
-          {stage === "estimate" && (() => {
-            const base = Number(orderProduct?.priceUSD) || 0;
-            const rate = TAX[estCountry] ?? 0;
-            const tax = base * rate;
-            const subtotal = base + tax;
-            return (
-              <div dir="rtl" className="p-5 text-white">
-                <button onClick={() => setStage("store")} className="mb-3 inline-flex items-center gap-1 text-sm text-white/50">→ بازگشت</button>
-                <div className="mb-1 text-base font-bold">تخمین هزینه</div>
-                <div className="mb-4 text-xs text-white/50">{orderProduct?.title}</div>
-
-                <div className="mb-4">
-                  <div className="mb-2 text-xs text-white/50">کشور خرید</div>
-                  <div className="flex flex-wrap gap-2">
-                    {COUNTRIES.map(c => (
-                      <button key={c.code} onClick={() => setEstCountry(c.code)}
-                        className={"rounded-full border px-3 py-1.5 text-xs " + (estCountry === c.code ? "border-cyan-400 bg-cyan-400/15 text-cyan-200" : "border-white/10 bg-white/[0.03] text-white/60")}>
-                        {c.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="mb-4 space-y-2 rounded-2xl border border-white/10 bg-white/[0.04] p-4 text-sm">
-                  <div className="flex justify-between"><span className="text-white/60">قیمت کالا</span><span className="text-white">${base.toFixed(2)}</span></div>
-                  <div className="flex justify-between"><span className="text-white/60">مالیات تخمینی ({Math.round(rate * 100)}٪)</span><span className="text-white">${tax.toFixed(2)}</span></div>
-                  <div className="h-px bg-white/10"></div>
-                  <div className="flex justify-between font-bold"><span className="text-white/80">جمع تقریبی</span><span className="text-cyan-300">${subtotal.toFixed(2)}</span></div>
-                  <div className="rounded-xl border border-white/10 bg-white/[0.03] p-2.5 text-[11px] leading-relaxed text-white/45">
-                    کارمزد مسافر هنوز اضافه نشده — این مبلغ بعد از اینکه مسافر پیشنهاد داد مشخص و به جمع اضافه می‌شود.
-                  </div>
-                </div>
-
-                <div className="mb-4">
-                  <div className="mb-1.5 text-xs text-white/50">درخواست خاص (اختیاری)</div>
-                  <input value={specialRequest} onChange={e => setSpecialRequest(e.target.value)}
-                    placeholder="مثلاً: روی ایرپاد حکاکی شود: Cyrus"
-                    className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5 text-sm text-white placeholder:text-white/30 focus:border-cyan-400 focus:outline-none" />
-                </div>
-
-                <button onClick={() => setStage("priority")}
-                  className="w-full rounded-2xl bg-gradient-to-l from-cyan-400 to-blue-500 py-3 text-sm font-bold text-white">ادامه</button>
-              </div>
-            );
-          })()}
           {stage === "priority" && (
             <div dir="rtl" className="p-5 text-white">
-              <button onClick={() => setStage("estimate")} className="mb-3 inline-flex items-center gap-1 text-sm text-white/50">→ بازگشت</button>
+              <button onClick={() => setStage("store")} className="mb-3 inline-flex items-center gap-1 text-sm text-white/50">→ بازگشت</button>
               <div className="mb-4 text-base font-bold">چقدر عجله داری؟</div>
               <div className="grid grid-cols-1 gap-3">
                 <button onClick={() => { setPriority("fast"); setStage("publish"); }}
@@ -476,14 +433,33 @@ export default function ChaparConcierge({ language = "fa", userName = "", userId
                     <span className="shrink-0 font-bold text-emerald-300">${quote.priceUSD}</span>
                   </div>
                 )}
+                {/* No quote = no country was named, by design. Say so, rather than showing a
+                    country the buyer never picked. */}
+                {!quote && (
+                  <div className="mt-2 rounded-xl border border-white/10 bg-white/[0.03] px-2.5 py-2 text-[11px] leading-relaxed text-white/40">
+                    کشور خرید را مسافر تعیین می‌کند
+                    {orderProduct?.priceUSD ? ` — قیمت تخمینی $${orderProduct.priceUSD}، بدون مالیات و حمل` : ""}.
+                  </div>
+                )}
               </div>
+
+              {/* Lives here now that "تخمین هزینه" is gone — it applies to all three paths. */}
+              <div className="mb-4">
+                <div className="mb-1.5 text-xs text-white/50">درخواست خاص (اختیاری)</div>
+                <input value={specialRequest} onChange={e => setSpecialRequest(e.target.value)}
+                  placeholder="مثلاً: روی ایرپاد حکاکی شود: Cyrus"
+                  className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5 text-sm text-white placeholder:text-white/30 focus:border-cyan-400 focus:outline-none" />
+              </div>
+
               {(() => {
                 const missing = [];
                 if (!orderProduct?.title || orderProduct.title.trim().length <= 2) missing.push("نام محصول معتبر");
                 // A quote IS the price — a cheapest-flow order carries its own base price even
                 // when the chat never resolved one.
                 if (!orderProduct?.priceUSD && !quote?.priceUSD) missing.push("قیمت تخمینی");
-                if (!estCountry) missing.push("کشور مقصد");
+                // Country is deliberately NOT required: only the ارزان‌ترین path names one, and
+                // on the other two the traveler's route decides. Requiring it here would have
+                // dead-locked publish the moment the estimate screen was removed.
                 return missing.length > 0 ? (
                   <div className="mb-3 rounded-2xl border border-amber-400/30 bg-amber-400/10 p-3 text-xs text-amber-200">
                     برای انتشار تکمیل کنید: {missing.join("، ")}
@@ -497,7 +473,7 @@ export default function ChaparConcierge({ language = "fa", userName = "", userId
                     className="w-full rounded-2xl border border-cyan-400/40 bg-cyan-400/10 py-3 text-sm font-bold text-cyan-200">
                     برای انتشار در بازارگاه، وارد شوید
                   </button>
-                : <button disabled={publishing || !orderProduct?.title || (orderProduct.title.trim().length <= 2) || (!orderProduct?.priceUSD && !quote?.priceUSD) || !estCountry} onClick={doPublish}
+                : <button disabled={publishing || !orderProduct?.title || (orderProduct.title.trim().length <= 2) || (!orderProduct?.priceUSD && !quote?.priceUSD)} onClick={doPublish}
                     className="w-full rounded-2xl bg-gradient-to-l from-cyan-400 to-blue-500 py-3 text-sm font-bold text-white disabled:opacity-50">
                     {publishing ? "در حال انتشار…" : "تأیید و انتشار در بازارگاه"}
                   </button>}
