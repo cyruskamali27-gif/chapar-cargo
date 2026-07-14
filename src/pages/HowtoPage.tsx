@@ -60,7 +60,7 @@ export default function HowtoPage() {
         </div>
 
         {/* Steps */}
-        <div className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">{t.howStepsTitle}</div>
+        <div className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4">{t.howStepsTitle}</div>
         <div className="mb-6">
           {STEPS.map((step, idx) => (
             <div key={idx} className="flex gap-4 items-start mb-1">
@@ -80,7 +80,7 @@ export default function HowtoPage() {
         </div>
 
         {/* FAQ */}
-        <div className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">{t.howFaqTitle}</div>
+        <div className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4">{t.howFaqTitle}</div>
         <div className="space-y-2 mb-6">
           {FAQS.map((faq, idx) => (
             <div key={idx}
@@ -105,7 +105,7 @@ export default function HowtoPage() {
         </a>
         <div className="text-center mb-5">
           <a href="/support"
-             className="text-xs font-bold text-gray-400 no-underline hover:text-gray-600 transition-colors">
+             className="text-xs font-bold text-gray-500 no-underline hover:text-gray-600 transition-colors">
             {t.howSupportLink}
           </a>
         </div>

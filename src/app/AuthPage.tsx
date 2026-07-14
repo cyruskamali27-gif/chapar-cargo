@@ -472,14 +472,14 @@ export default function AuthPage({ onHome, onSuccess, defaultTab = 'login' }: Pr
                 <FieldError msg={lErr.pw ?? ''} />
               </div>
               <FieldError msg={lErr.global ?? ''} />
-              <button className="block text-[11px] font-semibold text-gray-400 hover:text-cyan-600 mb-5 mt-1 transition-colors"
+              <button className="block text-[11px] font-semibold text-gray-500 hover:text-cyan-600 mb-5 mt-1 transition-colors"
                 onClick={() => { setFId(lId); setFPhone(lIdMode === 'phone' ? lPhone : ''); setFIdMode(lIdMode); setForgotStep(1); setFCode(''); setFPw(''); setFPw2(''); setFErr(''); setFErrCode(''); setFCountdown(0); setFChannel(lIdMode === 'phone' ? 'sms' : 'email'); setTab('forgot'); }}>
                 {t.authForgotPassword}
               </button>
               <button onClick={doLogin} disabled={lLoading} className="ds-btn-primary w-full h-12 disabled:opacity-60">
                 {lLoading ? '…' : t.authLoginBtn}
               </button>
-              <div className="flex items-center gap-3 my-5 text-gray-400 text-xs">
+              <div className="flex items-center gap-3 my-5 text-gray-500 text-xs">
                 <span className="flex-1 border-t border-gray-200" />{t.authOr}<span className="flex-1 border-t border-gray-200" />
               </div>
               <p className="text-center text-sm text-gray-500">

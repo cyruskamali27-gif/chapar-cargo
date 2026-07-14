@@ -131,7 +131,7 @@ function EscrowTimeline() {
             <div className={`text-xs font-medium pt-2 flex-shrink-0 ${
               step.status === 'completed' ? 'text-green-600' :
               step.status === 'active'    ? 'text-blue-600'  :
-              'text-gray-400'
+              'text-gray-500'
             }`}>
               {step.status === 'completed' ? '✓ Done' : step.status === 'active' ? 'Now' : 'Pending'}
             </div>
@@ -168,7 +168,7 @@ function MarketplaceRouteBoard() {
                 <span className="text-2xl">{route.flag1}</span>
                 <div>
                   <div className="font-semibold text-gray-900 text-sm">{route.from}</div>
-                  <div className="text-[11px] text-gray-400">Origin</div>
+                  <div className="text-[11px] text-gray-500">Origin</div>
                 </div>
               </div>
               <ArrowRight className="w-4 h-4 text-gray-300 group-hover:text-cyan-600 transition-colors flex-shrink-0" />
@@ -176,7 +176,7 @@ function MarketplaceRouteBoard() {
                 <span className="text-2xl">{route.flag2}</span>
                 <div>
                   <div className="font-semibold text-gray-900 text-sm">{route.to}</div>
-                  <div className="text-[11px] text-gray-400">Destination</div>
+                  <div className="text-[11px] text-gray-500">Destination</div>
                 </div>
               </div>
             </div>
@@ -186,11 +186,11 @@ function MarketplaceRouteBoard() {
               <SecurityBadge level={route.securityLevel} />
               <div className="text-center">
                 <div className="text-xl font-bold text-gray-900">{route.travelers}</div>
-                <div className="text-[11px] text-gray-400">Travelers</div>
+                <div className="text-[11px] text-gray-500">Travelers</div>
               </div>
               <div className="text-center">
                 <div className="text-xl font-bold text-green-600">${route.avgPrice}</div>
-                <div className="text-[11px] text-gray-400">Avg/kg</div>
+                <div className="text-[11px] text-gray-500">Avg/kg</div>
               </div>
               <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
                 route.trend === 'up'   ? 'bg-green-100 text-green-700' :
@@ -358,7 +358,7 @@ function TravelerAcceptancePreview({ securityLevel }: { securityLevel: SecurityL
             [t.appAcceptDate, mockRequest.date],
           ].map(([k, v]) => (
             <div key={k}>
-              <div className="text-gray-400">{k}</div>
+              <div className="text-gray-500">{k}</div>
               <div className="font-semibold text-gray-800">{v}</div>
             </div>
           ))}
@@ -399,7 +399,7 @@ function TravelerAcceptancePreview({ securityLevel }: { securityLevel: SecurityL
               : 'bg-gray-50 text-gray-500 border-gray-200'
           }`}>
             {accepted ? t.appAcceptAccepted : t.appAcceptRejected}
-            <button onClick={() => setAccepted(null)} className="block mx-auto mt-1 text-[10px] text-gray-400 hover:text-gray-600 underline">
+            <button onClick={() => setAccepted(null)} className="block mx-auto mt-1 text-[10px] text-gray-500 hover:text-gray-600 underline">
               {t.appAcceptReset}
             </button>
           </div>
@@ -438,7 +438,7 @@ function MarketplaceListingCard({
     <div className="bg-white border-2 border-gray-100 rounded-2xl overflow-hidden hover:border-cyan-200 hover:shadow-md transition-all">
       <div className="p-4 pb-0">
         <div className="text-lg font-extrabold text-gray-900 flex items-center gap-2 mb-1">{title}</div>
-        <div className="text-[10px] text-gray-400 font-mono tracking-wider mb-3">{id}</div>
+        <div className="text-[10px] text-gray-500 font-mono tracking-wider mb-3">{id}</div>
       </div>
       <div className="px-4">
         <div className="flex flex-wrap gap-4 mb-3">
@@ -450,7 +450,7 @@ function MarketplaceListingCard({
         </div>
         <div className="mb-3">
           <div className="flex items-center justify-between mb-1.5">
-            <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wide">{barLabel}</span>
+            <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wide">{barLabel}</span>
             <span className="text-sm font-extrabold" style={{ color: barColor }}>{barValue}</span>
           </div>
           <div className="h-1.5 rounded-full bg-gray-100 overflow-hidden">
@@ -623,7 +623,7 @@ function MarketplacePage({ onBack, onHome, t, onBook, myOrderId, onClearMyOrder 
               </div>
               <div className="flex items-center justify-between mb-3">
                 <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500 text-white">آگهی شما ✓</span>
-                <span className="text-[10px] text-gray-400 font-mono tracking-wider">{myOrder?.orderId}</span>
+                <span className="text-[10px] text-gray-500 font-mono tracking-wider">{myOrder?.orderId}</span>
               </div>
             </div>
 
@@ -673,7 +673,7 @@ function MarketplacePage({ onBack, onHome, t, onBook, myOrderId, onClearMyOrder 
 
               <div className="mb-3">
                 <div className="flex items-center justify-between mb-1.5">
-                  <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wide">وضعیت آگهی</span>
+                  <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wide">وضعیت آگهی</span>
                   <span className="text-sm font-extrabold text-emerald-700">
                     {saveOk ? 'ذخیره شد ✓' : 'در انتظار مسافر'}
                   </span>
@@ -729,7 +729,7 @@ function MarketplacePage({ onBack, onHome, t, onBook, myOrderId, onClearMyOrder 
                   </button>
                   {onClearMyOrder && (
                     <button onClick={e => { e.stopPropagation(); setMyOrder(null); onClearMyOrder(); }}
-                      className="py-2.5 px-3 rounded-xl border-2 border-gray-100 text-gray-400 hover:bg-gray-50 transition-colors">
+                      className="py-2.5 px-3 rounded-xl border-2 border-gray-100 text-gray-500 hover:bg-gray-50 transition-colors">
                       ✕
                     </button>
                   )}
@@ -786,7 +786,7 @@ function MarketplacePage({ onBack, onHome, t, onBook, myOrderId, onClearMyOrder 
 
         {/* Loading / error states */}
         {mktLoading && (
-          <div className="text-center py-10 text-gray-400">
+          <div className="text-center py-10 text-gray-500">
             <div className="text-3xl mb-2 animate-pulse">✈️</div>
             <div className="text-sm">{t.mktLoading}</div>
           </div>
@@ -800,7 +800,7 @@ function MarketplacePage({ onBack, onHome, t, onBook, myOrderId, onClearMyOrder 
         {/* Sort + result count + cards */}
         {!mktLoading && !mktError && (<>
         <div className="flex items-center justify-between gap-3 mb-5 flex-wrap">
-          <div className="text-xs font-bold text-gray-400">
+          <div className="text-xs font-bold text-gray-500">
             {filtered.length ? t.mktTravelerFound.replace('{n}', filtered.length.toLocaleString('fa-IR')) : t.mktNoTraveler}
           </div>
           <div className="flex gap-2">
@@ -820,7 +820,7 @@ function MarketplacePage({ onBack, onHome, t, onBook, myOrderId, onClearMyOrder 
 
         {/* Cards */}
         {filtered.length === 0 ? (
-          <div className="text-center py-16 text-gray-400">
+          <div className="text-center py-16 text-gray-500">
             <div className="text-5xl mb-3">✈️</div>
             <div className="text-base font-bold text-gray-700 mb-1">{t.mktNoTraveler}</div>
             <p className="text-sm">{t.mktNoTravelerDesc}</p>
@@ -856,7 +856,7 @@ function MarketplacePage({ onBack, onHome, t, onBook, myOrderId, onClearMyOrder 
                     <div className="text-sm text-amber-500 mb-3">
                       {'⭐'.repeat(Math.round(avgRating))}{'☆'.repeat(5 - Math.round(avgRating))}
                       <span className="font-bold text-amber-600 mr-1">{avgRating.toFixed(1)}</span>
-                      <span className="text-xs text-gray-400">({tripRatings.length} {t.mktReviewSuffix})</span>
+                      <span className="text-xs text-gray-500">({tripRatings.length} {t.mktReviewSuffix})</span>
                     </div>
                   ) : undefined}
                   buttonLabel={t.mktBookBtn}
@@ -1125,7 +1125,7 @@ function FAQPage({ onBack, onHome, t }: { onBack: () => void; onHome: () => void
                   className="flex-shrink-0"
                 >
                   <ChevronDown className={`w-5 h-5 transition-colors ${
-                    openFaq === index ? 'text-cyan-600' : 'text-gray-400'
+                    openFaq === index ? 'text-cyan-600' : 'text-gray-500'
                   }`} />
                 </motion.div>
               </button>
@@ -1196,7 +1196,7 @@ function RouteTicker() {
               <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: item.color }} />
               <span className="text-white text-sm font-medium">{item.route}</span>
               <span className="text-gray-600 text-xs">·</span>
-              <span className="text-gray-400 text-xs">{t[item.statusKey]}</span>
+              <span className="text-gray-500 text-xs">{t[item.statusKey]}</span>
               <span className="text-white/10 mx-2 select-none">|</span>
             </div>
           ))}

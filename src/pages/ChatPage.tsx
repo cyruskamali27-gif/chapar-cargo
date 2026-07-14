@@ -285,7 +285,7 @@ export default function ChatPage() {
             <div className="w-7 h-7 rounded-full bg-gradient-to-br from-purple-600 to-indigo-700 flex items-center justify-center text-xs shrink-0 shadow">🤖</div>
             <div>
               <div className="bg-purple-50 border border-purple-200 rounded-2xl rounded-br-sm px-3 py-2.5 text-sm text-gray-800 leading-relaxed">{m.text}</div>
-              <div className="text-[10px] text-gray-400 mt-1 pr-1">{ts} · {t.chatAiLabel}</div>
+              <div className="text-[10px] text-gray-500 mt-1 pr-1">{ts} · {t.chatAiLabel}</div>
             </div>
           </div>
         );
@@ -301,7 +301,7 @@ export default function ChatPage() {
                 ⛔ {m.blockedPreview || t.chatBlockedMsg}
                 <div className="inline-block bg-red-100 rounded-md px-2 py-0.5 text-[10px] text-red-500 font-bold mr-2 mt-1">{t.chatBlockedByAi}</div>
               </div>
-              <div className="text-[10px] text-gray-400 mt-1 pl-1 text-left">{ts}</div>
+              <div className="text-[10px] text-gray-500 mt-1 pl-1 text-left">{ts}</div>
             </div>
           </div>
         );
@@ -314,7 +314,7 @@ export default function ChatPage() {
             <div className="w-7 h-7 rounded-full bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center text-xs font-bold text-white shrink-0 shadow">{avatarLetter()}</div>
             <div>
               <div className="bg-blue-600 text-white rounded-2xl rounded-bl-sm px-3 py-2.5 text-sm leading-relaxed shadow-sm">{m.text}</div>
-              <div className="text-[10px] text-gray-400 mt-1 pl-1 text-left">{ts} ✓✓</div>
+              <div className="text-[10px] text-gray-500 mt-1 pl-1 text-left">{ts} ✓✓</div>
             </div>
           </div>
         );
@@ -327,7 +327,7 @@ export default function ChatPage() {
           <div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center text-xs font-bold text-white shrink-0 shadow">؟</div>
           <div>
             <div className="bg-gray-100 border border-gray-200 rounded-2xl rounded-br-sm px-3 py-2.5 text-sm text-gray-800 leading-relaxed shadow-sm">{m.text}</div>
-            <div className="text-[10px] text-gray-400 mt-1 pr-1">{ts}</div>
+            <div className="text-[10px] text-gray-500 mt-1 pr-1">{ts}</div>
           </div>
         </div>
       );
@@ -347,7 +347,7 @@ export default function ChatPage() {
         </div>
         <div className="flex-1 min-w-0">
           <div className="text-sm font-bold text-gray-900 truncate">{peerName}</div>
-          {peerRoleLabel && <div className="text-xs text-gray-400">{peerRoleLabel}</div>}
+          {peerRoleLabel && <div className="text-xs text-gray-500">{peerRoleLabel}</div>}
           <div className="text-xs text-green-600 flex items-center gap-1">
             <div className="w-1.5 h-1.5 rounded-full bg-green-500" />{t.chatOnline}
           </div>
@@ -382,7 +382,7 @@ export default function ChatPage() {
           <div className="flex-1 flex flex-col items-center justify-center text-center py-16">
             <div className="text-5xl mb-3">💬</div>
             <div className="text-base font-bold text-gray-800 mb-2">{t.chatEmptyTitle}</div>
-            <div className="text-sm text-gray-400 leading-relaxed">{t.chatEmptyDesc}</div>
+            <div className="text-sm text-gray-500 leading-relaxed">{t.chatEmptyDesc}</div>
           </div>
         )}
         {renderMsgs()}
@@ -426,7 +426,7 @@ export default function ChatPage() {
             className="w-11 h-11 rounded-full bg-blue-600 text-white flex items-center justify-center text-lg shadow-sm transition-all disabled:opacity-40 disabled:scale-90 shrink-0"
           >➤</button>
         </div>
-        <div className="text-center text-[10px] text-gray-400 mt-1.5 opacity-70">
+        <div className="text-center text-[10px] text-gray-500 mt-1.5 opacity-70">
           {t.chatAiFooter}
         </div>
       </div>

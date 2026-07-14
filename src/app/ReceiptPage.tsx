@@ -43,7 +43,7 @@ export default function ReceiptPage({ onBack, onHome, trackId }: Props) {
         <div className="max-w-sm w-full text-center">
           <div className="text-5xl mb-4">📭</div>
           <h2 className="text-lg font-extrabold text-gray-900 mb-2">{t.rcptNotFound}</h2>
-          <p className="text-sm text-gray-400 mb-5">{t.rcptNotFoundDesc}</p>
+          <p className="text-sm text-gray-500 mb-5">{t.rcptNotFoundDesc}</p>
           <div className="flex gap-3">
             <button onClick={onBack} className="flex-1 ds-btn-secondary py-2.5">{t.rcptBack}</button>
             <button onClick={onHome} className="flex-1 ds-btn-primary py-2.5">{t.rcptHome}</button>
@@ -112,7 +112,7 @@ export default function ReceiptPage({ onBack, onHome, trackId }: Props) {
           </button>
           <div className="mr-auto">
             <h1 className="text-sm font-extrabold text-gray-900">{t.rcptTitle}</h1>
-            <div className="text-xs text-gray-400 font-mono">{order.trackId}</div>
+            <div className="text-xs text-gray-500 font-mono">{order.trackId}</div>
           </div>
         </div>
       </div>

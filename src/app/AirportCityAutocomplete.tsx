@@ -135,7 +135,7 @@ export default function AirportCityAutocomplete({ value, onChange, placeholder =
           onMouseDown={() => { skipBlur.current = true; }}
         >
           {query.length < 2 && (
-            <div className="px-4 py-2 text-[11px] font-semibold text-gray-400 uppercase tracking-wider border-b border-gray-100">
+            <div className="px-4 py-2 text-[11px] font-semibold text-gray-500 uppercase tracking-wider border-b border-gray-100">
               Popular airports
             </div>
           )}

@@ -205,7 +205,7 @@ export default function MyOrdersPage({ onHome, onOpenReceipt }: Props) {
           </button>
           <div className="mr-auto">
             <h1 className="text-lg font-extrabold text-gray-900">{t.mordTitle}</h1>
-            {session && <p className="text-xs text-gray-400">{t.mordGreeting.replace('{name}', session.firstName || '')}</p>}
+            {session && <p className="text-xs text-gray-500">{t.mordGreeting.replace('{name}', session.firstName || '')}</p>}
           </div>
         </div>
       </div>
@@ -221,7 +221,7 @@ export default function MyOrdersPage({ onHome, onOpenReceipt }: Props) {
           ].map(s => (
             <div key={s.lbl} className="ds-card p-3 text-center">
               <div className={`text-lg font-extrabold ${s.color}`}>{s.val.toLocaleString('fa-IR')}</div>
-              <div className="text-[10px] text-gray-400 mt-0.5">{s.lbl}</div>
+              <div className="text-[10px] text-gray-500 mt-0.5">{s.lbl}</div>
             </div>
           ))}
         </div>
@@ -269,7 +269,7 @@ export default function MyOrdersPage({ onHome, onOpenReceipt }: Props) {
             <div className="text-base font-extrabold text-gray-800 mb-1">
               {orders.length === 0 ? t.mordEmptyNone : t.mordEmptyNoResult}
             </div>
-            <p className="text-sm text-gray-400 mb-4">
+            <p className="text-sm text-gray-500 mb-4">
               {orders.length === 0 ? t.mordEmptyNoneDesc : t.mordEmptyNoResultDesc}
             </p>
             {orders.length === 0 && (
@@ -297,7 +297,7 @@ export default function MyOrdersPage({ onHome, onOpenReceipt }: Props) {
                       <div className="text-sm font-bold text-gray-900 truncate">
                         {o.originLabel || o.origin || '—'} ← {o.destLabel || o.dest || '—'}
                       </div>
-                      <div className="text-[11px] text-gray-400 mt-0.5">
+                      <div className="text-[11px] text-gray-500 mt-0.5">
                         {o.firstName ? o.firstName + ' ' + (o.lastName || '') + ' · ' : ''}
                         {o.cargoType ? (CARGO_ICONS[o.cargoType] || '') + ' ' + o.cargoType : ''}
                         {o.weight ? ' · ' + o.weight + ' kg' : ''}
@@ -305,7 +305,7 @@ export default function MyOrdersPage({ onHome, onOpenReceipt }: Props) {
                     </div>
                     <div className="text-left flex-shrink-0">
                       {o.valueUSD && <div className="text-sm font-bold text-yellow-600 font-mono">$ {parseFloat(o.valueUSD).toFixed(2)}</div>}
-                      <div className="text-[11px] text-gray-400 mt-0.5 font-mono">{fmtDate(o.paidAt)}</div>
+                      <div className="text-[11px] text-gray-500 mt-0.5 font-mono">{fmtDate(o.paidAt)}</div>
                     </div>
                   </a>
 
@@ -384,7 +384,7 @@ export default function MyOrdersPage({ onHome, onOpenReceipt }: Props) {
           <div className="w-full max-w-md bg-white rounded-2xl p-6" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-base font-extrabold text-gray-900">{t.mordEditTitle.replace('{id}', editOrder.trackId)}</h3>
-              <button onClick={() => setEditOrder(null)} className="text-gray-400 text-xl leading-none">✕</button>
+              <button onClick={() => setEditOrder(null)} className="text-gray-500 text-xl leading-none">✕</button>
             </div>
             <div className="space-y-3">
               <div className="grid grid-cols-2 gap-3">
@@ -436,14 +436,14 @@ export default function MyOrdersPage({ onHome, onOpenReceipt }: Props) {
               <div className="flex items-center justify-between">
                 <div>
                   <div className="text-base font-extrabold text-gray-900">{t.mordOffersTitle}</div>
-                  <div className="text-xs text-gray-400">{offersOrder.trackId} · {t.mordOffersCount.replace('{n}', String(offers.length))}</div>
+                  <div className="text-xs text-gray-500">{offersOrder.trackId} · {t.mordOffersCount.replace('{n}', String(offers.length))}</div>
                 </div>
-                <button onClick={() => setOffersOrder(null)} className="text-gray-400 text-xl leading-none">✕</button>
+                <button onClick={() => setOffersOrder(null)} className="text-gray-500 text-xl leading-none">✕</button>
               </div>
             </div>
             <div className="overflow-y-auto p-5 space-y-4 pb-8">
               {offers.length === 0 ? (
-                <div className="text-center py-8 text-gray-400">
+                <div className="text-center py-8 text-gray-500">
                   <div className="text-4xl mb-3">📭</div>
                   <div className="text-sm font-bold">{t.mordNoOffers}</div>
                 </div>
@@ -461,7 +461,7 @@ export default function MyOrdersPage({ onHome, onOpenReceipt }: Props) {
                       </div>
                       <div className="flex-1">
                         <div className="text-sm font-bold text-gray-900">{offer.travelerName as string || t.mordTravelerDefault}</div>
-                        <div className="text-xs text-gray-400">{masked}</div>
+                        <div className="text-xs text-gray-500">{masked}</div>
                       </div>
                       <div className="text-sm font-extrabold text-yellow-600">
                         $ {parseFloat(String(offer.price || 0)).toFixed(2)}
@@ -490,7 +490,7 @@ export default function MyOrdersPage({ onHome, onOpenReceipt }: Props) {
                         </button>
                       </div>
                     ) : (
-                      <div className={`text-center text-xs font-bold py-2 ${offer.status === 'accepted' ? 'text-green-600' : 'text-gray-400'}`}>
+                      <div className={`text-center text-xs font-bold py-2 ${offer.status === 'accepted' ? 'text-green-600' : 'text-gray-500'}`}>
                         {offer.status === 'accepted' ? t.mordAccepted : t.mordDeclinedLabel}
                       </div>
                     )}

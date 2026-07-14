@@ -102,25 +102,25 @@ export default function SupportPage() {
              className="flex flex-col items-center gap-2 bg-white border border-gray-100 rounded-2xl p-4 text-center no-underline hover:border-blue-200 hover:bg-blue-50 transition-all group">
             <span className="text-2xl">✈️</span>
             <span className="text-xs font-bold text-gray-700 group-hover:text-blue-600">{t.supTelegram}</span>
-            <span className="text-[11px] text-gray-400">@ChaparSupport</span>
+            <span className="text-[11px] text-gray-500">@ChaparSupport</span>
           </a>
           <a href="mailto:support@chapar.app"
              className="flex flex-col items-center gap-2 bg-white border border-gray-100 rounded-2xl p-4 text-center no-underline hover:border-blue-200 hover:bg-blue-50 transition-all group">
             <span className="text-2xl">✉️</span>
             <span className="text-xs font-bold text-gray-700 group-hover:text-blue-600">{t.supEmail}</span>
-            <span className="text-[11px] text-gray-400">support@chapar.app</span>
+            <span className="text-[11px] text-gray-500">support@chapar.app</span>
           </a>
           <a href="https://t.me/ChaparTrackBot"
              className="flex flex-col items-center gap-2 bg-white border border-gray-100 rounded-2xl p-4 text-center no-underline hover:border-blue-200 hover:bg-blue-50 transition-all group">
             <span className="text-2xl">🤖</span>
             <span className="text-xs font-bold text-gray-700 group-hover:text-blue-600">{t.supBot}</span>
-            <span className="text-[11px] text-gray-400">@ChaparTrackBot</span>
+            <span className="text-[11px] text-gray-500">@ChaparTrackBot</span>
           </a>
         </div>
 
         {/* Contact form */}
         <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
-          <div className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">{t.supSendMessage}</div>
+          <div className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4">{t.supSendMessage}</div>
 
           {/* Success state */}
           {success && (

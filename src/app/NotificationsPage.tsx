@@ -145,7 +145,7 @@ export default function NotificationsPage({ onHome, onNavigate }: Props) {
 
       <div className="max-w-2xl mx-auto px-4 py-5 pb-24">
         {/* Sub-title */}
-        <p className="text-sm text-gray-400 mb-4">
+        <p className="text-sm text-gray-500 mb-4">
           {t.notifCount.replace('{n}', String(notifs.length))}{unreadCount > 0 ? ` · ${t.notifUnread.replace('{n}', String(unreadCount))}` : ''}
         </p>
 
@@ -162,7 +162,7 @@ export default function NotificationsPage({ onHome, onNavigate }: Props) {
 
         {/* List */}
         {filtered.length === 0 ? (
-          <div className="text-center py-16 text-gray-400">
+          <div className="text-center py-16 text-gray-500">
             <div className="text-5xl mb-3">🔔</div>
             <div className="text-base font-bold text-gray-700 mb-1">{t.notifEmpty}</div>
             <div className="text-sm">{t.notifEmptyDesc}</div>
@@ -184,7 +184,7 @@ export default function NotificationsPage({ onHome, onNavigate }: Props) {
                       {n.title}
                     </div>
                     <div className="text-xs text-gray-500 leading-relaxed mb-1">{n.body}</div>
-                    <div className="text-[10px] text-gray-400 flex items-center gap-1.5">
+                    <div className="text-[10px] text-gray-500 flex items-center gap-1.5">
                       <span>{fmtRelTime(n.at, t)}</span>
                       {n.orderId && (
                         <span className="font-bold text-cyan-600 font-mono" style={{ direction:'ltr' }}>{n.orderId}</span>

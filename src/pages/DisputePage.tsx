@@ -15,7 +15,7 @@ const TL_STYLE: Record<string, { dot: string; title: string }> = {
   pass: { dot: 'bg-green-50 border-2 border-green-300',       title: 'text-green-600' },
   fail: { dot: 'bg-red-50 border-2 border-red-300',           title: 'text-red-600' },
   warn: { dot: 'bg-amber-50 border-2 border-amber-300',       title: 'text-amber-600' },
-  pend: { dot: 'bg-gray-100 border-2 border-gray-200',        title: 'text-gray-400' },
+  pend: { dot: 'bg-gray-100 border-2 border-gray-200',        title: 'text-gray-500' },
 };
 
 interface OrderData {
@@ -187,7 +187,7 @@ export default function DisputePage() {
         )}
 
         {/* AI Timeline */}
-        <div className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">{t.dispLogTitle}</div>
+        <div className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-3">{t.dispLogTitle}</div>
         <div className="mb-6">
           {TIMELINE.map((item, idx) => (
             <div key={idx} className="flex gap-3 relative pb-4 last:pb-0">
@@ -198,7 +198,7 @@ export default function DisputePage() {
               <div className="flex-1 pt-1">
                 <div className={`text-sm font-bold mb-0.5 ${TL_STYLE[item.status]?.title}`}>{item.title}</div>
                 <div className="text-xs text-gray-500 leading-relaxed">{item.desc}</div>
-                <div className="text-[10px] text-gray-400 mt-1 opacity-70">{item.time}</div>
+                <div className="text-[10px] text-gray-500 mt-1 opacity-70">{item.time}</div>
               </div>
             </div>
           ))}

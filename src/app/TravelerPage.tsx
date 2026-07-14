@@ -66,11 +66,11 @@ function StepPills({ step }: { step: number }) {
               <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-colors
                 ${done   ? 'bg-cyan-700 text-white'
                 : active ? 'bg-cyan-600 text-white ring-4 ring-cyan-100'
-                :          'bg-gray-100 text-gray-400'}`}>
+                :          'bg-gray-100 text-gray-500'}`}>
                 {done ? '✓' : n}
               </div>
               <span className={`text-[10px] font-semibold whitespace-nowrap hidden sm:block
-                ${active ? 'text-cyan-700' : done ? 'text-cyan-700' : 'text-gray-500'}`}>
+                ${active ? 'text-cyan-700' : done ? 'text-emerald-700' : 'text-gray-500'}`}>
                 {label}
               </span>
             </div>
@@ -427,14 +427,14 @@ export default function TravelerPage({ onHome, onNavigate }: Props) {
               <div className="text-xs font-bold text-cyan-600 uppercase tracking-wider mb-1">{t.travTrackingCode}</div>
               <div className="text-xl font-extrabold text-gray-900 tracking-wider font-mono">{tripId}</div>
               {apiRoute && (
-                <div className="text-xs text-gray-400 mt-1 font-mono">{apiRoute.trackingCode}</div>
+                <div className="text-xs text-gray-500 mt-1 font-mono">{apiRoute.trackingCode}</div>
               )}
             </div>
 
             <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 mb-6 text-right">
               <div className="flex items-center justify-center gap-3 text-lg font-extrabold text-gray-900 mb-3">
                 <span>{countryFlag(origin?.country ?? '')} {origin?.city}</span>
-                <span className="text-gray-400 text-sm">←</span>
+                <span className="text-gray-500 text-sm">←</span>
                 <span>{countryFlag(dest?.country ?? '')} {dest?.city}</span>
               </div>
               {date && <div className="flex justify-between text-sm"><span className="text-gray-500 font-bold uppercase text-xs">{t.travDateLabel}</span><span className="font-bold">{date}</span></div>}
@@ -471,7 +471,7 @@ export default function TravelerPage({ onHome, onNavigate }: Props) {
         {/* ══════════ STEP 1 ══════════ */}
         {step === 1 && (
           <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="ds-card p-6 sm:p-8">
-            <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">{t.wizardStep.replace('{n}', '1').replace('{m}', '5')}</div>
+            <div className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">{t.wizardStep.replace('{n}', '1').replace('{m}', '5')}</div>
             <h2 className="text-xl font-extrabold text-gray-900 mb-6">{t.travTStep1Title}</h2>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
@@ -528,7 +528,7 @@ export default function TravelerPage({ onHome, onNavigate }: Props) {
         {/* ══════════ STEP 2 ══════════ */}
         {step === 2 && (
           <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="ds-card p-6 sm:p-8">
-            <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">{t.wizardStep.replace('{n}', '2').replace('{m}', '5')}</div>
+            <div className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">{t.wizardStep.replace('{n}', '2').replace('{m}', '5')}</div>
             <h2 className="text-xl font-extrabold text-gray-900 mb-6">{t.travTStep2Title}</h2>
 
             <label className="ds-label">{t.travCargoLabel}</label>
@@ -582,7 +582,7 @@ export default function TravelerPage({ onHome, onNavigate }: Props) {
                 </div>
                 <input type="number" className="ds-input" placeholder={t.travBasePricePlaceholder} min="0" step="any" style={{ direction: 'ltr' }}
                   value={priceAmount} onChange={e => setPriceAmount(e.target.value)} />
-                <p className="text-xs text-gray-400 mt-2">{t.travBasePriceHint}</p>
+                <p className="text-xs text-gray-500 mt-2">{t.travBasePriceHint}</p>
               </div>
             )}
 
@@ -614,7 +614,7 @@ export default function TravelerPage({ onHome, onNavigate }: Props) {
         {/* ══════════ STEP 3 ══════════ */}
         {step === 3 && (
           <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="ds-card p-6 sm:p-8">
-            <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">{t.wizardStep.replace('{n}', '3').replace('{m}', '5')}</div>
+            <div className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">{t.wizardStep.replace('{n}', '3').replace('{m}', '5')}</div>
             <h2 className="text-xl font-extrabold text-gray-900 mb-6">{t.travTStep3Title}</h2>
 
             <div className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">{t.travDocTypeLabel}</div>
@@ -627,7 +627,7 @@ export default function TravelerPage({ onHome, onNavigate }: Props) {
                       : 'border-gray-200 bg-white hover:bg-gray-50'}`}>
                   <span className="text-2xl">{d.icon}</span>
                   <span className="text-sm font-bold text-gray-900">{d.name}</span>
-                  <span className="text-[10px] text-gray-400">{d.req}</span>
+                  <span className="text-[10px] text-gray-500">{d.req}</span>
                 </button>
               ))}
             </div>
@@ -680,7 +680,7 @@ export default function TravelerPage({ onHome, onNavigate }: Props) {
         {/* ══════════ STEP 4 ══════════ */}
         {step === 4 && (
           <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="ds-card p-6 sm:p-8">
-            <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">{t.wizardStep.replace('{n}', '4').replace('{m}', '5')}</div>
+            <div className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">{t.wizardStep.replace('{n}', '4').replace('{m}', '5')}</div>
             <h2 className="text-xl font-extrabold text-gray-900 mb-6">{t.travTStep4Title}</h2>
 
             <label className="ds-label">{t.travPayoutLabel}</label>

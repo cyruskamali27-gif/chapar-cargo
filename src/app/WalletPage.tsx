@@ -199,7 +199,7 @@ export default function WalletPage({ onHome }: Props) {
           ].map(s => (
             <div key={s.lbl} className="ds-card p-3 text-center">
               <div className={`text-base font-extrabold ${s.color}`}>{s.val}</div>
-              <div className="text-[10px] text-gray-400 mt-0.5">{s.lbl}</div>
+              <div className="text-[10px] text-gray-500 mt-0.5">{s.lbl}</div>
             </div>
           ))}
         </div>
@@ -220,7 +220,7 @@ export default function WalletPage({ onHome }: Props) {
                       className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 border border-gray-200 no-underline text-inherit hover:bg-gray-100 transition-colors"
                       style={{ textDecoration:'none', color:'inherit' }}>
                       <span className="text-xl">🧳</span>
-                      <div className="flex-1"><div className="text-sm font-bold">{t.walCarry}: {desc}</div><div className="text-xs text-gray-400">{t.walTraveler}</div></div>
+                      <div className="flex-1"><div className="text-sm font-bold">{t.walCarry}: {desc}</div><div className="text-xs text-gray-500">{t.walTraveler}</div></div>
                       <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-green-100 text-green-700">{t.walInProgress}</span>
                     </a>
                   );
@@ -230,7 +230,7 @@ export default function WalletPage({ onHome }: Props) {
                       className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 border border-gray-200 no-underline text-inherit hover:bg-gray-100 transition-colors"
                       style={{ textDecoration:'none', color:'inherit' }}>
                       <span className="text-xl">📦</span>
-                      <div className="flex-1"><div className="text-sm font-bold">{t.walSend}: {desc}</div><div className="text-xs text-gray-400">{o.travelerName || t.walTraveler}</div></div>
+                      <div className="flex-1"><div className="text-sm font-bold">{t.walSend}: {desc}</div><div className="text-xs text-gray-500">{o.travelerName || t.walTraveler}</div></div>
                       <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-green-100 text-green-700">{t.walInProgress}</span>
                     </a>
                   );
@@ -256,7 +256,7 @@ export default function WalletPage({ onHome }: Props) {
             </div>
           </div>
           {filteredTxs.length === 0 ? (
-            <div className="text-center py-8 text-gray-400">
+            <div className="text-center py-8 text-gray-500">
               <div className="text-4xl mb-2">📭</div>
               <div className="text-sm">{txFilter === 'all' ? t.walNoTx : t.walNoTxFilter}</div>
             </div>
@@ -272,7 +272,7 @@ export default function WalletPage({ onHome }: Props) {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="text-sm font-bold text-gray-800 truncate">{tx.desc || '—'}</div>
-                      <div className="text-[10px] text-gray-400">{fmtDate(tx.at)}{tx.id ? ' · ' + tx.id : ''}</div>
+                      <div className="text-[10px] text-gray-500">{fmtDate(tx.at)}{tx.id ? ' · ' + tx.id : ''}</div>
                     </div>
                     <div className={`text-sm font-extrabold font-mono flex-shrink-0 ${m.dir === 'out' ? 'text-red-500' : m.dir === 'hold' ? 'text-yellow-600' : 'text-green-600'}`}>
                       {m.sign}{Math.round(tx.amount).toLocaleString('fa-IR')} ت
@@ -291,7 +291,7 @@ export default function WalletPage({ onHome }: Props) {
           <div className="w-full max-w-md bg-white rounded-t-3xl p-6" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-5">
               <h3 className="text-base font-extrabold text-gray-900">{t.walChargeTitle}</h3>
-              <button onClick={() => setShowCharge(false)} className="text-gray-400 text-xl leading-none">✕</button>
+              <button onClick={() => setShowCharge(false)} className="text-gray-500 text-xl leading-none">✕</button>
             </div>
 
             {chargeState === 'form' && (
@@ -310,7 +310,7 @@ export default function WalletPage({ onHome }: Props) {
                     ))}
                   </div>
                   {parseInt(chargeAmt) >= 10000 && (
-                    <div className="text-xs text-gray-400 mt-1">≈ $ {(parseInt(chargeAmt) / rate).toFixed(2)}</div>
+                    <div className="text-xs text-gray-500 mt-1">≈ $ {(parseInt(chargeAmt) / rate).toFixed(2)}</div>
                   )}
                 </div>
                 <div className="mb-4">
@@ -341,7 +341,7 @@ export default function WalletPage({ onHome }: Props) {
                 <div className="text-base font-extrabold text-gray-900 mb-1">
                   {t.walChargeSuccessAmt.replace('{n}', Number(parseInt(chargeAmt)).toLocaleString('fa-IR'))}
                 </div>
-                <div className="text-sm text-gray-400 mb-5">{t.walChargeSuccessDesc}</div>
+                <div className="text-sm text-gray-500 mb-5">{t.walChargeSuccessDesc}</div>
                 <button onClick={() => setShowCharge(false)} className="ds-btn-primary px-8 py-2.5">{t.walClose}</button>
               </div>
             )}
@@ -355,18 +355,18 @@ export default function WalletPage({ onHome }: Props) {
           <div className="w-full max-w-md bg-white rounded-t-3xl p-6" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-5">
               <h3 className="text-base font-extrabold text-gray-900">{t.walWithdrawTitle}</h3>
-              <button onClick={() => setShowWithdraw(false)} className="text-gray-400 text-xl leading-none">✕</button>
+              <button onClick={() => setShowWithdraw(false)} className="text-gray-500 text-xl leading-none">✕</button>
             </div>
 
             {withdrawState === 'form' && (
               <>
-                <div className="mb-3 text-xs text-gray-400">{t.walAvailable} <strong className="text-gray-700">{fmtToman(bal, t.walToman)}</strong></div>
+                <div className="mb-3 text-xs text-gray-500">{t.walAvailable} <strong className="text-gray-700">{fmtToman(bal, t.walToman)}</strong></div>
                 <div className="mb-4">
                   <label className="ds-label">{t.walWithdrawAmt}</label>
                   <input type="number" className="ds-input" placeholder={t.walMinWithdraw} min="500000"
                     value={withdrawAmt} onChange={e => setWithdrawAmt(e.target.value)} style={{ direction:'ltr' }} />
                   {parseInt(withdrawAmt) >= 500000 && (
-                    <div className="text-xs text-gray-400 mt-1">≈ $ {(parseInt(withdrawAmt) / rate).toFixed(2)}</div>
+                    <div className="text-xs text-gray-500 mt-1">≈ $ {(parseInt(withdrawAmt) / rate).toFixed(2)}</div>
                   )}
                 </div>
                 <div className="mb-4">
@@ -388,7 +388,7 @@ export default function WalletPage({ onHome }: Props) {
               <div className="text-center py-8">
                 <div className="text-5xl mb-3">✅</div>
                 <div className="text-base font-extrabold text-gray-900 mb-1">{t.walWithdrawSuccess}</div>
-                <div className="text-sm text-gray-400 mb-5">
+                <div className="text-sm text-gray-500 mb-5">
                   {t.walWithdrawSuccessDesc.replace('{n}', Number(parseInt(withdrawAmt)).toLocaleString('fa-IR'))}
                 </div>
                 <button onClick={() => setShowWithdraw(false)} className="ds-btn-primary px-8 py-2.5">{t.walClose}</button>

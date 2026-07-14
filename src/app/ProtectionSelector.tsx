@@ -95,7 +95,7 @@ export default function SecuritySelector({
         <div className="flex items-center gap-2 mb-3">
           <div className="w-1 h-5 bg-gray-300 rounded-full" />
           <h3 className="text-sm font-bold text-gray-700">{t.protOptionalTitle}</h3>
-          <span className="text-xs text-gray-400">{t.protOptional}</span>
+          <span className="text-xs text-gray-500">{t.protOptional}</span>
         </div>
         <div className="space-y-2">
           {OPTIONAL_SERVICES.map(svc => {
@@ -117,7 +117,7 @@ export default function SecuritySelector({
                 </div>
                 <div>
                   <div className={`text-sm font-semibold ${checked ? 'text-cyan-700' : 'text-gray-800'}`}>{svc.label}</div>
-                  <div className="text-xs text-gray-400 mt-0.5">{svc.desc}</div>
+                  <div className="text-xs text-gray-500 mt-0.5">{svc.desc}</div>
                 </div>
               </button>
             );

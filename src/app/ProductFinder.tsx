@@ -262,7 +262,7 @@ export default function ProductFinder({ onSelect }: Props) {
                       {usd != null ? `$${usd.toFixed(2)}` : '—'}
                     </span>
                     {card.priceLocal && card.currency !== 'USD' && (
-                      <span className="text-xs text-gray-400">{card.priceLocal} {card.currency}</span>
+                      <span className="text-xs text-gray-500">{card.priceLocal} {card.currency}</span>
                     )}
                   </div>
 

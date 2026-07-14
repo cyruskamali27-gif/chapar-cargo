@@ -92,7 +92,7 @@ export default function OrderPage() {
             </>
           ) : (
             <>
-              <div className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-1.5">{t.ordBuyTitle}</div>
+              <div className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">{t.ordBuyTitle}</div>
               <h1 className="text-3xl lg:text-4xl font-extrabold text-gray-900 mb-2">{t.ordBuyHeading}</h1>
               <p className="text-gray-500">{t.ordBuySubtitle}</p>
             </>

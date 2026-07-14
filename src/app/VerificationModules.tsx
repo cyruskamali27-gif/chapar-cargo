@@ -229,7 +229,7 @@ export function IdentityVerification({ enabled, onToggle, status }: IdentityVeri
             <KycStatusBadge />
           </div>
 
-          <p className="text-xs text-gray-400 leading-relaxed">{t.verIdentityNote}</p>
+          <p className="text-xs text-gray-500 leading-relaxed">{t.verIdentityNote}</p>
         </div>
       )}
     </div>
@@ -304,7 +304,7 @@ export function CargoVerification({ enabled, onToggle, status }: CargoVerificati
             <StatusBadge status={status} />
           </div>
 
-          <p className="text-xs text-gray-400 leading-relaxed">{t.verCargoNote}</p>
+          <p className="text-xs text-gray-500 leading-relaxed">{t.verCargoNote}</p>
         </div>
       )}
     </div>

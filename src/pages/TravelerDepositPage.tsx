@@ -752,10 +752,10 @@ export default function TravelerDepositPage() {
                 <div className="text-xs text-gray-500 mt-0.5">
                   {(order.originFlag || '') + ' ' + (order.originLabel || order.origin || '—') + ' ← ' + (order.destFlag || '') + ' ' + (order.destLabel || order.dest || '—')}
                 </div>
-                {order.detectedItem && <div className="text-xs text-gray-400 mt-0.5">📦 {order.detectedItem}</div>}
+                {order.detectedItem && <div className="text-xs text-gray-500 mt-0.5">📦 {order.detectedItem}</div>}
               </div>
               <div className="text-right flex-shrink-0">
-                <div className="text-[10px] text-gray-400">هزینه حمل شما</div>
+                <div className="text-[10px] text-gray-500">هزینه حمل شما</div>
                 <div className="text-sm font-bold text-blue-600" style={{ direction: 'ltr' }}>$ {parseFloat(String(off.price ?? 0)).toFixed(2)}</div>
               </div>
             </div>
@@ -779,7 +779,7 @@ export default function TravelerDepositPage() {
 
             {/* Breakdown */}
             <div className="bg-white border border-gray-200 rounded-xl p-4">
-              <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-3">خلاصه ودیعه</div>
+              <div className="text-[10px] font-bold text-gray-500 uppercase tracking-wide mb-3">خلاصه ودیعه</div>
               <div className="space-y-2.5">
                 <div className="flex justify-between items-center">
                   <span className="text-xs text-gray-500">ارزش کالا <span className="text-green-600 text-[10px]">✅ برگشت‌پذیر</span></span>
@@ -794,7 +794,7 @@ export default function TravelerDepositPage() {
                     <span className="text-sm font-bold text-gray-900">مجموع ودیعه</span>
                     <span className="text-xl font-extrabold text-amber-500">{Math.round(totalToman).toLocaleString('fa-IR')} ت</span>
                   </div>
-                  <div className="text-xs text-gray-400 text-left mt-0.5" style={{ direction: 'ltr' }}>≈ $ {totalUSD.toFixed(2)}</div>
+                  <div className="text-xs text-gray-500 text-left mt-0.5" style={{ direction: 'ltr' }}>≈ $ {totalUSD.toFixed(2)}</div>
                 </div>
               </div>
             </div>
@@ -954,16 +954,16 @@ export default function TravelerDepositPage() {
             {/* TXN box */}
             {successTxnId && (
               <button onClick={copyTxn} className="w-full text-right bg-blue-50 border border-blue-200 rounded-xl p-4 hover:bg-blue-100 transition-colors">
-                <div className="text-[10px] text-gray-400 font-bold uppercase tracking-wide mb-1">شناسه تراکنش</div>
+                <div className="text-[10px] text-gray-500 font-bold uppercase tracking-wide mb-1">شناسه تراکنش</div>
                 <div className="text-sm font-extrabold text-blue-700 font-mono tracking-wider" style={{ direction: 'ltr' }}>{successTxnId}</div>
-                <div className="text-[10px] text-gray-400 mt-1">👆 لمس کنید تا کپی شود</div>
+                <div className="text-[10px] text-gray-500 mt-1">👆 لمس کنید تا کپی شود</div>
               </button>
             )}
 
             {/* Locked amount */}
             <div className="bg-green-50 border border-green-200 rounded-xl p-4">
               <div className="flex justify-between items-center mb-2">
-                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">ودیعه در پرداخت امن چاپار</span>
+                <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wide">ودیعه در پرداخت امن چاپار</span>
                 <span className="text-xl font-extrabold text-green-600">{depositAmt}</span>
               </div>
               <div className="text-xs text-gray-500 leading-relaxed">

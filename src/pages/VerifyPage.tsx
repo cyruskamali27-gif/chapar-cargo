@@ -70,7 +70,7 @@ function DocSideCard({ title, hint, illus, dataURL, capturedLabel, notCapturedLa
     <div className={`border rounded-xl p-4 mb-3 transition-colors ${captured ? 'border-green-300 bg-green-50/30' : 'border-gray-200 bg-white'}`}>
       <div className="flex items-center justify-between mb-3">
         <div className="text-sm font-bold text-gray-800">{title}</div>
-        <div className={`text-xs font-bold ${captured ? 'text-green-600' : 'text-gray-400'}`}>
+        <div className={`text-xs font-bold ${captured ? 'text-green-600' : 'text-gray-500'}`}>
           {captured ? capturedLabel : notCapturedLabel}
         </div>
       </div>
@@ -94,7 +94,7 @@ function DocSideCard({ title, hint, illus, dataURL, capturedLabel, notCapturedLa
           <button
             type="button"
             onClick={onRedo}
-            className="text-xs text-gray-400 underline underline-offset-2 hover:text-gray-600"
+            className="text-xs text-gray-500 underline underline-offset-2 hover:text-gray-600"
           >
             {redoBtn}
           </button>
@@ -505,7 +505,7 @@ export default function VerifyPage() {
 
           {/* Progress bar */}
           <div className="mt-6">
-            <div className="flex items-center justify-between text-xs text-gray-400 mb-1.5">
+            <div className="flex items-center justify-between text-xs text-gray-500 mb-1.5">
               <span>{t.vfyProgress}</span>
               <span>{progressPct}٪</span>
             </div>
@@ -613,7 +613,7 @@ export default function VerifyPage() {
         {/* ── C) Document capture ── */}
         {docType && cfg && (
           <div>
-            <div className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">{t.vfyDocImageLabel}</div>
+            <div className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">{t.vfyDocImageLabel}</div>
 
             <DocSideCard
               title={cfg.frontTitle}
@@ -659,7 +659,7 @@ export default function VerifyPage() {
                 >
                   {t.vfyAiStartBtn}
                 </button>
-                <div className="text-xs text-gray-400 mt-2">{t.vfyAiAvailHint}</div>
+                <div className="text-xs text-gray-500 mt-2">{t.vfyAiAvailHint}</div>
               </div>
             )}
 
@@ -739,7 +739,7 @@ export default function VerifyPage() {
             {t.vfySubmitBtn}
           </button>
           {docsReady && !aiIdPassed && (
-            <div className="text-xs text-gray-400 text-center mt-2">{t.vfyNeedAiHint}</div>
+            <div className="text-xs text-gray-500 text-center mt-2">{t.vfyNeedAiHint}</div>
           )}
         </div>
 

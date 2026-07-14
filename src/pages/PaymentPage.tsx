@@ -207,7 +207,7 @@ export default function PaymentPage() {
             {/* Amount card */}
             <div className="bg-white border border-gray-100 rounded-2xl p-5 flex items-center justify-between">
               <div>
-                <div className="text-xs font-bold text-gray-400 mb-1">{t.payAmountLabel}</div>
+                <div className="text-xs font-bold text-gray-500 mb-1">{t.payAmountLabel}</div>
                 <div className="text-2xl font-extrabold text-gray-900">$ {orderUSD}</div>
               </div>
               <div className="text-base font-bold text-gray-600">{fmtToman(orderToman)}</div>
@@ -221,7 +221,7 @@ export default function PaymentPage() {
 
             {/* Payment method grid */}
             <div>
-              <div className="text-xs font-bold text-gray-400 mb-3">{t.payMethodLabel}</div>
+              <div className="text-xs font-bold text-gray-500 mb-3">{t.payMethodLabel}</div>
               <div className="grid grid-cols-2 gap-2">
                 {METHODS.map(m => (
                   <button key={m.method} onClick={() => pickPayment(m.method)}
@@ -276,7 +276,7 @@ export default function PaymentPage() {
 
               {/* Track code — clickable */}
               <div className="bg-gray-50 border border-gray-200 rounded-xl px-6 py-4 mb-4">
-                <div className="text-xs font-bold text-gray-400 mb-2">کد پیگیری سفارش</div>
+                <div className="text-xs font-bold text-gray-500 mb-2">کد پیگیری سفارش</div>
                 <button onClick={() => { window.location.href = '/track?id=' + trackId; }}
                   title="کلیک برای پیگیری"
                   className="text-xl font-extrabold text-gray-900 tracking-wider font-mono hover:text-blue-600 transition-colors cursor-pointer bg-transparent border-none p-0">
@@ -287,13 +287,13 @@ export default function PaymentPage() {
               {/* Confirmation code */}
               {confirmCode && (
                 <div className="bg-green-50 border border-green-200 rounded-xl px-6 py-4 mb-4">
-                  <div className="text-xs font-bold text-gray-400 mb-2">کد تأیید تحویل — به گیرنده بدهید</div>
+                  <div className="text-xs font-bold text-gray-500 mb-2">کد تأیید تحویل — به گیرنده بدهید</div>
                   <button onClick={() => navigator.clipboard?.writeText(confirmCode)}
                     title="کلیک برای کپی"
                     className="text-4xl font-extrabold text-green-600 tracking-widest font-mono cursor-pointer bg-transparent border-none p-0">
                     {confirmCode}
                   </button>
-                  <div className="text-xs text-gray-400 mt-1">کلیک برای کپی</div>
+                  <div className="text-xs text-gray-500 mt-1">کلیک برای کپی</div>
                 </div>
               )}
 

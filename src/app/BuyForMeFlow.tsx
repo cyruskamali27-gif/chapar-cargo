@@ -273,7 +273,7 @@ function LinkTab({ t, product, setProduct }: {
             )}
           </div>
           {url && (
-            <a href={url} target="_blank" rel="noopener noreferrer" className="flex-shrink-0 text-gray-400 hover:text-cyan-600">
+            <a href={url} target="_blank" rel="noopener noreferrer" className="flex-shrink-0 text-gray-500 hover:text-cyan-600">
               <ExternalLink className="w-4 h-4" />
             </a>
           )}
@@ -342,7 +342,7 @@ function EditableProductFields({ t, product, setProduct }: {
           <div className="w-full max-w-lg bg-white rounded-t-3xl max-h-[70vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="sticky top-0 bg-white border-b border-gray-100 px-5 py-4 flex items-center justify-between">
               <span className="text-base font-extrabold text-gray-900">{t.spCurrencyModal}</span>
-              <button onClick={() => setShowCurrModal(false)} className="text-gray-400 text-xl leading-none">✕</button>
+              <button onClick={() => setShowCurrModal(false)} className="text-gray-500 text-xl leading-none">✕</button>
             </div>
             <div className="pb-6">
               {CURRENCIES.map(c => (

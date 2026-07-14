@@ -107,11 +107,11 @@ function StepPills({ step }: { step: number }) {
               <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold transition-colors
                 ${done   ? 'bg-cyan-700 text-white'
                 : active ? 'bg-cyan-600 text-white ring-4 ring-cyan-100'
-                :          'bg-gray-100 text-gray-400'}`}>
+                :          'bg-gray-100 text-gray-500'}`}>
                 {done ? '✓' : n}
               </div>
               <span className={`text-[9px] font-semibold whitespace-nowrap hidden sm:block
-                ${active ? 'text-cyan-700' : done ? 'text-cyan-700' : 'text-gray-500'}`}>
+                ${active ? 'text-cyan-700' : done ? 'text-emerald-700' : 'text-gray-500'}`}>
                 {label}
               </span>
             </div>
@@ -999,7 +999,7 @@ export default function SendPackagePage({ onHome, cargoType = 'personal', onNavi
                       </div>
                       <button
                         onClick={() => { stopQrPoll(); setQrStatus('idle'); setQrUrl(null); }}
-                        className="mt-3 text-xs text-gray-400 hover:text-gray-600 transition-colors flex items-center gap-1 mx-auto"
+                        className="mt-3 text-xs text-gray-500 hover:text-gray-600 transition-colors flex items-center gap-1 mx-auto"
                       >
                         <RefreshCw className="w-3 h-3" /> {t.scanRetryAnalysis}
                       </button>
@@ -1052,9 +1052,9 @@ export default function SendPackagePage({ onHome, cargoType = 'personal', onNavi
         {/* ════════════ STEP 1 ════════════ */}
         {step === 1 && (
           <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="ds-card p-6 sm:p-8">
-            <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">{t.wizardStep.replace('{n}', '1').replace('{m}', '8')}</div>
+            <div className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">{t.wizardStep.replace('{n}', '1').replace('{m}', '8')}</div>
             <h2 className="text-xl font-extrabold text-gray-900 mb-1">{t.spPill1}</h2>
-            <p className="text-sm text-gray-400 mb-6">{t.spOrigin}, {t.spDest}</p>
+            <p className="text-sm text-gray-500 mb-6">{t.spOrigin}, {t.spDest}</p>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
               <AirportCityAutocomplete label={t.spOrigin} value={origin} onChange={v => { setOrigin(v); setErr(''); }} placeholder={t.spOriginPlaceholder} />
@@ -1080,7 +1080,7 @@ export default function SendPackagePage({ onHome, cargoType = 'personal', onNavi
                     </button>
                   </>
                 ) : (
-                  <p className="text-xs text-gray-400 italic">{t.spMatchNoTravelers}</p>
+                  <p className="text-xs text-gray-500 italic">{t.spMatchNoTravelers}</p>
                 )}
                 {date && (
                   <button onClick={() => setShowAllTrips(m => !m)}
@@ -1099,9 +1099,9 @@ export default function SendPackagePage({ onHome, cargoType = 'personal', onNavi
         {/* ════════════ STEP 2 ════════════ */}
         {step === 2 && (
           <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="ds-card p-6 sm:p-8">
-            <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">{t.wizardStep.replace('{n}', '2').replace('{m}', '8')}</div>
+            <div className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">{t.wizardStep.replace('{n}', '2').replace('{m}', '8')}</div>
             <h2 className="text-xl font-extrabold text-gray-900 mb-1">{t.spStep2Title}</h2>
-            <p className="text-sm text-gray-400 mb-4">{t.spStep2Desc}</p>
+            <p className="text-sm text-gray-500 mb-4">{t.spStep2Desc}</p>
 
             <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 mb-4 text-xs text-amber-700 flex gap-2">
               <span>🎥</span>
@@ -1130,7 +1130,7 @@ export default function SendPackagePage({ onHome, cargoType = 'personal', onNavi
                 className="w-full border-2 border-dashed border-gray-300 rounded-xl py-10 flex flex-col items-center gap-3 hover:border-cyan-400 hover:bg-cyan-50/30 transition-all">
                 <span className="text-4xl">🎥</span>
                 <span className="text-sm font-bold text-gray-600">{t.spVideoRecord}</span>
-                <span className="text-xs text-gray-400">{t.spVideoClickToRecord}</span>
+                <span className="text-xs text-gray-500">{t.spVideoClickToRecord}</span>
               </button>
             )}
 
@@ -1241,9 +1241,9 @@ export default function SendPackagePage({ onHome, cargoType = 'personal', onNavi
             {!inspecting && !scanError && scanComplete && (
               <div className="space-y-4">
                 <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
-                  <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">{t.spDetectedItem}</div>
+                  <div className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-2">{t.spDetectedItem}</div>
                   <div className="text-lg font-extrabold text-gray-900 mb-2">
-                    {detectedItem || <span className="text-base font-bold text-gray-400">{t.spCorrectItemName}</span>}
+                    {detectedItem || <span className="text-base font-bold text-gray-500">{t.spCorrectItemName}</span>}
                   </div>
                   <div className="flex gap-2 flex-wrap">
                     <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full border
@@ -1338,9 +1338,9 @@ export default function SendPackagePage({ onHome, cargoType = 'personal', onNavi
         {/* ════════════ STEP 5 ════════════ */}
         {step === 5 && (
           <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="ds-card p-6 sm:p-8">
-            <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">{t.wizardStep.replace('{n}', '5').replace('{m}', '8')}</div>
+            <div className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">{t.wizardStep.replace('{n}', '5').replace('{m}', '8')}</div>
             <h2 className="text-xl font-extrabold text-gray-900 mb-1">{t.spStep5Title}</h2>
-            <p className="text-sm text-gray-400 mb-5">{t.spStep5Desc}</p>
+            <p className="text-sm text-gray-500 mb-5">{t.spStep5Desc}</p>
 
             <div className="mb-4">
               <label className="ds-label">{t.spCurrency}</label>
@@ -1349,7 +1349,7 @@ export default function SendPackagePage({ onHome, cargoType = 'personal', onNavi
                 <span className="text-xl">{currObj.flag}</span>
                 <span className="text-base font-extrabold text-cyan-600">{currObj.code}</span>
                 <span className="text-sm text-gray-500 flex-1 text-right">{CURR_LABELS[currObj.code] ?? currObj.code}</span>
-                <span className="text-gray-400 text-sm">▼</span>
+                <span className="text-gray-500 text-sm">▼</span>
               </button>
               {selectedCurr === 'IRR' && (
                 <div className="mt-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 text-xs text-amber-700 font-semibold">
@@ -1364,7 +1364,7 @@ export default function SendPackagePage({ onHome, cargoType = 'personal', onNavi
                 value={valueAmount} onChange={e => { setValueAmount(e.target.value); setErr(''); }}
                 style={{ direction: 'ltr' }} />
               {parseFloat(valueAmount) > 0 && (
-                <div className="text-xs text-gray-400 mt-1">
+                <div className="text-xs text-gray-500 mt-1">
                   {t.spUsdEquiv} <strong className="text-cyan-600">${valueUSD.toFixed(2)}</strong>
                 </div>
               )}
@@ -1396,9 +1396,9 @@ export default function SendPackagePage({ onHome, cargoType = 'personal', onNavi
         {/* ════════════ STEP 6 ════════════ */}
         {step === 6 && (
           <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="ds-card p-6 sm:p-8">
-            <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">{t.wizardStep.replace('{n}', '6').replace('{m}', '8')}</div>
+            <div className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">{t.wizardStep.replace('{n}', '6').replace('{m}', '8')}</div>
             <h2 className="text-xl font-extrabold text-gray-900 mb-1">{t.spStep6Title}</h2>
-            <p className="text-sm text-gray-400 mb-5">{t.spStep6Desc}</p>
+            <p className="text-sm text-gray-500 mb-5">{t.spStep6Desc}</p>
 
             {highValue && (
               <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-5">
@@ -1458,7 +1458,7 @@ export default function SendPackagePage({ onHome, cargoType = 'personal', onNavi
                   <span className="text-2xl">{recDocCapture ? '✅' : '🪪'}</span>
                   <div className="flex-1">
                     <div className="text-sm font-bold text-gray-700">{t.spRecDocCapture}</div>
-                    <div className="text-xs text-gray-400">{t.spRecDocSubtitle}</div>
+                    <div className="text-xs text-gray-500">{t.spRecDocSubtitle}</div>
                   </div>
                 </button>
                 {recDocCamOpen && (
@@ -1483,9 +1483,9 @@ export default function SendPackagePage({ onHome, cargoType = 'personal', onNavi
         {/* ════════════ STEP 7 ════════════ */}
         {step === 7 && (
           <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="ds-card p-6 sm:p-8">
-            <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">{t.wizardStep.replace('{n}', '7').replace('{m}', '8')}</div>
+            <div className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">{t.wizardStep.replace('{n}', '7').replace('{m}', '8')}</div>
             <h2 className="text-xl font-extrabold text-gray-900 mb-1">{t.spStep7Title}</h2>
-            <p className="text-sm text-gray-400 mb-5">{t.spStep7Desc}</p>
+            <p className="text-sm text-gray-500 mb-5">{t.spStep7Desc}</p>
 
             <div className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">{t.spDocTypeLabel}</div>
             <div className="grid grid-cols-3 gap-3 mb-5">
@@ -1495,7 +1495,7 @@ export default function SendPackagePage({ onHome, cargoType = 'personal', onNavi
                     ${docType === d.key ? 'border-cyan-500 bg-cyan-50' : 'border-gray-200 bg-white hover:bg-gray-50'}`}>
                   <span className="text-2xl">{d.icon}</span>
                   <span className="text-sm font-bold text-gray-900">{d.name}</span>
-                  <span className="text-[10px] text-gray-400">{d.req}</span>
+                  <span className="text-[10px] text-gray-500">{d.req}</span>
                 </button>
               ))}
             </div>
@@ -1527,7 +1527,7 @@ export default function SendPackagePage({ onHome, cargoType = 'personal', onNavi
                     <span className="text-2xl">{docCaptures[slot.key] ? '✅' : slot.icon}</span>
                     <div className="flex-1">
                       <div className="text-sm font-bold text-gray-700">{slot.label}</div>
-                      <div className="text-xs text-gray-400">{slot.hint}</div>
+                      <div className="text-xs text-gray-500">{slot.hint}</div>
                     </div>
                   </button>
                 ))}
@@ -1577,9 +1577,9 @@ export default function SendPackagePage({ onHome, cargoType = 'personal', onNavi
         {/* ════════════ STEP 8 ════════════ */}
         {step === 8 && (
           <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="ds-card p-6 sm:p-8">
-            <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">{t.wizardStep.replace('{n}', '8').replace('{m}', '8')}</div>
+            <div className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">{t.wizardStep.replace('{n}', '8').replace('{m}', '8')}</div>
             <h2 className="text-xl font-extrabold text-gray-900 mb-1">{t.spStep8Title}</h2>
-            <p className="text-sm text-gray-400 mb-5">{t.spStep8Desc}</p>
+            <p className="text-sm text-gray-500 mb-5">{t.spStep8Desc}</p>
 
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-5">
               {PAY_METHODS.map(m => (
@@ -1650,7 +1650,7 @@ export default function SendPackagePage({ onHome, cargoType = 'personal', onNavi
           <div className="w-full max-w-lg bg-white rounded-t-3xl max-h-[72vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="sticky top-0 bg-white border-b border-gray-100 px-5 py-4 flex items-center justify-between">
               <span className="text-base font-extrabold text-gray-900">{t.spCurrencyModal}</span>
-              <button onClick={() => setShowCurrModal(false)} className="text-gray-400 text-xl leading-none">✕</button>
+              <button onClick={() => setShowCurrModal(false)} className="text-gray-500 text-xl leading-none">✕</button>
             </div>
             <div className="pb-6">
               {CURRENCIES.map(c => (
@@ -1675,7 +1675,7 @@ export default function SendPackagePage({ onHome, cargoType = 'personal', onNavi
             <div className="sticky top-0 bg-white border-b border-gray-100 px-5 py-4">
               <div className="flex items-center justify-between mb-3">
                 <span className="text-base font-extrabold text-gray-900">{t.spCorrectItemModal}</span>
-                <button onClick={() => setShowItemModal(false)} className="text-gray-400 text-xl leading-none">✕</button>
+                <button onClick={() => setShowItemModal(false)} className="text-gray-500 text-xl leading-none">✕</button>
               </div>
               <input type="search" className="ds-input text-sm" placeholder={t.spItemSearch}
                 value={itemSearch} onChange={e => setItemSearch(e.target.value)} />
@@ -1688,7 +1688,7 @@ export default function SendPackagePage({ onHome, cargoType = 'personal', onNavi
                 if (!filtered.length) return null;
                 return (
                   <div key={cat.cat}>
-                    <div className="px-5 pt-4 pb-1 text-[10px] font-extrabold text-gray-400 uppercase tracking-wider">{cat.cat}</div>
+                    <div className="px-5 pt-4 pb-1 text-[10px] font-extrabold text-gray-500 uppercase tracking-wider">{cat.cat}</div>
                     {filtered.map(item => (
                       <button key={item} onClick={() => selectItemName(item)}
                         className="w-full text-right px-5 py-3 text-sm font-semibold text-gray-800 hover:bg-cyan-50 hover:text-cyan-700 transition-colors">

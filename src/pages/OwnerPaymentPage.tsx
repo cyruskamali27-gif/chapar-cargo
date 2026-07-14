@@ -779,10 +779,10 @@ export default function OwnerPaymentPage() {
                 <div className="text-xs text-gray-500 mt-0.5">
                   {(order.originFlag || '') + ' ' + (order.originLabel || order.origin || '—') + ' ← ' + (order.destFlag || '') + ' ' + (order.destLabel || order.dest || '—')}
                 </div>
-                {order.detectedItem && <div className="text-xs text-gray-400 mt-0.5">📦 {order.detectedItem}</div>}
+                {order.detectedItem && <div className="text-xs text-gray-500 mt-0.5">📦 {order.detectedItem}</div>}
               </div>
               <div className="text-right flex-shrink-0">
-                <div className="text-[10px] text-gray-400">مسافر</div>
+                <div className="text-[10px] text-gray-500">مسافر</div>
                 <div className="text-sm font-bold text-green-600">{offr.travelerName || 'مسافر'}</div>
               </div>
             </div>
@@ -798,7 +798,7 @@ export default function OwnerPaymentPage() {
 
             {/* Breakdown */}
             <div className="bg-white border border-gray-200 rounded-xl p-4">
-              <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-3">خلاصه پرداخت</div>
+              <div className="text-[10px] font-bold text-gray-500 uppercase tracking-wide mb-3">خلاصه پرداخت</div>
               <div className="space-y-2.5">
                 <div className="flex justify-between items-center">
                   <span className="text-xs text-gray-500">هزینه حمل توافقی</span>
@@ -813,7 +813,7 @@ export default function OwnerPaymentPage() {
                     <span className="text-sm font-bold text-gray-900">مبلغ قابل پرداخت</span>
                     <span className="text-2xl font-extrabold text-amber-500" style={{ direction: 'ltr' }}>{fmtUsd(totalUSD)}</span>
                   </div>
-                  <div className="text-xs text-gray-400 text-left mt-0.5" style={{ direction: 'ltr' }}>≈ {Math.round(totalUSD * rate).toLocaleString('fa-IR')} تومان</div>
+                  <div className="text-xs text-gray-500 text-left mt-0.5" style={{ direction: 'ltr' }}>≈ {Math.round(totalUSD * rate).toLocaleString('fa-IR')} تومان</div>
                 </div>
               </div>
             </div>
@@ -969,21 +969,21 @@ export default function OwnerPaymentPage() {
               onClick={() => { copyText(txnId); showToast('📋 شناسه تراکنش کپی شد'); }}
               className="w-full text-right bg-blue-50 border border-blue-200 rounded-xl p-4 hover:bg-blue-100 transition-colors"
             >
-              <div className="text-[10px] text-gray-400 font-bold uppercase tracking-wide mb-1">شناسه تراکنش</div>
+              <div className="text-[10px] text-gray-500 font-bold uppercase tracking-wide mb-1">شناسه تراکنش</div>
               <div className="text-base font-extrabold text-blue-700 font-mono tracking-wider" style={{ direction: 'ltr' }}>{txnId}</div>
-              <div className="text-[10px] text-gray-400 mt-1">📋 برای کپی کلیک کنید</div>
+              <div className="text-[10px] text-gray-500 mt-1">📋 برای کپی کلیک کنید</div>
             </button>
 
             {/* Amount locked */}
             <div className="bg-green-50 border border-green-200 rounded-xl p-4 text-center">
-              <div className="text-[10px] text-gray-400 font-bold uppercase tracking-wide mb-1">مبلغ قفل‌شده در پرداخت امن چاپار</div>
+              <div className="text-[10px] text-gray-500 font-bold uppercase tracking-wide mb-1">مبلغ قفل‌شده در پرداخت امن چاپار</div>
               <div className="text-3xl font-extrabold text-green-600" style={{ direction: 'ltr' }}>{fmtUsd(totalUSD)} USD</div>
             </div>
 
             {/* OTP box */}
             {otp && (
               <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-center">
-                <div className="text-[10px] text-gray-400 font-bold uppercase tracking-wide mb-2">کد تحویل گیرنده</div>
+                <div className="text-[10px] text-gray-500 font-bold uppercase tracking-wide mb-2">کد تحویل گیرنده</div>
                 <div className="text-4xl font-extrabold text-amber-600 tracking-[10px] font-mono" style={{ direction: 'ltr' }}>{otp}</div>
                 <div className="text-xs text-gray-500 mt-2 leading-relaxed">این کد را به گیرنده بدهید. گیرنده هنگام دریافت کالا این کد را وارد می‌کند.</div>
               </div>

@@ -209,11 +209,11 @@ export default function ProfilePage({ onHome, onOpenWallet, onOpenOrders }: Prop
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="text-lg font-extrabold text-gray-900">{displayName}</div>
-                  <div className="text-xs text-gray-400 flex items-center gap-2 flex-wrap mt-0.5">
+                  <div className="text-xs text-gray-500 flex items-center gap-2 flex-wrap mt-0.5">
                     {user?.email && <span>✉️ {user.email}</span>}
                     {user?.phone && <span>📞 {user.phone}</span>}
                   </div>
-                  <div className="text-[11px] text-gray-400 mt-0.5">{joinedDate}</div>
+                  <div className="text-[11px] text-gray-500 mt-0.5">{joinedDate}</div>
                 </div>
               </div>
               {/* Quick-links */}
@@ -240,14 +240,14 @@ export default function ProfilePage({ onHome, onOpenWallet, onOpenOrders }: Prop
               ].map(s => (
                 <div key={s.lbl} className="ds-card p-3 text-center">
                   <div className={`text-lg font-extrabold ${s.color}`}>{s.val}</div>
-                  <div className="text-[10px] text-gray-400 mt-0.5">{s.lbl}</div>
+                  <div className="text-[10px] text-gray-500 mt-0.5">{s.lbl}</div>
                 </div>
               ))}
             </div>
             {stats.rating !== '—' && (
               <div className="ds-card p-3 text-center">
                 <div className="text-sm font-extrabold text-yellow-600">{stats.rating}</div>
-                <div className="text-[10px] text-gray-400 mt-0.5">{t.profRating}</div>
+                <div className="text-[10px] text-gray-500 mt-0.5">{t.profRating}</div>
               </div>
             )}
 
@@ -336,12 +336,12 @@ export default function ProfilePage({ onHome, onOpenWallet, onOpenOrders }: Prop
                 <div className="pt-2 border-t border-gray-100 space-y-2">
                   <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wide">{t.profVerification ?? 'Verification'}</h4>
                   <div className="flex items-center gap-2 text-sm">
-                    <span className={user?.emailVerified ? 'text-green-600' : 'text-gray-400'}>
+                    <span className={user?.emailVerified ? 'text-green-600' : 'text-gray-500'}>
                       {user?.emailVerified ? '✅' : '○'} {t.channelEmail}
                     </span>
                   </div>
                   <div className="flex items-center gap-2 text-sm">
-                    <span className={user?.telegramLinked ? 'text-green-600' : 'text-gray-400'}>
+                    <span className={user?.telegramLinked ? 'text-green-600' : 'text-gray-500'}>
                       {user?.telegramLinked ? '✅' : '○'} {t.channelTelegram}
                     </span>
                   </div>

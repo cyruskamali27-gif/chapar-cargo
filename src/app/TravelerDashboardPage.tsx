@@ -337,7 +337,7 @@ export default function TravelerDashboardPage({ onHome, onNewTrip, onNavigate }:
           </button>
           <div className="mr-auto">
             <h1 className="text-base font-extrabold text-gray-900">{t.tdashTitle}</h1>
-            <p className="text-xs text-gray-400">{t.tdashGreeting.replace('{name}', session.firstName || '')}</p>
+            <p className="text-xs text-gray-500">{t.tdashGreeting.replace('{name}', session.firstName || '')}</p>
           </div>
         </div>
       </div>
@@ -354,7 +354,7 @@ export default function TravelerDashboardPage({ onHome, onNewTrip, onNavigate }:
             <div key={s.lbl} className="bg-white border border-gray-100 rounded-2xl p-4 text-center shadow-sm">
               <div className="text-2xl mb-1">{s.icon}</div>
               <div className={`text-2xl font-extrabold mb-0.5 ${s.cls}`}>{s.val}</div>
-              <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">{s.lbl}</div>
+              <div className="text-[10px] font-bold text-gray-500 uppercase tracking-wide">{s.lbl}</div>
             </div>
           ))}
         </div>
@@ -396,7 +396,7 @@ export default function TravelerDashboardPage({ onHome, onNewTrip, onNavigate }:
           </div>
           {tripView === 'mine' ? (
           sortedTrips.length === 0 ? (
-            <div className="text-center py-12 text-gray-400">
+            <div className="text-center py-12 text-gray-500">
               <div className="text-5xl mb-3">✈️</div>
               <div className="text-base font-bold text-gray-700 mb-1">{t.tdashNoTrips}</div>
               <div className="text-sm">{t.tdashNoTripsDesc}</div>
@@ -416,7 +416,7 @@ export default function TravelerDashboardPage({ onHome, onNewTrip, onNavigate }:
                         <div className="text-base font-extrabold text-gray-900">
                           {trip.originCity || trip.origin || '—'} ✈ {trip.destCity || trip.destination || '—'}
                         </div>
-                        <div className="text-[10px] text-gray-400 font-mono tracking-wide mt-0.5">{trip.id}</div>
+                        <div className="text-[10px] text-gray-500 font-mono tracking-wide mt-0.5">{trip.id}</div>
                       </div>
                       <span className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-full border ${
                         isActive  ? 'bg-blue-50 text-blue-700 border-blue-200'
@@ -443,12 +443,12 @@ export default function TravelerDashboardPage({ onHome, onNewTrip, onNavigate }:
                       <div className="text-sm text-amber-500 mb-2">
                         {'⭐'.repeat(Math.round(tripAvg))}{'☆'.repeat(5 - Math.round(tripAvg))}
                         <span className="font-bold text-amber-600 mr-1">{tripAvg.toFixed(1)}</span>
-                        <span className="text-xs text-gray-400">({tripRatings.length} {t.tdashReviews})</span>
+                        <span className="text-xs text-gray-500">({tripRatings.length} {t.tdashReviews})</span>
                       </div>
                     )}
                     {tripOrds.length > 0 ? (
                       <div className="space-y-1.5 mb-2">
-                        <div className="text-xs font-bold text-gray-400">{t.tdashAssignedOrders.replace('{n}', String(tripOrds.length))}</div>
+                        <div className="text-xs font-bold text-gray-500">{t.tdashAssignedOrders.replace('{n}', String(tripOrds.length))}</div>
                         {tripOrds.map(o => {
                           const st      = statuses[o.trackId] || '';
                           const canChat = st === 'matched' || st === 'in_transit';
@@ -490,7 +490,7 @@ export default function TravelerDashboardPage({ onHome, onNewTrip, onNavigate }:
                         })}
                       </div>
                     ) : (
-                      <div className="text-xs text-gray-400 mb-2">{t.tdashNoAssigned}</div>
+                      <div className="text-xs text-gray-500 mb-2">{t.tdashNoAssigned}</div>
                     )}
                     <div className="flex gap-2 mt-2">
                       {isActive && (
@@ -511,7 +511,7 @@ export default function TravelerDashboardPage({ onHome, onNewTrip, onNavigate }:
           )
           ) : (
           marketTrips.length === 0 ? (
-            <div className="text-center py-12 text-gray-400">
+            <div className="text-center py-12 text-gray-500">
               <div className="text-5xl mb-3">🌍</div>
               <div className="text-base font-bold text-gray-700 mb-1">{t.tdashNoTrips}</div>
             </div>
@@ -526,7 +526,7 @@ export default function TravelerDashboardPage({ onHome, onNewTrip, onNavigate }:
                         <div className="text-base font-extrabold text-gray-900">
                           {trip.originCity || trip.origin || '—'} ✈ {trip.destCity || trip.destination || '—'}
                         </div>
-                        <div className="text-[10px] text-gray-400 font-mono tracking-wide mt-0.5">{trip.id}</div>
+                        <div className="text-[10px] text-gray-500 font-mono tracking-wide mt-0.5">{trip.id}</div>
                       </div>
                       {owned && <span className="text-[10px] font-extrabold px-2.5 py-0.5 rounded-full border bg-cyan-50 text-cyan-700 border-cyan-200">{t.tdashTripActive}</span>}
                     </div>
@@ -546,21 +546,21 @@ export default function TravelerDashboardPage({ onHome, onNewTrip, onNavigate }:
         {/* ─── Tab: Open Orders ─── */}
         {tab === 'orders' && (
           activeTrips.length === 0 ? (
-            <div className="text-center py-12 text-gray-400">
+            <div className="text-center py-12 text-gray-500">
               <div className="text-5xl mb-3">✈️</div>
               <div className="text-base font-bold text-gray-700 mb-1">{t.tdashNoActiveTrip}</div>
               <p className="text-sm mb-4">{t.tdashNoActiveTripDesc}</p>
               <button onClick={onNewTrip} className="ds-btn-primary px-6 py-2.5 text-sm">{t.tdashNewTrip}</button>
             </div>
           ) : openOrders.length === 0 ? (
-            <div className="text-center py-12 text-gray-400">
+            <div className="text-center py-12 text-gray-500">
               <div className="text-5xl mb-3">📭</div>
               <div className="text-base font-bold text-gray-700 mb-1">{t.tdashNoOpenOrders}</div>
               <div className="text-sm">{t.tdashNoOpenOrdersDesc}</div>
             </div>
           ) : (
             <div>
-              <div className="text-xs font-bold text-gray-400 mb-3">{t.tdashOpenForOffers.replace('{n}', String(openOrders.length))}</div>
+              <div className="text-xs font-bold text-gray-500 mb-3">{t.tdashOpenForOffers.replace('{n}', String(openOrders.length))}</div>
               <div className="space-y-3">
                 {openOrders.map(o => {
                   const icon = CARGO_ICONS[o.cargoType || ''] || '📦';
@@ -572,7 +572,7 @@ export default function TravelerDashboardPage({ onHome, onNewTrip, onNavigate }:
                         <div className="w-11 h-11 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-xl flex-shrink-0">{icon}</div>
                         <div className="flex-1 min-w-0">
                           <div className="text-sm font-extrabold text-gray-900">{o.originLabel || o.origin || '—'} ✈ {o.destLabel || o.dest || '—'}</div>
-                          <div className="text-[10px] text-gray-400 font-mono tracking-wide">{o.trackId}</div>
+                          <div className="text-[10px] text-gray-500 font-mono tracking-wide">{o.trackId}</div>
                         </div>
                         {val && <div className="text-sm font-extrabold text-amber-600 flex-shrink-0">{val}</div>}
                       </div>
@@ -596,7 +596,7 @@ export default function TravelerDashboardPage({ onHome, onNewTrip, onNavigate }:
         {/* ─── Tab: My Offers ─── */}
         {tab === 'myoffers' && (
           myOffers.length === 0 ? (
-            <div className="text-center py-12 text-gray-400">
+            <div className="text-center py-12 text-gray-500">
               <div className="text-5xl mb-3">📋</div>
               <div className="text-base font-bold text-gray-700 mb-1">{t.tdashNoOffers}</div>
               <div className="text-sm">{t.tdashNoOffersDesc}</div>
@@ -615,7 +615,7 @@ export default function TravelerDashboardPage({ onHome, onNewTrip, onNavigate }:
                         <div className="text-sm font-extrabold text-gray-900">
                           {order?.originLabel || order?.origin || '—'} ✈ {order?.destLabel || order?.dest || '—'}
                         </div>
-                        <div className="text-[10px] text-gray-400 font-mono">{offer.trackId || offer.orderId}</div>
+                        <div className="text-[10px] text-gray-500 font-mono">{offer.trackId || offer.orderId}</div>
                       </div>
                       <span className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-full border ${stCls}`}>{stLbl}</span>
                     </div>
@@ -675,13 +675,13 @@ export default function TravelerDashboardPage({ onHome, onNewTrip, onNavigate }:
           <div className="w-full max-w-lg bg-white rounded-t-2xl p-5 pb-8 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-base font-extrabold">{t.tdashOfferModalTitle}</h3>
-              <button onClick={() => setOfferOrder(null)} className="text-gray-400 text-xl font-bold hover:text-gray-700">✕</button>
+              <button onClick={() => setOfferOrder(null)} className="text-gray-500 text-xl font-bold hover:text-gray-700">✕</button>
             </div>
             <div className="bg-blue-50 border border-blue-100 rounded-xl px-3 py-2.5 mb-4 flex items-center gap-3">
               <span className="text-xl">{CARGO_ICONS[offerOrder.cargoType || ''] || '📦'}</span>
               <div className="flex-1 min-w-0">
                 <div className="text-sm font-bold">{offerOrder.originLabel || offerOrder.origin || '—'} ✈ {offerOrder.destLabel || offerOrder.dest || '—'}</div>
-                <div className="text-[10px] text-gray-400 font-mono">{offerOrder.trackId}</div>
+                <div className="text-[10px] text-gray-500 font-mono">{offerOrder.trackId}</div>
               </div>
               {offerOrder.valueUSD && <div className="text-sm font-bold text-amber-600">$ {parseFloat(offerOrder.valueUSD).toFixed(0)}</div>}
             </div>
@@ -722,9 +722,9 @@ export default function TravelerDashboardPage({ onHome, onNewTrip, onNavigate }:
           <div className="w-full max-w-lg bg-white rounded-t-2xl p-5 pb-8" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-1">
               <h3 className="text-base font-extrabold">{t.tdashEditTripTitle}</h3>
-              <button onClick={() => setEditTrip(null)} className="text-gray-400 text-xl font-bold hover:text-gray-700">✕</button>
+              <button onClick={() => setEditTrip(null)} className="text-gray-500 text-xl font-bold hover:text-gray-700">✕</button>
             </div>
-            <div className="text-[10px] text-gray-400 font-mono mb-4">{editTrip.id}</div>
+            <div className="text-[10px] text-gray-500 font-mono mb-4">{editTrip.id}</div>
             <div className="mb-3">
               <label className="ds-label block mb-1">{t.tdashTripDate}</label>
               <input type="date" value={etDate} onChange={e => setEtDate(e.target.value)} className="ds-input w-full" style={{ direction: 'ltr' }} />
@@ -754,9 +754,9 @@ export default function TravelerDashboardPage({ onHome, onNewTrip, onNavigate }:
                 <h3 className="text-base font-extrabold">
                   {photoMode === 'pickup' ? t.tdashPickupTitle : t.tdashDeliveryTitle}
                 </h3>
-                <div className="text-xs text-gray-400 mt-0.5">{t.tdashOrderLabel} {photoOrd}</div>
+                <div className="text-xs text-gray-500 mt-0.5">{t.tdashOrderLabel} {photoOrd}</div>
               </div>
-              <button onClick={() => setPhotoMode(null)} className="text-gray-400 text-xl font-bold hover:text-gray-700">✕</button>
+              <button onClick={() => setPhotoMode(null)} className="text-gray-500 text-xl font-bold hover:text-gray-700">✕</button>
             </div>
             {photoData ? (
               <div className="rounded-xl overflow-hidden border border-blue-200 mb-4 mt-3">
