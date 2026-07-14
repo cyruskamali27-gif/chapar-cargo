@@ -218,7 +218,7 @@ export default function ChaparConcierge({ language = "fa", userName = "", userId
                     )}
                     <div className="flex-1 min-w-0">
                       <div className="truncate font-bold text-white">{m.product.title || `${m.product.brand || ""} ${m.product.model || ""}`.trim()}</div>
-                      <div className="text-xs text-white/40">
+                      <div className="text-xs text-white/50">
                         {m.product.priceLoading
                           ? "در حال یافتن بهترین قیمت…"
                           : [m.product.priceUSD != null && `$${m.product.priceUSD}`, m.product.country].filter(Boolean).join(" · ")}
@@ -238,11 +238,11 @@ export default function ChaparConcierge({ language = "fa", userName = "", userId
             <div className="me-auto max-w-[86%]" style={{ animation: "up .35s ease both" }}>
               <div className="flex items-center gap-2.5 rounded-2xl px-3.5 py-2.5" style={{ background: "rgba(255,255,255,.06)", border: "1px solid rgba(255,255,255,.1)" }}>
                 {reduceMotion ? (
-                  <span className="text-sm text-white/45">در حال پردازش…</span>
+                  <span className="text-sm text-white/50">در حال پردازش…</span>
                 ) : (
                   <>
                     <span className="cc-orbit"><span className="cc-core" /><span className="cc-ring"><i /></span><span className="cc-ring"><i /></span><span className="cc-ring"><i /></span></span>
-                    <span className="text-xs text-white/45">{thinkingStatus}</span>
+                    <span className="text-xs text-white/50">{thinkingStatus}</span>
                   </>
                 )}
               </div>
@@ -258,7 +258,7 @@ export default function ChaparConcierge({ language = "fa", userName = "", userId
             <button onClick={() => fileRef.current?.click()} className="grid h-10 w-10 place-items-center rounded-full bg-white/5 text-white/60"><ImageIcon size={19} /></button>
             <input ref={fileRef} type="file" accept="image/*" hidden onChange={onImg} />
             <button onClick={voice} className={`grid h-10 w-10 place-items-center rounded-full ${listening ? "bg-rose-500 text-white" : "bg-white/5 text-cyan-300"}`}><Mic size={19} /></button>
-            <input value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && send()} placeholder="بنویسید یا حرف بزنید…" className="flex-1 rounded-full border border-white/15 bg-white/5 px-4 py-2.5 text-sm text-white outline-none placeholder:text-white/35" />
+            <input value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && send()} placeholder="بنویسید یا حرف بزنید…" className="flex-1 rounded-full border border-white/15 bg-white/5 px-4 py-2.5 text-sm text-white outline-none placeholder:text-white/50" />
             <button onClick={() => send()} disabled={loading} className="grid h-10 w-10 place-items-center rounded-full text-white disabled:opacity-40" style={{ background: "linear-gradient(135deg,#22d3ee,#6366f1)" }}><Send size={18} /></button>
           </div>
         </div>
@@ -324,7 +324,7 @@ export default function ChaparConcierge({ language = "fa", userName = "", userId
                         <span className="cc-orbit"><span className="cc-core" /><span className="cc-ring"><i /></span><span className="cc-ring"><i /></span><span className="cc-ring"><i /></span></span>
                         <div>
                           <div className="text-sm text-white/70">در حال مقایسهٔ قیمت در ۵ کشور…</div>
-                          <div className="mt-0.5 text-[11px] text-white/35">اولین بار تا نیم دقیقه طول می‌کشد</div>
+                          <div className="mt-0.5 text-[11px] text-white/50">اولین بار تا نیم دقیقه طول می‌کشد</div>
                         </div>
                       </>)}
                 </div>
@@ -357,11 +357,11 @@ export default function ChaparConcierge({ language = "fa", userName = "", userId
                                   <span className="text-sm font-bold text-white">{m.name}</span>
                                   {i === 0 && <span className="rounded-full bg-emerald-400/20 px-2 py-0.5 text-[10px] font-bold text-emerald-300">ارزان‌ترین</span>}
                                 </span>
-                                <span className="mt-0.5 block truncate text-[11px] text-white/45">
+                                <span className="mt-0.5 block truncate text-[11px] text-white/50">
                                   {[r.shop, fmtLocal(r.priceLocal, r.currency)].filter(Boolean).join(" · ")}
                                 </span>
                                 {r.meta && (
-                                  <span className="mt-0.5 block text-[10px] text-white/30">
+                                  <span className="mt-0.5 block text-[10px] text-white/50">
                                     از {r.meta.considered} نتیجه، {r.meta.allowlisted} معتبر ✓
                                   </span>
                                 )}
@@ -384,8 +384,8 @@ export default function ChaparConcierge({ language = "fa", userName = "", userId
                                 (u.retryable ? "border-amber-400/20 bg-amber-400/[0.05]" : "border-white/[0.07] bg-white/[0.02]")}>
                               <span className="text-xl leading-none opacity-40 grayscale">{m.flag}</span>
                               <div className="min-w-0 flex-1">
-                                <div className={"text-sm font-medium " + (u.retryable ? "text-amber-200/80" : "text-white/40")}>{m.name}</div>
-                                <div className={"mt-0.5 text-[11px] leading-relaxed " + (u.retryable ? "text-amber-200/50" : "text-white/30")}>
+                                <div className={"text-sm font-medium " + (u.retryable ? "text-amber-200/80" : "text-white/50")}>{m.name}</div>
+                                <div className={"mt-0.5 text-[11px] leading-relaxed " + (u.retryable ? "text-amber-200/70" : "text-white/50")}>
                                   {u.retryable ? u.label : "نتیجهٔ معتبری پیدا نشد — قیمت نهایی را مسافرها پیشنهاد می‌دهند"}
                                 </div>
                               </div>
@@ -399,13 +399,13 @@ export default function ChaparConcierge({ language = "fa", userName = "", userId
                     )}
 
                     {ranked.length === 0 && (
-                      <div className="mt-3 rounded-2xl border border-white/10 bg-white/[0.03] p-3 text-center text-xs leading-relaxed text-white/45">
+                      <div className="mt-3 rounded-2xl border border-white/10 bg-white/[0.03] p-3 text-center text-xs leading-relaxed text-white/50">
                         در هیچ‌کدام از کشورها قیمت معتبری پیدا نشد. می‌توانید بدون قیمت پایه ادامه دهید — مسافرها قیمت را پیشنهاد می‌دهند.
                         <button onClick={() => setStage("publish")} className="mt-3 block w-full rounded-xl border border-white/15 bg-white/5 py-2 text-xs font-bold text-white/70">ادامه بدون قیمت پایه</button>
                       </div>
                     )}
 
-                    <div className="mt-4 rounded-xl border border-white/10 bg-white/[0.03] p-3 text-[11px] leading-relaxed text-white/40">
+                    <div className="mt-4 rounded-xl border border-white/10 bg-white/[0.03] p-3 text-[11px] leading-relaxed text-white/50">
                       قیمت کالا در فروشگاه است — مالیات، عوارض گمرکی و هزینهٔ حمل حساب نشده.
                       {" "}قیمت‌ها تا ۱۲ ساعت ذخیره می‌شوند{degraded ? "" : fetchedAt ? ` (آخرین بروزرسانی: ${new Date(fetchedAt).toLocaleString("fa-IR")})` : ""}.
                       {" "}قیمت نهایی را مسافرها پیشنهاد می‌دهند.
@@ -436,7 +436,7 @@ export default function ChaparConcierge({ language = "fa", userName = "", userId
                 {/* No quote = no country was named, by design. Say so, rather than showing a
                     country the buyer never picked. */}
                 {!quote && (
-                  <div className="mt-2 rounded-xl border border-white/10 bg-white/[0.03] px-2.5 py-2 text-[11px] leading-relaxed text-white/40">
+                  <div className="mt-2 rounded-xl border border-white/10 bg-white/[0.03] px-2.5 py-2 text-[11px] leading-relaxed text-white/50">
                     کشور خرید را مسافر تعیین می‌کند
                     {orderProduct?.priceUSD ? ` — قیمت تخمینی $${orderProduct.priceUSD}، بدون مالیات و حمل` : ""}.
                   </div>
@@ -448,7 +448,7 @@ export default function ChaparConcierge({ language = "fa", userName = "", userId
                 <div className="mb-1.5 text-xs text-white/50">درخواست خاص (اختیاری)</div>
                 <input value={specialRequest} onChange={e => setSpecialRequest(e.target.value)}
                   placeholder="مثلاً: روی ایرپاد حکاکی شود: Cyrus"
-                  className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5 text-sm text-white placeholder:text-white/30 focus:border-cyan-400 focus:outline-none" />
+                  className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5 text-sm text-white placeholder:text-white/50 focus:border-cyan-400 focus:outline-none" />
               </div>
 
               {(() => {

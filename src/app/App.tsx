@@ -171,7 +171,7 @@ function MarketplaceRouteBoard() {
                   <div className="text-[11px] text-gray-400">Origin</div>
                 </div>
               </div>
-              <ArrowRight className="w-4 h-4 text-gray-300 group-hover:text-cyan-500 transition-colors flex-shrink-0" />
+              <ArrowRight className="w-4 h-4 text-gray-300 group-hover:text-cyan-600 transition-colors flex-shrink-0" />
               <div className="flex items-center gap-2">
                 <span className="text-2xl">{route.flag2}</span>
                 <div>
@@ -674,7 +674,7 @@ function MarketplacePage({ onBack, onHome, t, onBook, myOrderId, onClearMyOrder 
               <div className="mb-3">
                 <div className="flex items-center justify-between mb-1.5">
                   <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wide">وضعیت آگهی</span>
-                  <span className="text-sm font-extrabold text-emerald-500">
+                  <span className="text-sm font-extrabold text-emerald-700">
                     {saveOk ? 'ذخیره شد ✓' : 'در انتظار مسافر'}
                   </span>
                 </div>
@@ -839,7 +839,7 @@ function MarketplacePage({ onBack, onHome, t, onBook, myOrderId, onClearMyOrder 
                   key={trip.id}
                   title={<>
                     <span>{trip.originCity || trip.origin || '—'}</span>
-                    <span className="text-cyan-500 text-base">✈</span>
+                    <span className="text-cyan-600 text-base">✈</span>
                     <span>{trip.destCity || trip.destination || '—'}</span>
                   </>}
                   id={trip.id}
@@ -898,7 +898,7 @@ function MarketplacePage({ onBack, onHome, t, onBook, myOrderId, onClearMyOrder 
                   <span className="truncate">{order.product?.title || '—'}</span>
                   {order.product?.brand && (
                     <>
-                      <span className="text-cyan-500 text-base flex-shrink-0">·</span>
+                      <span className="text-cyan-600 text-base flex-shrink-0">·</span>
                       <span className="text-gray-500 text-sm font-medium flex-shrink-0">{order.product.brand}</span>
                     </>
                   )}
@@ -1125,7 +1125,7 @@ function FAQPage({ onBack, onHome, t }: { onBack: () => void; onHome: () => void
                   className="flex-shrink-0"
                 >
                   <ChevronDown className={`w-5 h-5 transition-colors ${
-                    openFaq === index ? 'text-cyan-500' : 'text-gray-400'
+                    openFaq === index ? 'text-cyan-600' : 'text-gray-400'
                   }`} />
                 </motion.div>
               </button>
@@ -1399,7 +1399,7 @@ function VideoSection() {
               <div className="p-6">
                 <h3 className="text-lg font-semibold text-gray-900 mb-2 group-hover:text-cyan-700 transition-colors">{card.title}</h3>
                 <p className="text-gray-500 text-sm leading-relaxed">{card.desc}</p>
-                <div className="mt-4 inline-flex items-center gap-1.5 text-xs text-cyan-600 font-medium">
+                <div className="mt-4 inline-flex items-center gap-1.5 text-xs text-cyan-700 font-medium">
                   <div className="w-1.5 h-1.5 bg-cyan-600 rounded-full" />
                   {t.homeWhatComingSoon}
                 </div>
@@ -1917,7 +1917,7 @@ function HomePage({ t, setPage, isRTL }: { t: typeof translations['en']; setPage
                   className="w-full px-6 py-5 flex items-center justify-between text-start hover:bg-gray-50 transition-colors">
                   <span className={`text-base font-semibold pe-4 ${openFaq === index ? 'text-cyan-700' : 'text-gray-900'}`}>{faq.q}</span>
                   <motion.div animate={{ rotate: openFaq === index ? 180 : 0 }} transition={{ duration: 0.3 }}>
-                    <ChevronDown className={`w-5 h-5 flex-shrink-0 ${openFaq === index ? 'text-cyan-500' : 'text-gray-400'}`} />
+                    <ChevronDown className={`w-5 h-5 flex-shrink-0 ${openFaq === index ? 'text-cyan-600' : 'text-gray-400'}`} />
                   </motion.div>
                 </motion.button>
                 <motion.div initial={false} animate={{ height: openFaq === index ? 'auto' : 0, opacity: openFaq === index ? 1 : 0 }}
@@ -2057,7 +2057,7 @@ function NavTrackingPanel({ onClose }: { onClose: () => void }) {
                   <div className="font-semibold text-white">{result.publicOriginCity}</div>
                   <div className="text-xs text-gray-500">{result.publicOriginCountry}</div>
                 </div>
-                <div className="text-cyan-500">→</div>
+                <div className="text-cyan-600">→</div>
                 <div>
                   <div className="font-semibold text-white">{result.publicDestinationCity}</div>
                   <div className="text-xs text-gray-500">{result.publicDestinationCountry}</div>
