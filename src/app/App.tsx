@@ -671,18 +671,31 @@ function MarketplacePage({ onBack, onHome, t, onBook, myOrderId, onClearMyOrder 
                 </div>
               )}
 
-              <div className="mb-3">
-                <div className="flex items-center justify-between mb-1.5">
-                  <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wide">وضعیت آگهی</span>
-                  <span className="text-sm font-extrabold text-emerald-700">
-                    {saveOk ? 'ذخیره شد ✓' : 'در انتظار مسافر'}
-                  </span>
-                </div>
-                <div className="h-1.5 rounded-full bg-gray-100 overflow-hidden">
-                  <div className="h-full rounded-full transition-all duration-700"
-                    style={{ width: '35%', background: 'linear-gradient(90deg, #10b981, #059669)' }} />
-                </div>
-              </div>
+              {/* بازارگاه هوشمند — the order now moves through matcher states. Reflect them, so a
+                  buyer whose order was picked up by a traveler is not left staring at
+                  "در انتظار مسافر". The full counter-offer UI is P3; this is the state chip only. */}
+              {(() => {
+                const SMART: Record<string, { label: string; pct: string; cls: string }> = {
+                  open:              { label: 'در انتظار مسافر',                    pct: '35%', cls: 'text-emerald-700' },
+                  offered:           { label: 'به مسافرها پیشنهاد شد',              pct: '50%', cls: 'text-cyan-700'    },
+                  traveler_accepted: { label: 'مسافری پیشنهاد را پذیرفت — در انتظار تأیید شما', pct: '70%', cls: 'text-cyan-700' },
+                };
+                const st = SMART[myOrder?.status] || SMART.open;
+                return (
+                  <div className="mb-3">
+                    <div className="flex items-center justify-between gap-2 mb-1.5">
+                      <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wide shrink-0">وضعیت آگهی</span>
+                      <span className={`text-sm font-extrabold text-left ${st.cls}`}>
+                        {saveOk ? 'ذخیره شد ✓' : st.label}
+                      </span>
+                    </div>
+                    <div className="h-1.5 rounded-full bg-gray-100 overflow-hidden">
+                      <div className="h-full rounded-full transition-all duration-700"
+                        style={{ width: st.pct, background: 'linear-gradient(90deg, #10b981, #059669)' }} />
+                    </div>
+                  </div>
+                );
+              })()}
 
               {myOrder?.specialRequest && (
                 <div className="text-xs text-gray-500 bg-gray-50 border border-gray-100 rounded-xl px-3 py-2 mb-3 leading-relaxed">

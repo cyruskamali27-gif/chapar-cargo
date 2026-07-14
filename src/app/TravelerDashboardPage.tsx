@@ -88,7 +88,10 @@ export default function TravelerDashboardPage({ onHome, onNewTrip, onNavigate }:
   };
   const TODAY = new Date().toISOString().split('T')[0];
 
-  const [tab, setTab]             = useState<'trips'|'orders'|'myoffers'>('trips');
+  const [tab, setTab]             = useState<'trips'|'orders'|'myoffers'|'foryou'>('trips');
+  // بازارگاه هوشمند — offers the matcher pushed TO this traveler (not bids they made).
+  const [smartOffers, setSmartOffers] = useState<any[]>([]);
+  const [actingOffer, setActingOffer] = useState('');
   const [tripView, setTripView]   = useState<'mine'|'market'>('mine'); // sub-view of the trips tab
   const [marketTrips, setMarketTrips] = useState<Trip[]>([]);          // server-backed open trips (all travelers)
   const [myTrips, setMyTrips]     = useState<Trip[]>([]);
@@ -324,6 +327,53 @@ export default function TravelerDashboardPage({ onHome, onNewTrip, onNavigate }:
   }
 
   // ── Render ────────────────────────────────────────────────────────────────────
+
+  // ── بازارگاه هوشمند ────────────────────────────────────────────────────────
+  const MARKET_FA: Record<string,{flag:string;name:string}> = {
+    AE:{flag:'🇦🇪',name:'امارات'}, CA:{flag:'🇨🇦',name:'کانادا'}, US:{flag:'🇺🇸',name:'آمریکا'},
+    GB:{flag:'🇬🇧',name:'انگلیس'}, TR:{flag:'🇹🇷',name:'ترکیه'}, DE:{flag:'🇩🇪',name:'آلمان'}, FR:{flag:'🇫🇷',name:'فرانسه'},
+  };
+  const loadSmartOffers = useCallback(async () => {
+    if (!session?.userId) return;
+    try {
+      const r = await fetch(`/api/offers?travelerId=${encodeURIComponent(session.userId)}&status=sent`);
+      const d = await r.json();
+      setSmartOffers(d.ok ? (d.offers || []) : []);
+    } catch { setSmartOffers([]); }
+  }, [session?.userId]);
+  useEffect(() => { loadSmartOffers(); }, [loadSmartOffers]);
+
+  async function respondOffer(offerId: string, action: 'accept' | 'decline') {
+    if (!session?.userId || actingOffer) return;
+    setActingOffer(offerId);
+    try {
+      const r = await fetch(`/api/offers/${action}`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ offerId, travelerId: session.userId }),
+      });
+      const d = await r.json();
+      if (r.ok && d.ok) {
+        setToastOk(true);
+        setToast(action === 'accept' ? 'پذیرفتید ✓ — خریدار باید تأیید کند' : 'رد شد');
+      } else if (r.status === 409) {
+        // Lost the race. This is a normal outcome of a broadcast, not an error — say so plainly.
+        setToastOk(false);
+        setToast(d.message || 'این سفارش توسط مسافر دیگری پذیرفته شد');
+      } else {
+        setToastOk(false); setToast('انجام نشد — دوباره تلاش کنید');
+      }
+    } catch { setToastOk(false); setToast('ارتباط برقرار نشد'); }
+    setActingOffer('');
+    loadSmartOffers();
+  }
+
+  function expiryLabel(iso: string) {
+    const ms = Date.parse(iso) - Date.now();
+    if (!Number.isFinite(ms) || ms <= 0) return 'منقضی شد';
+    const h = Math.floor(ms / 3600000), m = Math.floor((ms % 3600000) / 60000);
+    return h >= 1 ? `${h} ساعت تا انقضا` : `${m} دقیقه تا انقضا`;
+  }
+
   return (
     <div className="min-h-screen bg-gray-50" dir={isRTL ? 'rtl' : 'ltr'}>
       {/* Header */}
@@ -365,12 +415,14 @@ export default function TravelerDashboardPage({ onHome, onNewTrip, onNavigate }:
           {t.tdashNewTrip}
         </button>
 
+
         {/* Tab bar */}
         <div className="flex gap-1.5 bg-gray-100 rounded-xl p-1.5 mb-5">
           {([
             { key:'trips',    label:t.tdashTabTrips,  badge:0,                  badgeCls:'' },
             { key:'orders',   label:t.tdashTabOrders, badge:openOrders.length,  badgeCls:'' },
             { key:'myoffers', label:t.tdashTabOffers, badge:pendingOfferCount,  badgeCls:'bg-amber-500' },
+            { key:'foryou',   label:'پیشنهاد برای شما', badge:smartOffers.length, badgeCls:'bg-emerald-600' },
           ] as const).map(tb => (
             <button key={tb.key} onClick={() => setTab(tb.key)}
               className={`flex-1 py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all
@@ -544,6 +596,97 @@ export default function TravelerDashboardPage({ onHome, onNewTrip, onNavigate }:
         )}
 
         {/* ─── Tab: Open Orders ─── */}
+        {/* ── بازارگاه هوشمند — offers the matcher pushed to this traveler ────────
+            The cross-country case is the point: the buyer wanted country X, nobody flies from X,
+            so we ask this traveler to bring it from THEIRS. Colors follow Rule 20 (gray-500 /
+            cyan-700 / emerald-700 on white — all ≥4.5:1). */}
+        {tab === 'foryou' && (
+          smartOffers.length === 0 ? (
+            <div className="text-center py-12 text-gray-500">
+              <div className="text-5xl mb-3">🎯</div>
+              <div className="text-base font-bold text-gray-700 mb-1">فعلاً پیشنهادی نیست</div>
+              <div className="text-sm">وقتی سفارشی با مسیر شما بخورد، همین‌جا نشان داده می‌شود.</div>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {smartOffers.map(o => {
+                const ord   = o.order || {};
+                const q     = ord.priceQuote;
+                const cross = o.kind === 'cross_country';
+                const want  = o.buyerCountry ? MARKET_FA[o.buyerCountry] : null;
+                const mine  = MARKET_FA[o.fromCountry] || { flag: '🌍', name: o.fromCountry };
+                const busy  = actingOffer === o.offerId;
+                return (
+                  <div key={o.offerId} className={`bg-white border rounded-2xl p-4 shadow-sm ${cross ? 'border-emerald-200' : 'border-gray-100'}`}>
+                    <div className="flex items-start gap-3 mb-3">
+                      {ord.image
+                        ? <img src={ord.image} alt="" className="w-14 h-14 rounded-xl object-cover border border-gray-100 flex-shrink-0" />
+                        : <div className="w-14 h-14 rounded-xl bg-gray-50 border border-gray-100 flex items-center justify-center text-xl flex-shrink-0">📦</div>}
+                      <div className="min-w-0 flex-1">
+                        <div className="text-sm font-extrabold text-gray-900 truncate">{ord.title || '—'}</div>
+                        <div className="text-[10px] text-gray-500 font-mono tracking-wide mt-0.5">{o.orderId}</div>
+                        <div className="text-xs text-gray-500 mt-1">
+                          وزن: {o.weightUnknown ? 'نامشخص' : `${o.estWeightKg} کیلوگرم`}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* The cross-country ask — the whole reason this feature exists. */}
+                    {cross && want && (
+                      <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 mb-3">
+                        <div className="text-xs font-bold text-emerald-800 mb-1">
+                          از کشور خودت بیاور؟ {mine.flag}
+                        </div>
+                        <div className="text-xs text-emerald-700 leading-relaxed">
+                          خریدار {want.flag} {want.name} را انتخاب کرده بود، ولی مسافری از آنجا نیست.
+                          اگر بپذیرید، قیمت {mine.name} برای خریدار محاسبه و به او پیشنهاد می‌شود.
+                        </div>
+                      </div>
+                    )}
+                    {!cross && (
+                      <div className="rounded-xl border border-gray-100 bg-gray-50 p-3 mb-3 text-xs text-gray-600">
+                        {o.buyerCountry
+                          ? `خریدار ${MARKET_FA[o.buyerCountry]?.name || o.buyerCountry} را می‌خواهد — همان کشور مبدأ شماست.`
+                          : 'خریدار کشور خاصی تعیین نکرده — مسیر شما مناسب است.'}
+                      </div>
+                    )}
+
+                    {/* The buyer's accepted quote — an ESTIMATE, never the final price. */}
+                    {q && (
+                      <div className="flex items-center gap-2 rounded-xl border border-gray-100 bg-white px-3 py-2 mb-2">
+                        <span className="text-base leading-none">{MARKET_FA[q.country]?.flag || '🌍'}</span>
+                        <div className="min-w-0 flex-1">
+                          <div className="text-xs font-bold text-gray-900">
+                            ${q.priceUSD}
+                            {q.shop && <span className="font-normal text-gray-500"> · {q.shop}</span>}
+                          </div>
+                          <div className="text-[10px] text-gray-500">قیمتی که خریدار پذیرفته — تخمینی، بدون مالیات و حمل</div>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="text-[11px] text-gray-500 mb-3">⏳ {expiryLabel(o.expiresAt)}</div>
+
+                    <div className="flex gap-2">
+                      <button disabled={busy} onClick={() => respondOffer(o.offerId, 'accept')}
+                        className="flex-1 py-2.5 rounded-xl bg-emerald-700 text-white text-sm font-bold disabled:opacity-50">
+                        {busy ? 'در حال ثبت…' : 'می‌آورم ✓'}
+                      </button>
+                      <button disabled={busy} onClick={() => respondOffer(o.offerId, 'decline')}
+                        className="px-4 py-2.5 rounded-xl border border-gray-200 text-gray-600 text-sm font-bold disabled:opacity-50">
+                        نه
+                      </button>
+                    </div>
+                    <div className="mt-2 text-[10px] text-gray-500 leading-relaxed">
+                      قیمت نهایی را خودتان پیشنهاد می‌دهید — این عدد فقط مبنای خریدار است.
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )
+        )}
+
         {tab === 'orders' && (
           activeTrips.length === 0 ? (
             <div className="text-center py-12 text-gray-500">
