@@ -227,7 +227,7 @@ export default function ChaparConcierge({ language = "fa", userName = "", userId
                   </div>
                   <a href={m.product.link || `https://www.google.com/search?tbm=shop&q=${encodeURIComponent(m.product.searchQuery || m.product.title || "")}`} target="_blank" rel="noopener noreferrer" className="mt-2 flex items-center justify-center gap-1 rounded-xl border border-white/10 bg-white/5 py-2 text-sm font-medium text-cyan-300">مشاهدهٔ محصول <ExternalLink size={14} /></a>
                   <div className="mt-2 flex gap-2">
-                    <button onClick={() => confirmProduct(m.product)} className="flex flex-1 items-center justify-center gap-1 rounded-xl py-2 text-sm font-bold text-white" style={{ background: "linear-gradient(135deg,#10b981,#22d3ee)" }}><Check size={15} /> بله، همین است</button>
+                    <button onClick={() => confirmProduct(m.product)} className="flex flex-1 items-center justify-center gap-1 rounded-xl py-2 text-sm font-bold text-white" style={{ background: "linear-gradient(135deg,#047857,#0e7490)" }}><Check size={15} /> بله، همین است</button>
                     <button onClick={more} className="flex items-center gap-1 rounded-xl border border-white/15 px-3 py-2 text-sm text-white/70"><RotateCw size={14} /> بیشتر</button>
                   </div>
                 </div>
@@ -259,7 +259,7 @@ export default function ChaparConcierge({ language = "fa", userName = "", userId
             <input ref={fileRef} type="file" accept="image/*" hidden onChange={onImg} />
             <button onClick={voice} className={`grid h-10 w-10 place-items-center rounded-full ${listening ? "bg-rose-500 text-white" : "bg-white/5 text-cyan-300"}`}><Mic size={19} /></button>
             <input value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && send()} placeholder="بنویسید یا حرف بزنید…" className="flex-1 rounded-full border border-white/15 bg-white/5 px-4 py-2.5 text-sm text-white outline-none placeholder:text-white/50" />
-            <button onClick={() => send()} disabled={loading} className="grid h-10 w-10 place-items-center rounded-full text-white disabled:opacity-40" style={{ background: "linear-gradient(135deg,#22d3ee,#6366f1)" }}><Send size={18} /></button>
+            <button onClick={() => send()} disabled={loading} className="grid h-10 w-10 place-items-center rounded-full text-white disabled:opacity-40" style={{ background: "linear-gradient(135deg,#0e7490,#4f46e5)" }}><Send size={18} /></button>
           </div>
         </div>
       </div>
@@ -474,7 +474,7 @@ export default function ChaparConcierge({ language = "fa", userName = "", userId
                     برای انتشار در بازارگاه، وارد شوید
                   </button>
                 : <button disabled={publishing || !orderProduct?.title || (orderProduct.title.trim().length <= 2) || (!orderProduct?.priceUSD && !quote?.priceUSD)} onClick={doPublish}
-                    className="w-full rounded-2xl bg-gradient-to-l from-cyan-400 to-blue-500 py-3 text-sm font-bold text-white disabled:opacity-50">
+                    className="w-full rounded-2xl bg-gradient-to-l from-cyan-700 to-indigo-600 py-3 text-sm font-bold text-white disabled:opacity-50">
                     {publishing ? "در حال انتشار…" : "تأیید و انتشار در بازارگاه"}
                   </button>}
             </div>

@@ -747,7 +747,7 @@ function MarketplacePage({ onBack, onHome, t, onBook, myOrderId, onClearMyOrder 
         {/* Tab switcher */}
         <div className="flex gap-2 mb-5">
           <button onClick={() => setActiveTab('travelers')}
-            className={`flex-1 py-2.5 rounded-xl text-sm font-bold border-2 transition-colors ${activeTab==='travelers' ? 'bg-cyan-500 border-cyan-500 text-white' : 'bg-white border-gray-200 text-gray-500 hover:border-cyan-200'}`}>
+            className={`flex-1 py-2.5 rounded-xl text-sm font-bold border-2 transition-colors ${activeTab==='travelers' ? 'bg-cyan-700 border-cyan-700 text-white' : 'bg-white border-gray-200 text-gray-500 hover:border-cyan-200'}`}>
             ✈️ سفرهای مسافران
           </button>
           <button onClick={() => setActiveTab('buyers')}
