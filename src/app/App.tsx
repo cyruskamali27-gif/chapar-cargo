@@ -2494,6 +2494,14 @@ export default function App() {
             <div className="hidden lg:flex items-center gap-0.5">
               {[
                 { label: t.marketplace, page: 'marketplace' as Page },
+                // One account = all roles (01_PRODUCT_BRAIN). Every logged-in user sees every
+                // area — buyer, sender AND traveler. These were never role-BLOCKED; they simply
+                // had no nav entry, which hid the traveler dashboard just as effectively.
+                ...(session ? [
+                  { label: 'سفارش‌های من',        page: 'my-orders' as Page },
+                  { label: 'سفرها و پیشنهادها',   page: 'traveler-dashboard' as Page },
+                  { label: 'کیف پول',             page: 'wallet' as Page },
+                ] : []),
                 { label: t.trustSafety, page: 'trust-safety' as Page },
                 { label: t.investors, page: 'investors' as Page },
                 { label: t.faq, page: 'faq' as Page },
@@ -2593,6 +2601,13 @@ export default function App() {
                 <div className="space-y-1 mb-4">
                   {[
                     { label: t.marketplace, page: 'marketplace' as Page },
+                    // Same principle as the desktop nav — every area, every logged-in user.
+                    ...(session ? [
+                      { label: 'سفارش‌های من',      page: 'my-orders' as Page },
+                      { label: 'سفرها و پیشنهادها', page: 'traveler-dashboard' as Page },
+                      { label: 'کیف پول',           page: 'wallet' as Page },
+                      { label: 'اعلان‌ها',          page: 'notifications' as Page },
+                    ] : []),
                     { label: t.trustSafety, page: 'trust-safety' as Page },
                     { label: t.investors, page: 'investors' as Page },
                     { label: t.faq, page: 'faq' as Page },

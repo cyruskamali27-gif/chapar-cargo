@@ -448,10 +448,20 @@ export default function TravelerDashboardPage({ onHome, onNewTrip, onNavigate }:
           </div>
           {tripView === 'mine' ? (
           sortedTrips.length === 0 ? (
-            <div className="text-center py-12 text-gray-500">
+            /* One account = all roles: a user with no trips is not "not a traveler" — they are a
+               traveler who hasn't registered a trip yet. Empty state with the CTA that fills it,
+               never a block. */
+            <div className="text-center py-12">
               <div className="text-5xl mb-3">✈️</div>
               <div className="text-base font-bold text-gray-700 mb-1">{t.tdashNoTrips}</div>
-              <div className="text-sm">{t.tdashNoTripsDesc}</div>
+              <div className="text-sm text-gray-500 mb-1">{t.tdashNoTripsDesc}</div>
+              <div className="text-xs text-gray-500 mb-5 max-w-xs mx-auto leading-relaxed">
+                سفر خود را ثبت کنید تا سفارش‌های هم‌مسیر برای شما پیشنهاد شود.
+              </div>
+              <button onClick={onNewTrip}
+                className="px-6 py-2.5 rounded-xl bg-cyan-700 text-white text-sm font-bold">
+                ثبت اولین سفر
+              </button>
             </div>
           ) : (
             <div className="space-y-3">
