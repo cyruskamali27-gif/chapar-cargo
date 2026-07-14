@@ -229,7 +229,7 @@ export default function MyOrdersPage({ onHome, onOpenReceipt }: Props) {
         {/* Search + date */}
         <div className="ds-card p-4 space-y-3">
           <div className="relative">
-            <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
             <input type="search" className="ds-input pr-9" placeholder={t.mordSearch}
               value={search} onChange={e => setSearch(e.target.value)} />
           </div>

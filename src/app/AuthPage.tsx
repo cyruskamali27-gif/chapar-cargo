@@ -694,7 +694,7 @@ export default function AuthPage({ onHome, onSuccess, defaultTab = 'login' }: Pr
               )}
 
               <button onClick={() => { setTab('login'); }}
-                className="w-full text-xs text-gray-400 hover:text-gray-600 transition-colors underline underline-offset-2 mt-1">
+                className="w-full text-xs text-gray-500 hover:text-gray-600 transition-colors underline underline-offset-2 mt-1">
                 {t.forgotBackToLogin}
               </button>
             </div>

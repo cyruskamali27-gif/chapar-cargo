@@ -126,7 +126,7 @@ function ModeSelector({ t, isRTL, onSelectBuyForMe, onSelectCommercial }: {
     },
     {
       key: 'commercial',
-      icon: <Building2 className="w-7 h-7 text-gray-400" />,
+      icon: <Building2 className="w-7 h-7 text-gray-500" />,
       title: t.bfm2Commercial,
       desc: t.bfm2CommercialDesc,
       gradient: 'from-gray-50 to-slate-50',
@@ -170,7 +170,7 @@ function ModeSelector({ t, isRTL, onSelectBuyForMe, onSelectCommercial }: {
             <p className="text-sm text-gray-500 mt-0.5 leading-relaxed">{m.desc}</p>
           </div>
           {!m.disabled && (
-            <ChevronDown className={`w-5 h-5 text-gray-400 flex-shrink-0 mt-1 ${isRTL ? 'rotate-90' : '-rotate-90'}`} />
+            <ChevronDown className={`w-5 h-5 text-gray-500 flex-shrink-0 mt-1 ${isRTL ? 'rotate-90' : '-rotate-90'}`} />
           )}
         </motion.button>
       ))}

@@ -67,7 +67,7 @@ function FileUploadStub({ label, accept, icon: Icon }: { label: string; accept: 
         </div>
       ) : (
         <>
-          <Icon className="w-6 h-6 text-gray-400" />
+          <Icon className="w-6 h-6 text-gray-500" />
           <span className="text-xs text-gray-500 text-center">{label}</span>
         </>
       )}
@@ -101,7 +101,7 @@ function CameraCaptureTrigger({ label, mode, icon: Icon, withLiveness, nationali
           </div>
         ) : (
           <>
-            <Icon className="w-6 h-6 text-gray-400" />
+            <Icon className="w-6 h-6 text-gray-500" />
             <span className="text-xs text-gray-500 text-center">{label}</span>
           </>
         )}
@@ -168,7 +168,7 @@ export function IdentityVerification({ enabled, onToggle, status }: IdentityVeri
       >
         <div className="flex items-center gap-3">
           <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${enabled ? 'bg-blue-50 border border-blue-200' : 'bg-gray-100'}`}>
-            <BadgeCheck className={`w-4 h-4 ${enabled ? 'text-blue-600' : 'text-gray-400'}`} />
+            <BadgeCheck className={`w-4 h-4 ${enabled ? 'text-blue-600' : 'text-gray-500'}`} />
           </div>
           <div className="text-start">
             <div className="text-sm font-semibold text-gray-900">{t.verIdentityTitle}</div>
@@ -206,7 +206,7 @@ export function IdentityVerification({ enabled, onToggle, status }: IdentityVeri
 
           <div className="flex items-center justify-between bg-white border border-gray-200 rounded-xl px-4 py-3">
             <div className="flex items-center gap-2">
-              <Phone className="w-4 h-4 text-gray-400" />
+              <Phone className="w-4 h-4 text-gray-500" />
               <span className="text-sm text-gray-700">{t.verPhoneConfirm}</span>
             </div>
             <StatusBadge status="VERIFIED" />
@@ -214,7 +214,7 @@ export function IdentityVerification({ enabled, onToggle, status }: IdentityVeri
 
           <div className="flex items-center justify-between bg-white border border-gray-200 rounded-xl px-4 py-3">
             <div className="flex items-center gap-2">
-              <Cpu className="w-4 h-4 text-gray-400" />
+              <Cpu className="w-4 h-4 text-gray-500" />
               <span className="text-sm text-gray-700">{t.verAiCheck}</span>
             </div>
             <StatusBadge status={status} />
@@ -223,7 +223,7 @@ export function IdentityVerification({ enabled, onToggle, status }: IdentityVeri
           {/* Live KYC status badge */}
           <div className="flex items-center justify-between bg-white border border-gray-200 rounded-xl px-4 py-3">
             <div className="flex items-center gap-2">
-              <BadgeCheck className="w-4 h-4 text-gray-400" />
+              <BadgeCheck className="w-4 h-4 text-gray-500" />
               <span className="text-sm text-gray-700">{t.kycPassportRow}</span>
             </div>
             <KycStatusBadge />
@@ -257,7 +257,7 @@ export function CargoVerification({ enabled, onToggle, status }: CargoVerificati
       >
         <div className="flex items-center gap-3">
           <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${enabled ? 'bg-purple-50 border border-purple-200' : 'bg-gray-100'}`}>
-            <Package className={`w-4 h-4 ${enabled ? 'text-purple-600' : 'text-gray-400'}`} />
+            <Package className={`w-4 h-4 ${enabled ? 'text-purple-600' : 'text-gray-500'}`} />
           </div>
           <div className="text-start">
             <div className="text-sm font-semibold text-gray-900">{t.verCargoTitle}</div>
@@ -298,7 +298,7 @@ export function CargoVerification({ enabled, onToggle, status }: CargoVerificati
 
           <div className="flex items-center justify-between bg-white border border-gray-200 rounded-xl px-4 py-3">
             <div className="flex items-center gap-2">
-              <Cpu className="w-4 h-4 text-gray-400" />
+              <Cpu className="w-4 h-4 text-gray-500" />
               <span className="text-sm text-gray-700">{t.verAiRiskCheck}</span>
             </div>
             <StatusBadge status={status} />

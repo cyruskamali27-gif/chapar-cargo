@@ -982,7 +982,7 @@ export default function SendPackagePage({ onHome, cargoType = 'personal', onNavi
                       {t.scanHandoffBtn}
                     </button>
                   ) : qrStatus === 'creating' ? (
-                    <div className="w-full py-3 flex items-center justify-center gap-2 border border-gray-200 rounded-xl text-gray-400 text-sm">
+                    <div className="w-full py-3 flex items-center justify-center gap-2 border border-gray-200 rounded-xl text-gray-500 text-sm">
                       <div className="w-4 h-4 border-2 border-cyan-500 border-t-transparent rounded-full animate-spin" />
                       {t.scanHandoffBtn}
                     </div>

@@ -112,7 +112,7 @@ function EscrowTimeline() {
               step.status === 'active'    ? 'bg-blue-500 animate-pulse' :
               'bg-gray-100 border border-gray-200'
             }`}>
-              <step.icon className={`w-6 h-6 ${step.status === 'pending' ? 'text-gray-400' : 'text-white'}`} />
+              <step.icon className={`w-6 h-6 ${step.status === 'pending' ? 'text-gray-500' : 'text-white'}`} />
             </div>
 
             {/* Content */}
@@ -226,7 +226,7 @@ function LanguageSelector({ lang, setLang }: { lang: LangCode; setLang: (l: Lang
       >
         <Globe className="w-4 h-4 text-cyan-400" />
         <span className="font-medium">{meta?.nativeName}</span>
-        <ChevronDown className={`w-3 h-3 text-gray-400 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
+        <ChevronDown className={`w-3 h-3 text-gray-500 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
       </button>
       <AnimatePresence>
         {open && (
@@ -1917,7 +1917,7 @@ function HomePage({ t, setPage, isRTL }: { t: typeof translations['en']; setPage
                   className="w-full px-6 py-5 flex items-center justify-between text-start hover:bg-gray-50 transition-colors">
                   <span className={`text-base font-semibold pe-4 ${openFaq === index ? 'text-cyan-700' : 'text-gray-900'}`}>{faq.q}</span>
                   <motion.div animate={{ rotate: openFaq === index ? 180 : 0 }} transition={{ duration: 0.3 }}>
-                    <ChevronDown className={`w-5 h-5 flex-shrink-0 ${openFaq === index ? 'text-cyan-600' : 'text-gray-400'}`} />
+                    <ChevronDown className={`w-5 h-5 flex-shrink-0 ${openFaq === index ? 'text-cyan-600' : 'text-gray-500'}`} />
                   </motion.div>
                 </motion.button>
                 <motion.div initial={false} animate={{ height: openFaq === index ? 'auto' : 0, opacity: openFaq === index ? 1 : 0 }}
