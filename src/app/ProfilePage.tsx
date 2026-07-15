@@ -28,10 +28,13 @@ function pwStrength(pw: string): { score: number; color: string; label: string }
   return { score: s, label: labels[s] || '', color: colors[s] || 'bg-gray-200' };
 }
 
+type PreferredChannel = 'email' | 'sms' | 'whatsapp' | 'telegram';
+
 interface BackendUser {
   id: string; email: string | null; phone: string | null;
   firstName: string; lastName: string;
   emailVerified: boolean; telegramLinked: boolean;
+  preferredChannel?: PreferredChannel;
   createdAt: string;
 }
 
@@ -50,6 +53,11 @@ export default function ProfilePage({ onHome, onOpenWallet, onOpenOrders }: Prop
   const [eLast,  setELast]    = useState('');
   const [saving, setSaving]   = useState(false);
   const [infoErr, setInfoErr] = useState<Record<string, string>>({});
+
+  // Notification channel (P4) — one preference covers both buyer & traveler roles.
+  const [ePref, setEPref]         = useState<PreferredChannel>('email');
+  const [prefUnset, setPrefUnset] = useState(false);   // true until the user has ever chosen
+  const [prefSaving, setPrefSaving] = useState(false);
 
   // Change password
   const [pOld,     setPOld]     = useState('');
@@ -75,6 +83,8 @@ export default function ProfilePage({ onHome, onOpenWallet, onOpenOrders }: Prop
         setUser(data.user);
         setEFirst(data.user.firstName || '');
         setELast(data.user.lastName   || '');
+        setEPref(data.user.preferredChannel || 'email');
+        setPrefUnset(!data.user.preferredChannel);   // never chosen → prompt at first setup
       }
     } catch {}
 
@@ -121,11 +131,12 @@ export default function ProfilePage({ onHome, onOpenWallet, onOpenOrders }: Prop
       const res   = await fetch(`${AUTH_BASE}/profile`, {
         method:  'PATCH',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body:    JSON.stringify({ firstName: eFirst.trim(), lastName: eLast.trim() }),
+        body:    JSON.stringify({ firstName: eFirst.trim(), lastName: eLast.trim(), preferredChannel: ePref }),
       });
       const data = await res.json() as { ok: boolean; user?: BackendUser };
       if (data.ok && data.user) {
         setUser(data.user);
+        setPrefUnset(false);
         setSession({ ...session, firstName: data.user.firstName, lastName: data.user.lastName });
         showToast(t.profInfoSaved);
       } else {
@@ -135,6 +146,28 @@ export default function ProfilePage({ onHome, onOpenWallet, onOpenOrders }: Prop
       setInfoErr({ global: t.authErrNetwork });
     }
     setSaving(false);
+  }
+
+  // Persist the notification channel on its own (partial PATCH) so it works even before the user
+  // has filled in their name — this is what satisfies "asked at first profile setup if unset".
+  async function savePref(ch: PreferredChannel) {
+    setEPref(ch);
+    setPrefSaving(true);
+    try {
+      const token = localStorage.getItem('cp_token');
+      const res   = await fetch(`${AUTH_BASE}/profile`, {
+        method:  'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body:    JSON.stringify({ preferredChannel: ch }),
+      });
+      const data = await res.json() as { ok: boolean; user?: BackendUser };
+      if (data.ok && data.user) {
+        setUser(data.user);
+        setPrefUnset(false);
+        showToast(t.profChannelSaved ?? 'کانال اطلاع‌رسانی ذخیره شد');
+      }
+    } catch {}
+    setPrefSaving(false);
   }
 
   async function changePassword() {
@@ -296,6 +329,37 @@ export default function ProfilePage({ onHome, onOpenWallet, onOpenOrders }: Prop
                   className="ds-btn-primary w-full py-3 disabled:opacity-60">
                   {saving ? t.profSaving : t.profSaveChanges}
                 </button>
+
+                {/* Notification channel (P4) — auto-saves on change; prompted at first setup */}
+                <div className="pt-4 mt-2 border-t border-gray-100 space-y-2">
+                  <label className="ds-label">{t.profNotifyChannel ?? 'کانال اطلاع‌رسانی'}</label>
+                  {prefUnset && (
+                    <div className="text-xs font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                      {t.profNotifyPrompt ?? 'کانال دریافت پیشنهادها و به‌روزرسانی سفارش‌ها را انتخاب کنید.'}
+                    </div>
+                  )}
+                  <select
+                    value={ePref}
+                    disabled={prefSaving}
+                    onChange={e => savePref(e.target.value as PreferredChannel)}
+                    className={`ds-input disabled:opacity-60 ${prefUnset ? 'border-amber-400 ring-1 ring-amber-300' : ''}`}
+                  >
+                    <option value="email">{t.channelEmail}</option>
+                    <option value="sms">{t.channelSms}</option>
+                    <option value="whatsapp">{t.channelWhatsapp}</option>
+                    <option value="telegram">{t.channelTelegram}</option>
+                  </select>
+                  {ePref === 'telegram' && !user?.telegramLinked && (
+                    <div className="text-[11px] text-gray-500">
+                      {t.profNotifyTelegramHint ?? 'تلگرام شما هنوز متصل نیست؛ تا اتصال، پیام‌ها به ایمیل ارسال می‌شود.'}
+                    </div>
+                  )}
+                  {(ePref === 'sms' || ePref === 'whatsapp') && !user?.phone && (
+                    <div className="text-[11px] text-gray-500">
+                      {t.profNotifyPhoneHint ?? 'شماره تلفنی ثبت نشده؛ تا ثبت شماره، پیام‌ها به ایمیل ارسال می‌شود.'}
+                    </div>
+                  )}
+                </div>
               </div>
             )}
 
