@@ -1,7 +1,23 @@
 
-fetch('/version.json').then(r => r.json()).then((v: {version:string;builtAt:string}) => {
-  console.log('%cChapar ' + v.version + ' @ ' + v.builtAt, 'background:#111;color:#22d3ee;padding:2px 6px;border-radius:3px');
-}).catch(() => {});
+// Build banner. Reports the bundle version.json CLAIMS is live, and cross-checks it against
+// the script tag actually executing — if a deploy copies assets but forgets version.json (or
+// vice-versa) the mismatch is printed loudly instead of silently misleading whoever is
+// debugging. `window.__chaparVersion` is there so it can be read from a device console.
+fetch('/version.json', { cache: 'no-store' })
+  .then(r => r.json())
+  .then((v: { version: string; builtAt: string; bundle?: string; css?: string }) => {
+    const running = (document.querySelector('script[type=module][src*="/assets/index-"]') as HTMLScriptElement | null)
+      ?.src.split('/').pop() ?? null;
+    (window as unknown as Record<string, unknown>).__chaparVersion = { ...v, running };
+    console.log(
+      '%cChapar ' + v.version + ' @ ' + v.builtAt + ' · ' + (running ?? v.bundle ?? '?'),
+      'background:#111;color:#22d3ee;padding:2px 6px;border-radius:3px',
+    );
+    if (v.bundle && running && v.bundle !== running) {
+      console.warn('[Chapar] version.json is STALE — it claims ' + v.bundle + ' but ' + running + ' is running.');
+    }
+  })
+  .catch(() => {});
 
 import { createRoot } from "react-dom/client";
 import App from "./app/App.tsx";
@@ -20,6 +36,7 @@ import OrderPage from "./pages/OrderPage.tsx";
 import PaymentPage from "./pages/PaymentPage.tsx";
 import ConfirmPage from "./pages/ConfirmPage.tsx";
 import { SessionProvider } from "./lib/SessionContext.tsx";
+import AppErrorBoundary from "./app/AppErrorBoundary.tsx";
 import { LangProvider } from "./lib/LangContext.tsx";
 
 const path = window.location.pathname;
@@ -61,8 +78,12 @@ if (path.startsWith('/google-earth-preview')) {
   element = <App />;
 }
 
+// AppErrorBoundary is OUTERMOST on purpose: a throw inside LangProvider/SessionProvider
+// (or anything they render) must still produce a readable screen, never an empty #root.
 createRoot(document.getElementById("root")!).render(
-  <LangProvider>
-    <SessionProvider>{element}</SessionProvider>
-  </LangProvider>
+  <AppErrorBoundary>
+    <LangProvider>
+      <SessionProvider>{element}</SessionProvider>
+    </LangProvider>
+  </AppErrorBoundary>
 );

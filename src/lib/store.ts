@@ -61,6 +61,14 @@ export const setSession  = (s: Session): void => {
 };
 export const clearSession = (): void => {
   Store.del('session');
+  // auth.html's setSess() writes the session under BOTH 'cp_session' and the legacy
+  // 'chapar_session', and its logged-in check reads `cp_session || chapar_session`.
+  // Clearing only the first left an orphaned 'chapar_session' behind — so auth.html still
+  // believed the user was signed in, bounced them back into the SPA, which found no session
+  // and bounced them to auth.html again. That is an INFINITE full-page redirect loop: it
+  // reloaded the 1.65 MB bundle ~40 times in 15s and killed the tab's content process on
+  // iPad, which the user saw as the screen flashing to blank. Clear both, always.
+  try { localStorage.removeItem('chapar_session'); } catch { /* storage may be unavailable */ }
   window.dispatchEvent(new Event('cp:session'));
 };
 

@@ -276,11 +276,14 @@ export default function ChaparConcierge({ language = "fa", userName = "", userId
 .cc-orbit .cc-ring:nth-child(3) i{background:#6366f1;box-shadow:0 0 8px -1px #6366f1}
 .cc-orbit .cc-ring:nth-child(4) i{background:#3b82f6;box-shadow:0 0 8px -1px #3b82f6}`}</style>
 
-      {/* video hero */}
-      <div className="relative h-[30vh] max-h-[320px] w-full overflow-hidden rounded-3xl mb-4">
-        <video src="https://chapar-cargo-scans.tor1.digitaloceanspaces.com/doc_2026-06-19_21-42-45.mp4" autoPlay loop muted playsInline preload="metadata" onError={(e) => (e.currentTarget.style.display = 'none')} className="absolute inset-0 h-full w-full object-cover" />
-      </div>
-
+      {/* The "video hero" that used to sit here was a 3.67 MB clip on a Spaces bucket that
+          serves NO Access-Control-Allow-Origin — so it was blocked by CORS in every browser,
+          on every load, and onError immediately hid it. It never once rendered.
+          What it did do was pull ~3.7 MB (repeatedly, because of autoPlay+loop) on the first
+          screen after the Telegram login. On a memory-capped iPad tab that is enough to get
+          the WebKit content process killed — which shows as the whole screen flashing to
+          blank, with no JS error and no chance for the error boundary to run.
+          Removed rather than fixed: restore it only with a same-origin asset. */}
 
       {/* ── SECTION 1 — AI CARD (always visible) ── */}
       <div className="overflow-hidden rounded-[28px]" style={CARD_BG}>

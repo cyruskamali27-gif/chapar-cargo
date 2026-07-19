@@ -2718,6 +2718,24 @@ export default function App() {
           so no protected content flashes before the redirect. */}
       <AnimatePresence mode="wait">
         <motion.div key={renderPage ?? 'auth-redirect'} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.25 }}>
+          {/* mustAuth used to render literally nothing here. On a fast desktop the redirect
+              wins the race and nobody notices; on a phone — or inside Telegram's WebView,
+              where the top-level navigation can lag — the user sits on an EMPTY page and
+              reports it as a crash. Show an explicit transitional state instead, so the
+              worst case is an honest "redirecting" screen with a way out, never a void. */}
+          {renderPage === null && (
+            <div style={{ minHeight: '60vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '1rem', color: '#fff', textAlign: 'center', padding: '2rem' }}>
+              <div style={{ width: 34, height: 34, borderRadius: '50%', border: '3px solid rgba(255,255,255,.2)', borderTopColor: '#3b82f6', animation: 'spin 1s linear infinite' }} />
+              <p style={{ margin: 0, opacity: .85 }}>در حال انتقال به صفحهٔ ورود…</p>
+              <button
+                onClick={() => { goToAuth(authDeeplink(currentPage, currentPage === 'buy-for-me' ? (initialBuyMode ?? 'buyforme') : null)); }}
+                style={{ padding: '.7rem 1.6rem', borderRadius: 10, border: '1px solid rgba(255,255,255,.25)', background: 'transparent', color: '#fff', cursor: 'pointer', fontFamily: 'inherit' }}
+              >
+                ادامه به ورود
+              </button>
+              <style>{'@keyframes spin{to{transform:rotate(360deg)}}'}</style>
+            </div>
+          )}
           {renderPage === 'home' && <HomePage t={t} setPage={setCurrentPage} isRTL={isRTL} />}
           {renderPage === 'buy-for-me' && <BuyForMePage onBack={() => window.history.back()} onHome={() => { window.location.href = 'https://chaparcargo.com/'; }} t={t} onNavigate={(p) => { setCurrentPage(p as Page); }} onNeedAuth={() => { goToAuth(authDeeplink('buy-for-me', initialBuyMode ?? 'buyforme')); }} initialMode={initialBuyMode ?? undefined} onPublished={(id) => { setMyOrderId(id); setCurrentPage('marketplace'); }} />}
           {renderPage === 'send-package' && <SendPackagePage onBack={() => window.history.back()} onHome={() => { window.location.href = 'https://chaparcargo.com/'; }} t={t} onNavigate={(p) => { setCurrentPage(p as Page); }} onVerifyCargo={(id) => { setScanListingId(id); setCurrentPage('cargo-scan'); }} />}
