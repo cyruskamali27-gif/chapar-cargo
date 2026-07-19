@@ -10,6 +10,24 @@ const LANGS = {
   ar: { name: "Arabic", tts: "ar-SA", greet: "أهلاً بك. ماذا أشتري لك؟" },
   tr: { name: "Turkish", tts: "tr-TR", greet: "Hoş geldiniz. Sizin için ne alayım?" },
   fr: { name: "French", tts: "fr-FR", greet: "Bienvenue. Que dois-je acheter pour vous ?" },
+  // zh was missing while the rest of the app has offered Chinese all along (i18n.ts, LangContext).
+  // The `LANGS[language] ? language : "fa"` guard silently handed Chinese users a PERSIAN
+  // concierge — Persian greeting, and a fa-IR microphone, which is half of the reported
+  // "mic error on Chinese".
+  zh: { name: "Chinese", tts: "zh-CN", greet: "欢迎。需要我为您买什么？" },
+};
+
+// SpeechRecognition reports a precise error code; the old handler threw all of them away behind
+// one "خطای میکروفون". Each code means something different and most are actionable, so they are
+// surfaced individually. An empty string means "not worth showing the user".
+const SR_ERR = {
+  "language-not-supported": "تشخیص گفتار برای این زبان پشتیبانی نمی‌شود — می‌توانید تایپ کنید",
+  "no-speech": "صدایی شنیده نشد — دوباره دکمه را بزنید",
+  "not-allowed": "اجازهٔ میکروفون داده نشده — از تنظیمات مرورگر اجازه دهید",
+  "service-not-allowed": "سرویس تشخیص گفتار در این مرورگر مسدود است",
+  "audio-capture": "میکروفونی پیدا نشد",
+  "network": "تشخیص گفتار به اینترنت نیاز دارد — اتصال برقرار نیست",
+  "aborted": "",   // the user (or conversation mode) stopped it deliberately — not an error
 };
 
 // Spoken to assistive tech only — the orbit itself is aria-hidden decoration.
@@ -55,6 +73,12 @@ export default function ChaparConcierge({ language = "fa", userName = "", userId
   const [searchState, setSearchState] = useState("ok");
   const [lastSearchQuery, setLastSearchQuery] = useState("");
   const [voiceErr, setVoiceErr] = useState("");
+  // Conversation mode: one permission grant, then the mic reopens after each assistant reply.
+  const [convo, setConvo] = useState(false);
+  const convoRef = useRef(false);          // intent, readable from recognition callbacks
+  const recRef = useRef(null);             // the live SpeechRecognition instance, if any
+  const listeningRef = useRef(false);      // mirrors `listening` for the same reason
+  const awaitingReplyRef = useRef(false);  // "a reply is in flight; reopen the mic once it lands"
   // Brief "a reply landed" beat, fired by the reply itself rather than by TTS. Persian never
   // speaks (P1), so this is the only movement a fa user gets — without it the orbit is frozen
   // for them and the feature looks absent, which is precisely what was reported.
@@ -77,6 +101,7 @@ export default function ChaparConcierge({ language = "fa", userName = "", userId
   const [ttsNote, setTtsNote] = useState(false);
   const pendingSpeakRef = useRef(null);   // line awaiting the async voice list
   const ttsPrimedRef = useRef(false);     // iOS gesture unlock, see primeTTS()
+  const audioRef = useRef(null);          // the <audio> playing server TTS, if any
   const [priority, setPriority] = useState(null);   // "fast" | "any"
   // Set ONLY by the honest price comparison (pickCountry). It has no default: on the
   // سریع / فرقی‌نمی‌کند paths the buyer never names a country — that is the whole meaning of
@@ -146,7 +171,45 @@ export default function ChaparConcierge({ language = "fa", userName = "", userId
   // as gibberish, which is worse than saying nothing — but we say so once, rather than hiding
   // it the way the old guard did. A real fa voice (some Android/Windows installs) is used
   // normally when present.
-  function speak(text) {
+  // ── Speaking ────────────────────────────────────────────────────────────────
+  // Server TTS first (/api/ai/tts: Gemini primary, Piper fallback, same-origin audio), browser
+  // speechSynthesis second. This is what finally gives Persian a real voice — no browser ships
+  // an fa-IR voice, so before this fa was silent by design.
+  async function speak(text) {
+    if (muted || !text) return;
+    stopAudio();
+    try {
+      const r = await fetch("/api/ai/tts", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text, lang }),
+      });
+      // A non-2xx here is the server telling us to use the browser (it answers 503 with
+      // fallback:"browser" when no engine could produce audio) — not a reason to go silent.
+      if (r.ok) {
+        const url = URL.createObjectURL(await r.blob());
+        const a = new Audio(url);
+        audioRef.current = a;
+        const done = () => { setSpeaking(false); URL.revokeObjectURL(url); if (audioRef.current === a) audioRef.current = null; };
+        a.onplay = () => setSpeaking(true);
+        a.onended = done;
+        a.onerror = () => { done(); speakBrowser(text); };
+        await a.play();        // rejects if the browser blocks playback (iOS without a gesture)
+        setTtsNote(false);     // a real voice exists after all
+        return;
+      }
+    } catch { /* network down, or playback refused — fall through to the browser voice */ }
+    speakBrowser(text);
+  }
+
+  function stopAudio() {
+    const a = audioRef.current;
+    if (!a) return;
+    try { a.pause(); a.src = ""; } catch { /* already torn down */ }
+    audioRef.current = null;
+    setSpeaking(false);
+  }
+
+  function speakBrowser(text) {
     if (muted || !text || !window.speechSynthesis) return;
     const voices = window.speechSynthesis.getVoices();
     // Empty list = "not populated yet", NOT "no voice". Park the line for voiceschanged.
@@ -171,13 +234,23 @@ export default function ChaparConcierge({ language = "fa", userName = "", userId
   // iOS unlocks speechSynthesis only from inside a user gesture, so burn one silent utterance
   // on the first tap (mic or send). After that, speaking on reply-arrival is allowed.
   function primeTTS() {
-    if (ttsPrimedRef.current || !window.speechSynthesis) return;
+    if (ttsPrimedRef.current) return;
+    // Two separate iOS locks, and server TTS needs the SECOND one: speechSynthesis and
+    // HTMLAudioElement are unlocked independently. Priming only the former would leave the
+    // Gemini/Piper audio silently blocked on iPad — the exact failure this feature exists to fix.
     try {
-      const u = new SpeechSynthesisUtterance(" ");
-      u.volume = 0;
-      window.speechSynthesis.speak(u);
-      ttsPrimedRef.current = true;
+      const a = new Audio("data:audio/mp3;base64,//uQxAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAACAAACcQCA");
+      a.volume = 0;
+      a.play().then(() => { a.pause(); }).catch(() => { /* blocked until a real gesture */ });
+    } catch { /* best-effort */ }
+    try {
+      if (window.speechSynthesis) {
+        const u = new SpeechSynthesisUtterance(" ");
+        u.volume = 0;
+        window.speechSynthesis.speak(u);
+      }
     } catch { /* priming is best-effort; desktop does not need it */ }
+    ttsPrimedRef.current = true;
   }
 
   async function fetchPrice(q) {
@@ -309,18 +382,83 @@ export default function ChaparConcierge({ language = "fa", userName = "", userId
     setPublishing(false);
   }
   function onImg(e) { const f = e.target.files?.[0]; if (!f) return; const rd = new FileReader(); rd.onload = () => { const d = String(rd.result), b = d.split(",")[1]; const next = [...messages, { role: "user", text: "📷", image: d, _api: { role: "user", content: "Identify this product." } }]; setMessages(next); callAI(next, { b64: b, mime: f.type || "image/jpeg" }); }; rd.readAsDataURL(f); e.target.value = ""; }
+  // Recognition ends after every result, so conversation mode is "restart it when the assistant
+  // has finished talking". convoRef is the intent (survives renders); `convo` is the same thing
+  // for the UI. Both are cleared by stopConvo so a restart can never outlive the user's exit.
+  function startRecognition() {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) { setVoiceErr("این مرورگر تشخیصِ گفتار ندارد — از Chrome استفاده کنید"); return false; }
+    if (recRef.current) return true;                 // already open — never stack instances
+    setVoiceErr("");
+    const rec = new SR();
+    rec.lang = LANGS[lang].tts; rec.interimResults = false; rec.continuous = false;
+    rec.onstart = () => { listeningRef.current = true; setListening(true); };
+    rec.onend = () => {
+      recRef.current = null; listeningRef.current = false; setListening(false);
+      // Nothing is restarted here: the reply has not arrived yet. The restart happens once the
+      // assistant has finished speaking — see the conversation-mode effect below.
+    };
+    rec.onresult = (e) => { awaitingReplyRef.current = convoRef.current; send(e.results[0][0].transcript); };
+    rec.onerror = (e) => {
+      const code = e.error || "";
+      // A dead generic error taught the user nothing. Unsupported locales in particular are a
+      // permanent fact about the browser, not a glitch to retry — so conversation mode is
+      // stopped rather than left looping on a failure that will never succeed.
+      if (code === "language-not-supported" || code === "not-allowed" ||
+          code === "service-not-allowed" || code === "audio-capture") stopConvo();
+      const msg = SR_ERR[code] !== undefined ? SR_ERR[code] : "خطای میکروفون: " + (code || "نامشخص");
+      if (msg) setVoiceErr(msg);
+    };
+    recRef.current = rec;
+    try { rec.start(); return true; }
+    catch (err) {
+      recRef.current = null;
+      setVoiceErr("خطا در شروع: " + (err?.message || err));
+      return false;
+    }
+  }
+
+  function stopConvo() {
+    convoRef.current = false; setConvo(false);
+    awaitingReplyRef.current = false;
+    try { recRef.current?.abort?.(); } catch { /* already gone */ }
+    recRef.current = null;
+    listeningRef.current = false; setListening(false);
+  }
+
+  // Single mic tap: one utterance. Long-lived conversation is opted into explicitly so the mic
+  // is never left open on someone who only wanted to say one thing.
   function voice() {
     primeTTS();   // this tap is the gesture iOS needs before it will ever speak
-    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SR) { setVoiceErr("این مرورگر تشخیصِ گفتار ندارد — از Chrome استفاده کنید"); return; }
-    setVoiceErr("");
-    const rec = new SR(); rec.lang = LANGS[lang].tts; rec.interimResults = false; rec.continuous = false;
-    rec.onstart = () => setListening(true);
-    rec.onend = () => setListening(false);
-    rec.onresult = (e) => { setListening(false); send(e.results[0][0].transcript); };
-    rec.onerror = (e) => { setListening(false); setVoiceErr("خطای میکروفون: " + (e.error || "نامشخص")); };
-    try { rec.start(); } catch (err) { setVoiceErr("خطا در شروع: " + (err?.message || err)); }
+    if (listeningRef.current) { stopConvo(); return; }   // tap again = stop
+    startRecognition();
   }
+
+  function toggleConvo() {
+    primeTTS();
+    if (convoRef.current) { stopConvo(); return; }
+    convoRef.current = true; setConvo(true);
+    if (!startRecognition()) stopConvo();               // never show convo "on" if it never opened
+  }
+
+  // The restart point. Fires when the assistant has stopped speaking after a reply we were
+  // waiting on. On fa, TTS never speaks at all (P1), so `speaking` never goes true→false —
+  // hence the trigger is "a reply arrived and nothing is talking", not "speech ended".
+  useEffect(() => {
+    if (!convo || !awaitingReplyRef.current) return;
+    if (loading || speaking) return;
+    awaitingReplyRef.current = false;
+    // If the restart is refused — iOS is the likely case, since it wants a user gesture per
+    // recognition start — conversation mode is switched off rather than left claiming to be on
+    // with a mic that never opens. The user then taps, which is a gesture, and it works.
+    const t = setTimeout(() => {
+      if (!convoRef.current || listeningRef.current) return;
+      if (!startRecognition()) stopConvo();
+    }, 450);
+    return () => clearTimeout(t);
+  }, [convo, loading, speaking, messages]);
+
+  useEffect(() => () => { stopConvo(); stopAudio(); }, []);   // unmount must leave nothing running
 
   // ── PRICE GATE for publish ──────────────────────────────────────────────────
   // A real price is either the country the buyer picked out of the comparison (quote) or a
@@ -460,14 +598,32 @@ export default function ChaparConcierge({ language = "fa", userName = "", userId
             <span className="cc-orbit cc-orbit--lg" data-cc={ccState} aria-hidden="true"><span className="cc-core" /><span className="cc-ring"><i /></span><span className="cc-ring"><i /></span><span className="cc-ring"><i /></span></span>
             {/* The orbit is decoration; this is what a screen reader actually gets. */}
             <span role="status" aria-live="polite" className="sr-only">{CC_STATE_LABEL[ccState]}</span>
-            <button onClick={() => setMuted(!muted)} className="absolute end-0 text-white/60" aria-label={muted ? "صدا خاموش" : "صدا روشن"}>{muted ? <VolumeX size={16} /> : <Volume2 size={16} />}</button>
+            {/* This is the TTS on/off switch and nothing else — it never affected the mic. It was
+                an unlabelled icon, which is why its purpose was unclear; it now carries a visible
+                word plus a title tooltip. */}
+            <button onClick={() => setMuted(!muted)} title={muted ? "خواندن پاسخ‌ها خاموش است" : "پاسخ‌ها با صدا خوانده می‌شوند"}
+              aria-label={muted ? "روشن کردن خواندن پاسخ‌ها" : "خاموش کردن خواندن پاسخ‌ها"}
+              className="absolute end-0 flex items-center gap-1 text-white/70">
+              {muted ? <VolumeX size={16} /> : <Volume2 size={16} />}
+              <span className="text-[11px]">{muted ? "بی‌صدا" : "صدا"}</span>
+            </button>
           </div>
           {voiceErr && <div className="mb-1 text-center text-[11px] text-rose-300">{voiceErr}</div>}
           {ttsNote && !voiceErr && <div className="mb-1 text-center text-[11px] text-white/40">این دستگاه صدای فارسی ندارد — پاسخ‌ها فقط نوشته می‌شوند</div>}
           <div className="flex items-center gap-2">
             <button onClick={() => fileRef.current?.click()} className="grid h-10 w-10 place-items-center rounded-full bg-white/5 text-white/60"><ImageIcon size={19} /></button>
             <input ref={fileRef} type="file" accept="image/*" hidden onChange={onImg} />
-            <button onClick={voice} className={`grid h-10 w-10 place-items-center rounded-full ${listening ? "bg-rose-500 text-white" : "bg-white/5 text-cyan-300"}`}><Mic size={19} /></button>
+            <button onClick={voice} title="یک‌بار صحبت کنید"
+              aria-label={listening ? "توقف ضبط" : "صحبت کنید"}
+              className={`grid h-10 w-10 place-items-center rounded-full ${listening ? "bg-rose-500 text-white" : "bg-white/5 text-cyan-300"}`}><Mic size={19} /></button>
+            {/* Conversation mode. Off by default so the mic is never left open on someone who
+                only wanted to say one thing. While on, this button IS the stop button. */}
+            <button onClick={toggleConvo}
+              title={convo ? "پایان گفت‌وگوی پیوسته" : "گفت‌وگوی پیوسته — میکروفون بعد از هر پاسخ باز می‌شود"}
+              aria-label={convo ? "پایان گفت‌وگوی پیوسته" : "شروع گفت‌وگوی پیوسته"}
+              className={`grid h-10 shrink-0 place-items-center rounded-full px-3 text-[11px] ${convo ? "bg-rose-500 text-white" : "bg-white/5 text-cyan-300"}`}>
+              {convo ? "توقف" : "گفت‌وگو"}
+            </button>
             <input value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && send()} placeholder="بنویسید یا حرف بزنید…" className="flex-1 rounded-full border border-white/15 bg-white/5 px-4 py-2.5 text-sm text-white outline-none placeholder:text-white/50" />
             <button onClick={() => send()} disabled={loading} className="grid h-10 w-10 place-items-center rounded-full text-white disabled:opacity-40" style={{ background: "linear-gradient(135deg,#0e7490,#4f46e5)" }}><Send size={18} /></button>
           </div>
