@@ -12,6 +12,15 @@ const LANGS = {
   fr: { name: "French", tts: "fr-FR", greet: "Bienvenue. Que dois-je acheter pour vous ?" },
 };
 
+// Spoken to assistive tech only — the orbit itself is aria-hidden decoration.
+// "replied" is intentionally silent here — the reply text itself is what gets announced.
+const CC_STATE_LABEL = { idle: "", replied: "", listening: "در حال شنیدن", speaking: "در حال صحبت" };
+
+// iPadOS 13+ reports itself as a Mac, hence the touch-point check alongside the UA test.
+const IS_IOS = typeof navigator !== "undefined" &&
+  (/iPad|iPhone|iPod/.test(navigator.userAgent) ||
+   (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1));
+
 const CARD_BG = { background: "radial-gradient(130% 80% at 50% 25%, #0f1330, #05060d 70%)" };
 
 // The old "تخمین هزینه" screen's TAX table and 7-country chip row lived here. Both are gone
@@ -46,6 +55,28 @@ export default function ChaparConcierge({ language = "fa", userName = "", userId
   const [searchState, setSearchState] = useState("ok");
   const [lastSearchQuery, setLastSearchQuery] = useState("");
   const [voiceErr, setVoiceErr] = useState("");
+  // Brief "a reply landed" beat, fired by the reply itself rather than by TTS. Persian never
+  // speaks (P1), so this is the only movement a fa user gets — without it the orbit is frozen
+  // for them and the feature looks absent, which is precisely what was reported.
+  const [replied, setReplied] = useState(false);
+  const replyPulseRef = useRef(null);
+  function pulseReply() {
+    setReplied(true);
+    clearTimeout(replyPulseRef.current);
+    replyPulseRef.current = setTimeout(() => setReplied(false), 1400);
+  }
+  useEffect(() => () => clearTimeout(replyPulseRef.current), []);
+
+  // Single source of truth for the orbit's visual state. speaking wins over listening: the two
+  // are mutually exclusive in practice (TTS is cancelled before recognition starts), but if they
+  // ever overlap, "talking" is the more informative thing to show. The reply pulse sits lowest —
+  // it is only what you see when nothing louder is happening.
+  const ccState = speaking ? "speaking" : listening ? "listening" : replied ? "replied" : "idle";
+  // Shown once when fa has no installed voice — see speak(). Not an error: the assistant is
+  // working, it just cannot pronounce Persian on this device.
+  const [ttsNote, setTtsNote] = useState(false);
+  const pendingSpeakRef = useRef(null);   // line awaiting the async voice list
+  const ttsPrimedRef = useRef(false);     // iOS gesture unlock, see primeTTS()
   const [priority, setPriority] = useState(null);   // "fast" | "any"
   // Set ONLY by the honest price comparison (pickCountry). It has no default: on the
   // سریع / فرقی‌نمی‌کند paths the buyer never names a country — that is the whole meaning of
@@ -67,7 +98,19 @@ export default function ChaparConcierge({ language = "fa", userName = "", userId
   const variantCache = useRef({});
   const [reduceMotion] = useState(() => typeof window !== "undefined" && !!window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches);
 
-  useEffect(() => { window.speechSynthesis?.getVoices(); }, []);
+  // getVoices() populates asynchronously in every browser. Without a voiceschanged handler the
+  // very first reply after mount races an empty list and is lost — silent even in English.
+  // Anything speak() could not say yet is parked in pendingSpeakRef and said here instead.
+  useEffect(() => {
+    const synth = window.speechSynthesis; if (!synth) return;
+    synth.getVoices();
+    const onVoices = () => {
+      const t = pendingSpeakRef.current;
+      if (t) { pendingSpeakRef.current = null; speak(t); }
+    };
+    synth.addEventListener?.("voiceschanged", onVoices);
+    return () => synth.removeEventListener?.("voiceschanged", onVoices);
+  }, [lang, muted]);
   useEffect(() => { scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" }); }, [messages, loading]);
 
   // As soon as search results land, warm the variants cache for the TOP 3 picks (not just #1),
@@ -92,14 +135,49 @@ export default function ChaparConcierge({ language = "fa", userName = "", userId
     }
   }, [gridResults]);
 
+  // ── TTS ─────────────────────────────────────────────────────────────────────
+  // BLOCK-V4 turned `if (v) u.voice = v` into `if (!v) return`, so any language with no
+  // installed voice fell into silence instead of the browser default. The default language is
+  // fa and no mainstream browser ships an fa-IR voice, so the concierge went mute on every
+  // reply, on every platform. Never abort into silence again: a missing voice means "use the
+  // default", exactly as it did before.
+  //
+  // fa is the one language we stay quiet for on purpose. An en-US engine reads Persian script
+  // as gibberish, which is worse than saying nothing — but we say so once, rather than hiding
+  // it the way the old guard did. A real fa voice (some Android/Windows installs) is used
+  // normally when present.
   function speak(text) {
-    if (muted || !window.speechSynthesis) return;
-    const v = window.speechSynthesis.getVoices().find((x) => x.lang?.toLowerCase().startsWith(lang));
-    if (!v) return;
+    if (muted || !text || !window.speechSynthesis) return;
+    const voices = window.speechSynthesis.getVoices();
+    // Empty list = "not populated yet", NOT "no voice". Park the line for voiceschanged.
+    if (!voices.length) { pendingSpeakRef.current = text; return; }
+    pendingSpeakRef.current = null;
+    const v = voices.find((x) => x.lang?.toLowerCase().startsWith(lang)) || null;
+    if (!v && lang === "fa") { setTtsNote(true); return; }
+    // iOS honours speak() only after it has been unlocked inside a user gesture. Replies
+    // arrive outside one, so on an unprimed device the utterance is dropped silently —
+    // skip deliberately instead of leaving `speaking` stuck on an event that never fires.
+    if (IS_IOS && !ttsPrimedRef.current) return;
     window.speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(text); u.lang = LANGS[lang].tts; u.voice = v;
-    u.onstart = () => setSpeaking(true); u.onend = () => setSpeaking(false);
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = LANGS[lang].tts;
+    if (v) u.voice = v;                       // none found → browser default, still speaks
+    u.onstart = () => setSpeaking(true);
+    u.onend = () => setSpeaking(false);
+    u.onerror = () => setSpeaking(false);     // otherwise a failed utterance pins `speaking`
     window.speechSynthesis.speak(u);
+  }
+
+  // iOS unlocks speechSynthesis only from inside a user gesture, so burn one silent utterance
+  // on the first tap (mic or send). After that, speaking on reply-arrival is allowed.
+  function primeTTS() {
+    if (ttsPrimedRef.current || !window.speechSynthesis) return;
+    try {
+      const u = new SpeechSynthesisUtterance(" ");
+      u.volume = 0;
+      window.speechSynthesis.speak(u);
+      ttsPrimedRef.current = true;
+    } catch { /* priming is best-effort; desktop does not need it */ }
   }
 
   async function fetchPrice(q) {
@@ -179,7 +257,7 @@ export default function ChaparConcierge({ language = "fa", userName = "", userId
       const data = await res.json();
       if (data.browse && data.searchQuery) {
         setMessages((m) => [...m, { role: "assistant", text: data.reply || "چند گزینه آوردم", _api: { role: "assistant", content: data.reply || "" } }]);
-        speak(data.reply || "");
+        speak(data.reply || ""); pulseReply();
         setStage("grid");                 // show the grid section immediately (with its own loader)
         runProductSearch(data.searchQuery);
         setLoading(false);
@@ -190,7 +268,7 @@ export default function ChaparConcierge({ language = "fa", userName = "", userId
       const msgId = Date.now();
       const product = rawProduct ? { ...rawProduct, priceLoading: true, _msgId: msgId } : null;
       setMessages((m) => [...m, { role: "assistant", text: reply, product, _api: { role: "assistant", content: reply } }]);
-      speak(reply);
+      speak(reply); pulseReply();
       if (rawProduct?.searchQuery) {
         fetchPrice(rawProduct.searchQuery).then((priceData) => {
           setMessages((m) => m.map((msg) => {
@@ -205,7 +283,7 @@ export default function ChaparConcierge({ language = "fa", userName = "", userId
     } catch { setMessages((m) => [...m, { role: "assistant", text: "ارتباط برقرار نشد.", _api: null }]); } finally { setLoading(false); }
   }
 
-  function send(txt) { const t = (txt ?? input).trim(); if (!t || loading) return; const next = [...messages, { role: "user", text: t, _api: { role: "user", content: t } }]; setStage(null); setOrderProduct(null); setPublishResult(null); setGridResults([]); setSearchState("ok"); setQuote(null); setNoPriceAck(false); setCompare({ loading: false, data: null, error: false }); setMessages(next); setInput(""); callAI(next); }
+  function send(txt) { const t = (txt ?? input).trim(); if (!t || loading) return; primeTTS(); const next = [...messages, { role: "user", text: t, _api: { role: "user", content: t } }]; setStage(null); setOrderProduct(null); setPublishResult(null); setGridResults([]); setSearchState("ok"); setQuote(null); setNoPriceAck(false); setCompare({ loading: false, data: null, error: false }); setMessages(next); setInput(""); callAI(next); }
   function more() { if (loading) return; const next = [...messages, { role: "user", text: "بیشتر بگردیم.", _api: { role: "user", content: "Suggest a different option." } }]; setMessages(next); callAI(next); }
   // DECOUPLE price from variants: the instant a product is confirmed, kick off the price
   // comparison IN PARALLEL with the store panel's own variants fetch. Neither gates the other —
@@ -232,6 +310,7 @@ export default function ChaparConcierge({ language = "fa", userName = "", userId
   }
   function onImg(e) { const f = e.target.files?.[0]; if (!f) return; const rd = new FileReader(); rd.onload = () => { const d = String(rd.result), b = d.split(",")[1]; const next = [...messages, { role: "user", text: "📷", image: d, _api: { role: "user", content: "Identify this product." } }]; setMessages(next); callAI(next, { b64: b, mime: f.type || "image/jpeg" }); }; rd.readAsDataURL(f); e.target.value = ""; }
   function voice() {
+    primeTTS();   // this tap is the gesture iOS needs before it will ever speak
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SR) { setVoiceErr("این مرورگر تشخیصِ گفتار ندارد — از Chrome استفاده کنید"); return; }
     setVoiceErr("");
@@ -266,12 +345,46 @@ export default function ChaparConcierge({ language = "fa", userName = "", userId
       <style>{`@keyframes up{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
 @keyframes cc-spin{to{transform:rotate(360deg)}}
 @keyframes cc-breathe{0%,100%{transform:scale(.75);box-shadow:0 0 6px 0 #22d3ee}50%{transform:scale(1.15);box-shadow:0 0 18px 3px #22d3ee}}
-.cc-orbit{position:relative;width:30px;height:30px;flex:0 0 auto}
-.cc-orbit .cc-core{position:absolute;inset:0;margin:auto;width:10px;height:10px;border-radius:50%;background:radial-gradient(circle,#fff,#22d3ee);animation:cc-breathe 1.8s infinite ease-in-out}
+/* The orbit doubles as the assistant's presence. Everything below is driven by three custom
+   properties set from ONE data-cc attribute (idle / listening / speaking) — no canvas, no RAF,
+   no asset, nothing to leak. Loading orbits carry no data-cc and inherit the idle defaults, so
+   they look and behave exactly as before. */
+.cc-orbit{--cc-rate:1;--cc-glow:0;--cc-scale:1;--cc-size:30px;
+  position:relative;width:var(--cc-size);height:var(--cc-size);flex:0 0 auto;
+  transform:scale(var(--cc-scale));
+  transition:transform .5s cubic-bezier(.4,0,.2,1)}
+/* The assistant orbit only. 30px in a corner read as a stray dot on a tablet — the loading
+   spinners keep the small size, this one has to be legible at arm's length. */
+.cc-orbit--lg{--cc-size:56px}
+.cc-orbit--lg .cc-core{width:18px;height:18px}
+.cc-orbit--lg .cc-ring i{width:8px;height:8px;margin-left:-4px;top:-2px}
+/* Expanding halo — the part that actually catches the eye across a room. Only ever runs in the
+   two states that mean "something is happening". */
+.cc-orbit::after{content:"";position:absolute;inset:0;border-radius:50%;border:2px solid #22d3ee;opacity:0;pointer-events:none}
+.cc-orbit[data-cc="speaking"]::after{animation:cc-ping 1.3s ease-out infinite}
+.cc-orbit[data-cc="replied"]::after{animation:cc-ping 1.1s ease-out 1}
+@keyframes cc-ping{0%{transform:scale(.55);opacity:.6}100%{transform:scale(1.75);opacity:0}}
+.cc-orbit .cc-core{position:absolute;inset:0;margin:auto;width:10px;height:10px;border-radius:50%;background:radial-gradient(circle,#fff,#22d3ee);animation:cc-breathe calc(1.8s / var(--cc-rate)) infinite ease-in-out;
+  filter:drop-shadow(0 0 calc(var(--cc-glow) * 5px) #22d3ee);transition:filter .5s ease}
 .cc-orbit .cc-ring{position:absolute;inset:0;animation:cc-spin linear infinite}
-.cc-orbit .cc-ring:nth-child(2){animation-duration:1.4s}
-.cc-orbit .cc-ring:nth-child(3){animation-duration:2.1s;animation-direction:reverse}
-.cc-orbit .cc-ring:nth-child(4){animation-duration:2.8s}
+.cc-orbit .cc-ring:nth-child(2){animation-duration:calc(1.4s / var(--cc-rate))}
+.cc-orbit .cc-ring:nth-child(3){animation-duration:calc(2.1s / var(--cc-rate));animation-direction:reverse}
+.cc-orbit .cc-ring:nth-child(4){animation-duration:calc(2.8s / var(--cc-rate))}
+/* Speaking: quicker orbit + a real but restrained glow. Deliberately ~2x, not frantic — this
+   should read as "it is talking", not as an alert. */
+.cc-orbit[data-cc="speaking"]{--cc-rate:2.05;--cc-glow:1;--cc-scale:1.08}
+/* Listening: the opposite direction. Slower than idle, wider breathe — the mic is open and
+   waiting, which should feel patient. Mic-level reactivity lands in P3. */
+.cc-orbit[data-cc="listening"]{--cc-rate:.62;--cc-glow:.5;--cc-scale:1.04}
+/* "A reply landed." Driven by the reply event, NOT by TTS — Persian is deliberately silent
+   (P1), so without this a fa user never sees the orbit move at all. That is exactly the
+   "animation didn't come" report. Retires once fa gets real server-side TTS in P4. */
+.cc-orbit[data-cc="replied"]{--cc-rate:1.7;--cc-glow:.9;--cc-scale:1.06}
+@media (prefers-reduced-motion: reduce){
+  .cc-orbit{transition:none;--cc-scale:1}
+  .cc-orbit .cc-core,.cc-orbit .cc-ring{animation:none}
+  .cc-orbit::after{animation:none!important}
+}
 .cc-orbit .cc-ring i{position:absolute;top:-1px;left:50%;width:5px;height:5px;margin-left:-2.5px;border-radius:50%;background:#22d3ee;box-shadow:0 0 8px -1px #22d3ee}
 .cc-orbit .cc-ring:nth-child(3) i{background:#6366f1;box-shadow:0 0 8px -1px #6366f1}
 .cc-orbit .cc-ring:nth-child(4) i{background:#3b82f6;box-shadow:0 0 8px -1px #3b82f6}`}</style>
@@ -339,8 +452,18 @@ export default function ChaparConcierge({ language = "fa", userName = "", userId
 
         {/* input bar */}
         <div className="p-3">
-          <div className="mb-2 flex items-center justify-end"><button onClick={() => setMuted(!muted)} className="text-white/60">{muted ? <VolumeX size={16} /> : <Volume2 size={16} />}</button></div>
+          {/* Assistant presence. Centred directly above the input so it reads as the assistant
+              itself rather than as a stray dot — at 30px in the corner it was missed entirely.
+              The mute button is pinned to the logical end (end-0), which stays correct in RTL.
+              The four other orbits in this file are loading spinners and are left untouched. */}
+          <div className="relative mb-3 flex items-center justify-center">
+            <span className="cc-orbit cc-orbit--lg" data-cc={ccState} aria-hidden="true"><span className="cc-core" /><span className="cc-ring"><i /></span><span className="cc-ring"><i /></span><span className="cc-ring"><i /></span></span>
+            {/* The orbit is decoration; this is what a screen reader actually gets. */}
+            <span role="status" aria-live="polite" className="sr-only">{CC_STATE_LABEL[ccState]}</span>
+            <button onClick={() => setMuted(!muted)} className="absolute end-0 text-white/60" aria-label={muted ? "صدا خاموش" : "صدا روشن"}>{muted ? <VolumeX size={16} /> : <Volume2 size={16} />}</button>
+          </div>
           {voiceErr && <div className="mb-1 text-center text-[11px] text-rose-300">{voiceErr}</div>}
+          {ttsNote && !voiceErr && <div className="mb-1 text-center text-[11px] text-white/40">این دستگاه صدای فارسی ندارد — پاسخ‌ها فقط نوشته می‌شوند</div>}
           <div className="flex items-center gap-2">
             <button onClick={() => fileRef.current?.click()} className="grid h-10 w-10 place-items-center rounded-full bg-white/5 text-white/60"><ImageIcon size={19} /></button>
             <input ref={fileRef} type="file" accept="image/*" hidden onChange={onImg} />
