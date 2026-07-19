@@ -1,5 +1,4 @@
 import { Shield, MapPin, Scan, Globe, Users, TrendingUp, CheckCircle, Package, ArrowRight, ChevronDown, Star, Lock, Zap, Clock, CreditCard, Award, BadgeCheck, Sparkles, Activity, Plane, DollarSign, Eye, FileCheck, Building2, Verified, Trophy, Target, BarChart3, Rocket, ArrowLeft, Home, AlertCircle } from 'lucide-react';
-import AuthPage from './AuthPage';
 import CargoScanPage from './CargoScanPage';
 import type { AngleEntry } from './CargoScanPage';
 import TravelerPageFull from './TravelerPage';
@@ -2338,6 +2337,44 @@ function ScanHandoffEntry({ token, onHome, onBack }: { token: string; onHome: ()
   );
 }
 
+// ─── P0: single source of truth for per-page access ─────────────────────────────
+// One map instead of the two duplicated arrays that used to drift apart. A page
+// listed as 'auth' requires login: a logged-out user is redirected to the single
+// site-wide auth surface (/auth.html) with a return= deeplink, and comes back to
+// that exact page (params preserved) after a successful login — the SAME mechanism
+// kharid.html uses. Pages NOT listed are public — viewable while logged out.
+// 'marketplace' is deliberately absent: browsing listings needs no login; only
+// in-listing actions gate (via their own onNeedAuth callbacks).
+const PAGE_ACCESS: Partial<Record<Page, 'auth'>> = {
+  'buy-for-me':        'auth',   // P1 — parity with traveler (was public: the bug)
+  'send-package':      'auth',
+  'traveler':          'auth',
+  'my-orders':         'auth',
+  'wallet':            'auth',
+  'profile':           'auth',
+  'traveler-dashboard':'auth',
+  'cargo-scan':        'auth',   // except handoff mode (scoped token, no session)
+};
+const pageRequiresAuth = (p: Page): boolean => PAGE_ACCESS[p] === 'auth';
+
+// ─── Unified auth surface ────────────────────────────────────────────────────────
+// The whole site has ONE auth page: /auth.html (email / sms / whatsapp / telegram).
+// The retired in-app AuthPage is gone; every gated SPA action/page routes here.
+// Build the return= deeplink from the SPA's own entry file (window.location.pathname
+// — e.g. /film-preview.html) plus the page (& optional mode) the user was headed to,
+// so /auth.html?return=… lands them back EXACTLY there. Internal SPA navigation uses
+// pushState WITHOUT a URL, so the live query string is NOT reliable — we reconstruct
+// the deeplink from the target page/mode, not from window.location.search.
+function authDeeplink(page: Page, mode?: string | null): string {
+  const qs = new URLSearchParams();
+  qs.set('page', page);
+  if (mode) qs.set('mode', mode);
+  return window.location.pathname + '?' + qs.toString();
+}
+function goToAuth(returnDeeplink: string): void {
+  window.location.href = '/auth.html?return=' + encodeURIComponent(returnDeeplink);
+}
+
 // ─── App ──────────────────────────────────────────────────────────────────────
 export default function App() {
   const { lang, setLang, t, isRTL } = useLang();
@@ -2374,8 +2411,6 @@ export default function App() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showTrackPanel, setShowTrackPanel] = useState(false);
   const { session, clearSession } = useSession();
-  // Tracks which page triggered the auth gate so AuthPage can return the user there on success
-  const returnPageRef = useRef<Page>('home');
 
   useEffect(() => {
     if (window.location.pathname === '/google-earth-preview') {
@@ -2399,16 +2434,21 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [currentPage]);
 
-  // Redirect logged-out users away from protected pages directly to auth (no interstitial)
-  // Exception: cargo-scan in handoff mode — phone has no session, uses scoped token
+  // Redirect logged-out users away from protected pages to the single auth surface
+  // (/auth.html), carrying a return= deeplink so they come back to that exact page.
+  // Also catch the legacy internal ?page=auth route and send it to /auth.html too.
+  // Exception: cargo-scan in handoff mode — phone has no session, uses scoped token.
   useEffect(() => {
-    const protected_pages: Page[] = ['send-package', 'traveler', 'my-orders', 'wallet', 'profile', 'traveler-dashboard', 'cargo-scan'];
-    const isHandoffScan = currentPage === 'cargo-scan' && mobileHandoffToken !== null;
-    if (!session && protected_pages.includes(currentPage) && !isHandoffScan) {
-      returnPageRef.current = currentPage;
-      setCurrentPage('auth');
+    if (currentPage === 'auth') {
+      goToAuth(window.location.pathname);
+      return;
     }
-  }, [currentPage, session, mobileHandoffToken]);
+    const isHandoffScan = currentPage === 'cargo-scan' && mobileHandoffToken !== null;
+    if (!session && pageRequiresAuth(currentPage) && !isHandoffScan) {
+      const mode = currentPage === 'buy-for-me' ? initialBuyMode : null;
+      goToAuth(authDeeplink(currentPage, mode));
+    }
+  }, [currentPage, session, mobileHandoffToken, initialBuyMode]);
 
   // Sync React state with browser back/forward buttons
   useEffect(() => {
@@ -2421,13 +2461,12 @@ export default function App() {
 
   const fontStyle = isRTL ? { fontFamily: "'Vazirmatn', Tahoma, Arial, sans-serif" } : {};
 
-  // Synchronous auth gate — determines effective page to render without a flash.
-  // Exception: cargo-scan in handoff mode (phone redeems via scoped token, no session needed).
-  const AUTH_PROTECTED: Page[] = ['send-package', 'traveler', 'my-orders', 'wallet', 'profile', 'traveler-dashboard', 'cargo-scan'];
+  // Synchronous auth gate — decide whether we must bounce to /auth.html. When we
+  // must, render nothing (mustAuth → renderPage=null) so no protected content flashes
+  // before the redirect effect above fires. Exception: cargo-scan in handoff mode
+  // (phone redeems via scoped token, no session needed).
   const isHandoffScan = currentPage === 'cargo-scan' && mobileHandoffToken !== null;
-  if (!session && AUTH_PROTECTED.includes(currentPage) && !isHandoffScan) {
-    returnPageRef.current = currentPage;
-  }
+  const mustAuth = currentPage === 'auth' || (!session && pageRequiresAuth(currentPage) && !isHandoffScan);
   // Sync myOrderId to localStorage whenever it changes
   useEffect(() => {
     try {
@@ -2436,7 +2475,7 @@ export default function App() {
     } catch {}
   }, [myOrderId]);
 
-  const renderPage: Page = (!session && AUTH_PROTECTED.includes(currentPage) && !isHandoffScan) ? 'auth' : currentPage;
+  const renderPage: Page | null = mustAuth ? null : currentPage;
 
   return (
     <div dir={isRTL ? 'rtl' : 'ltr'} className="relative min-h-screen bg-[#050810]" style={fontStyle}>
@@ -2501,6 +2540,7 @@ export default function App() {
                   { label: 'سفارش‌های من',        page: 'my-orders' as Page },
                   { label: 'سفرها و پیشنهادها',   page: 'traveler-dashboard' as Page },
                   { label: 'کیف پول',             page: 'wallet' as Page },
+                  { label: 'اعلان‌ها',            page: 'notifications' as Page },
                 ] : []),
                 { label: t.trustSafety, page: 'trust-safety' as Page },
                 { label: t.investors, page: 'investors' as Page },
@@ -2557,7 +2597,7 @@ export default function App() {
                 </>
               ) : (
                 <motion.button
-                    onClick={() => setCurrentPage('auth')}
+                    onClick={() => { goToAuth(authDeeplink(currentPage)); }}
                     className="px-5 py-2 text-sm font-bold bg-gradient-to-r from-cyan-700 to-blue-700 text-white rounded-xl shadow-lg shadow-cyan-500/25 hover:shadow-cyan-500/45 hover:from-cyan-400 hover:to-blue-500 transition-all"
                     whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}>
                     ورود / عضویت
@@ -2647,7 +2687,7 @@ export default function App() {
                       </button>
                     </div>
                   ) : (
-                    <button onClick={() => { setCurrentPage('auth'); setMobileMenuOpen(false); }}
+                    <button onClick={() => { setMobileMenuOpen(false); goToAuth(authDeeplink(currentPage)); }}
                       className="flex-1 px-4 py-2.5 text-sm font-bold bg-gradient-to-r from-cyan-700 to-blue-700 text-white rounded-xl hover:opacity-90 transition-opacity">
                       ورود / عضویت
                     </button>
@@ -2674,23 +2714,23 @@ export default function App() {
         )}
       </AnimatePresence>
 
-      {/* Page content — uses renderPage (synchronous auth gate) so AuthPage renders on first frame */}
+      {/* Page content — renderPage is null while the auth gate bounces to /auth.html,
+          so no protected content flashes before the redirect. */}
       <AnimatePresence mode="wait">
-        <motion.div key={renderPage} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.25 }}>
+        <motion.div key={renderPage ?? 'auth-redirect'} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.25 }}>
           {renderPage === 'home' && <HomePage t={t} setPage={setCurrentPage} isRTL={isRTL} />}
-          {renderPage === 'buy-for-me' && <BuyForMePage onBack={() => window.history.back()} onHome={() => { window.location.href = 'https://chaparcargo.com/'; }} t={t} onNavigate={(p) => { setCurrentPage(p as Page); }} onNeedAuth={() => { returnPageRef.current = 'buy-for-me'; setCurrentPage('auth'); }} initialMode={initialBuyMode ?? undefined} onPublished={(id) => { setMyOrderId(id); setCurrentPage('marketplace'); }} />}
+          {renderPage === 'buy-for-me' && <BuyForMePage onBack={() => window.history.back()} onHome={() => { window.location.href = 'https://chaparcargo.com/'; }} t={t} onNavigate={(p) => { setCurrentPage(p as Page); }} onNeedAuth={() => { goToAuth(authDeeplink('buy-for-me', initialBuyMode ?? 'buyforme')); }} initialMode={initialBuyMode ?? undefined} onPublished={(id) => { setMyOrderId(id); setCurrentPage('marketplace'); }} />}
           {renderPage === 'send-package' && <SendPackagePage onBack={() => window.history.back()} onHome={() => { window.location.href = 'https://chaparcargo.com/'; }} t={t} onNavigate={(p) => { setCurrentPage(p as Page); }} onVerifyCargo={(id) => { setScanListingId(id); setCurrentPage('cargo-scan'); }} />}
           {renderPage === 'traveler' && <TravelerPage onBack={() => window.history.back()} onHome={() => { window.location.href = 'https://chaparcargo.com/'; }} t={t} onNavigate={(p) => { setCurrentPage(p as Page); }} />}
           {renderPage === 'marketplace' && <MarketplacePage onBack={() => window.history.back()} onHome={() => { window.location.href = 'https://chaparcargo.com/'; }} t={t} onBook={() => setCurrentPage('send-package')} myOrderId={myOrderId} onClearMyOrder={() => setMyOrderId(null)} />}
           {renderPage === 'trust-safety' && <TrustSafetyPage onBack={() => window.history.back()} onHome={() => { window.location.href = 'https://chaparcargo.com/'; }} t={t} />}
           {renderPage === 'investors' && <InvestorsPage onBack={() => window.history.back()} onHome={() => { window.location.href = 'https://chaparcargo.com/'; }} t={t} />}
           {renderPage === 'faq'  && <FAQPage  onBack={() => window.history.back()} onHome={() => { window.location.href = 'https://chaparcargo.com/'; }} t={t} />}
-          {renderPage === 'auth' && <AuthPage onHome={() => { window.location.href = 'https://chaparcargo.com/'; }} onSuccess={() => setCurrentPage(returnPageRef.current)} />}
           {renderPage === 'my-orders' && <MyOrdersPage onBack={() => window.history.back()} onHome={() => { window.location.href = 'https://chaparcargo.com/'; }} t={t} onOpenReceipt={(id) => { setReceiptId(id); setCurrentPage('receipt'); }} />}
           {renderPage === 'wallet' && <WalletPage onBack={() => window.history.back()} onHome={() => { window.location.href = 'https://chaparcargo.com/'; }} t={t} />}
           {renderPage === 'receipt' && <ReceiptPage onBack={() => setCurrentPage('my-orders')} onHome={() => { window.location.href = 'https://chaparcargo.com/'; }} t={t} trackId={receiptId} />}
           {renderPage === 'profile' && <ProfilePage onBack={() => window.history.back()} onHome={() => { window.location.href = 'https://chaparcargo.com/'; }} t={t} onOpenWallet={() => setCurrentPage('wallet')} onOpenOrders={() => setCurrentPage('my-orders')} />}
-          {renderPage === 'notifications' && <NotificationsPage onBack={() => window.history.back()} onHome={() => { window.location.href = 'https://chaparcargo.com/'; }} t={t} onNavigate={(p) => setCurrentPage(p as Page)} />}
+          {renderPage === 'notifications' && <NotificationsPage onBack={() => window.history.back()} onHome={() => { window.location.href = 'https://chaparcargo.com/'; }} t={t} onNavigate={(p) => setCurrentPage(p as Page)} onOpenOrder={(id) => { setMyOrderId(id); setCurrentPage('marketplace'); }} />}
           {renderPage === 'traveler-dashboard' && <TravelerDashboardPage onBack={() => window.history.back()} onHome={() => { window.location.href = 'https://chaparcargo.com/'; }} t={t} onNewTrip={() => setCurrentPage('traveler')} onNavigate={(p) => setCurrentPage(p as Page)} />}
           {renderPage === 'smart-tester' && <SmartTester onHome={() => { window.location.href = 'https://chaparcargo.com/'; }} />}
           {renderPage === 'cargo-scan' && (

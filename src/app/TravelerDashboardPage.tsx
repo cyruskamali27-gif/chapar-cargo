@@ -89,6 +89,12 @@ export default function TravelerDashboardPage({ onHome, onNewTrip, onNavigate }:
   const TODAY = new Date().toISOString().split('T')[0];
 
   const [tab, setTab]             = useState<'trips'|'orders'|'myoffers'|'foryou'>('trips');
+  // Deep link from the notifications center (P4.5): land on "پیشنهاد برای شما" when asked.
+  useEffect(() => {
+    try {
+      if (localStorage.getItem('cp_td_tab') === 'foryou') { setTab('foryou'); localStorage.removeItem('cp_td_tab'); }
+    } catch { /* ignore */ }
+  }, []);
   // بازارگاه هوشمند — offers the matcher pushed TO this traveler (not bids they made).
   const [smartOffers, setSmartOffers] = useState<any[]>([]);
   const [actingOffer, setActingOffer] = useState('');

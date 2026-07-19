@@ -1,20 +1,27 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { ArrowLeft, Home } from 'lucide-react';
-import { Store, genId } from '../lib/store';
+import { Store } from '../lib/store';
 import { useLang } from '../lib/LangContext';
+import { useSession } from '../lib/SessionContext';
 import type { translations } from './i18n';
 
 type T = typeof translations['en'];
 
-// ── Type metadata (exact from notifications.html) ─────────────────────────────
+// ── Type metadata ─────────────────────────────────────────────────────────────
+// Legacy (localStorage) types + the P4/P4.5 server-feed event types.
 const TYPE_META: Record<string, { icon: string; cls: string; group: string }> = {
-  new_order:          { icon:'📦', cls:'ni-offer',    group:'offer'    },
-  offer_received:     { icon:'✈️', cls:'ni-offer',    group:'offer'    },
-  offer_accepted:     { icon:'✅', cls:'ni-accepted',  group:'offer'    },
-  offer_rejected:     { icon:'✕',  cls:'ni-rejected',  group:'offer'    },
-  counter_offer:      { icon:'💬', cls:'ni-counter',   group:'offer'    },
-  delivery_confirmed: { icon:'📦', cls:'ni-delivery',  group:'delivery' },
-  dispute_update:     { icon:'⚠️', cls:'ni-dispute',  group:'dispute'  },
+  new_order:              { icon:'📦', cls:'ni-offer',    group:'offer'    },
+  offer_received:         { icon:'✈️', cls:'ni-offer',    group:'offer'    },
+  order_returned_to_pool: { icon:'📦', cls:'ni-offer',    group:'offer'    },
+  offer_expired:          { icon:'⏰', cls:'ni-rejected',  group:'offer'    },
+  offer_accepted:         { icon:'✅', cls:'ni-accepted',  group:'offer'    },
+  offer_rejected:         { icon:'✕',  cls:'ni-rejected',  group:'offer'    },
+  traveler_accepted:      { icon:'✅', cls:'ni-accepted',  group:'offer'    },
+  counter_offer:          { icon:'💬', cls:'ni-counter',   group:'offer'    },
+  counter_offer_ready:    { icon:'💬', cls:'ni-counter',   group:'offer'    },
+  buyer_accepted:         { icon:'🤝', cls:'ni-accepted',  group:'offer'    },
+  delivery_confirmed:     { icon:'📦', cls:'ni-delivery',  group:'delivery' },
+  dispute_update:         { icon:'⚠️', cls:'ni-dispute',  group:'dispute'  },
 };
 
 const GROUP_COLORS: Record<string, string> = {
@@ -27,17 +34,12 @@ interface Notif {
   id: string; type: string; title: string; body: string;
   orderId?: string | null; offerId?: string | null;
   at: number; read: boolean;
+  _src?: 'server' | 'local';
 }
 
-function seedDemoNotifs(t: T): Notif[] {
-  const now = Date.now();
-  return [
-    { id: genId('N'), type:'offer_received',     title:t.notifDemoOfferTitle,     body:t.notifDemoOfferBody,     orderId:'CH-12345', at:now-3600000,   read:false },
-    { id: genId('N'), type:'offer_accepted',      title:t.notifDemoAcceptedTitle,  body:t.notifDemoAcceptedBody,  orderId:'CH-11111', at:now-7200000,   read:false },
-    { id: genId('N'), type:'delivery_confirmed',  title:t.notifDemoDeliveredTitle, body:t.notifDemoDeliveredBody, orderId:'CH-99999', at:now-86400000,  read:true  },
-    { id: genId('N'), type:'counter_offer',       title:t.notifDemoCounterTitle,   body:t.notifDemoCounterBody,   orderId:'CH-77777', at:now-172800000, read:false },
-    { id: genId('N'), type:'dispute_update',      title:t.notifDemoDisputeTitle,   body:t.notifDemoDisputeBody,   orderId:'CH-55555', at:now-259200000, read:true  },
-  ];
+interface ServerNotif {
+  id: string; type: string; title: string; body: string;
+  orderId?: string | null; offerId?: string | null; at: string; read: boolean;
 }
 
 function fmtRelTime(ts: number, t: T) {
@@ -59,43 +61,100 @@ function getNavUrl(n: Notif): string {
   return '/';
 }
 
-interface Props { onBack: () => void; onHome: () => void; t: Record<string, string>; onNavigate: (page: string) => void; }
+// Buyer-facing events open the buyer's order card; traveler-facing events open the traveler
+// dashboard on the "پیشنهاد برای شما" tab. These are the in-site deep links the spec asks for.
+const BUYER_TYPES    = new Set(['counter_offer_ready', 'traveler_accepted', 'counter_offer']);
+const TRAVELER_TYPES = new Set(['offer_received', 'order_returned_to_pool', 'offer_expired', 'buyer_accepted', 'new_order']);
 
-export default function NotificationsPage({ onHome, onNavigate }: Props) {
+interface Props {
+  onBack: () => void; onHome: () => void; t: Record<string, string>;
+  onNavigate: (page: string) => void;
+  onOpenOrder?: (orderId: string) => void;   // set myOrderId + open marketplace card
+}
+
+export default function NotificationsPage({ onHome, onNavigate, onOpenOrder }: Props) {
   const { t, isRTL } = useLang();
-  const [notifs, setNotifs]       = useState<Notif[]>([]);
-  const [filter, setFilter]       = useState('');
-  const [toast, setToast]         = useState('');
+  const { session }  = useSession();
+  const [notifs, setNotifs] = useState<Notif[]>([]);
+  const [filter, setFilter] = useState('');
+  const [toast, setToast]   = useState('');
 
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 3000); };
 
-  useEffect(() => {
-    let list = Store.get<Notif[]>('notifications') ?? [];
-    if (!list.length) {
-      list = seedDemoNotifs(t);
-      Store.set('notifications', list);
-    }
-    setNotifs(list);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  const load = useCallback(async () => {
+    // Local notifications (delivery/dispute/deposit flows still write these).
+    const local = (Store.get<Notif[]>('notifications') ?? []).map(n => ({ ...n, _src: 'local' as const }));
 
-  function markRead(id: string) {
-    const updated = notifs.map(n => n.id === id ? { ...n, read: true } : n);
-    setNotifs(updated);
-    Store.set('notifications', updated);
+    // Server feed (P4/P4.5 marketplace events) — the source of truth Telegram mirrors.
+    let server: Notif[] = [];
+    if (session?.userId) {
+      try {
+        const r = await fetch(`/api/marketplace/notifications?userId=${encodeURIComponent(session.userId)}`);
+        const d = await r.json() as { ok: boolean; notifications?: ServerNotif[] };
+        if (d.ok && d.notifications) {
+          server = d.notifications.map(s => ({
+            id: s.id, type: s.type, title: s.title, body: s.body,
+            orderId: s.orderId, offerId: s.offerId,
+            at: Date.parse(s.at) || Date.now(), read: s.read, _src: 'server' as const,
+          }));
+        }
+      } catch { /* offline → show local only */ }
+    }
+
+    const merged = [...server, ...local].sort((a, b) => b.at - a.at);
+    setNotifs(merged);
+  }, [session?.userId]);
+
+  useEffect(() => { load(); }, [load]);
+
+  function applyRead(pred: (n: Notif) => boolean) {
+    setNotifs(prev => prev.map(n => pred(n) ? { ...n, read: true } : n));
   }
 
-  function markAllRead() {
-    const updated = notifs.map(n => ({ ...n, read: true }));
-    setNotifs(updated);
-    Store.set('notifications', updated);
+  async function markRead(n: Notif) {
+    applyRead(x => x.id === n.id);
+    if (n._src === 'server') {
+      if (session?.userId) {
+        try {
+          await fetch('/api/marketplace/notifications/read', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId: session.userId, ids: [n.id] }),
+          });
+        } catch { /* best-effort */ }
+      }
+    } else {
+      const updated = (Store.get<Notif[]>('notifications') ?? []).map(x => x.id === n.id ? { ...x, read: true } : x);
+      Store.set('notifications', updated);
+    }
+  }
+
+  async function markAllRead() {
+    applyRead(() => true);
+    const localUpdated = (Store.get<Notif[]>('notifications') ?? []).map(x => ({ ...x, read: true }));
+    Store.set('notifications', localUpdated);
+    if (session?.userId) {
+      try {
+        await fetch('/api/marketplace/notifications/read', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId: session.userId }),   // no ids → all
+        });
+      } catch { /* best-effort */ }
+    }
     showToast(t.notifAllRead);
   }
 
   function openNotif(n: Notif) {
-    markRead(n.id);
+    markRead(n);
+    // Buyer's order card (counter-offer / traveler-accepted) — reuse the myOrderId deep link.
+    if (BUYER_TYPES.has(n.type) && n.orderId && onOpenOrder) { onOpenOrder(n.orderId); return; }
     if (n.type === 'counter_offer') { onNavigate('marketplace'); return; }
-    if ((n.type === 'new_order' || n.type === 'offer_received') && n.orderId) { onNavigate('my-orders'); return; }
+    // Traveler's "پیشنهاد برای شما" tab.
+    if (TRAVELER_TYPES.has(n.type)) {
+      try { localStorage.setItem('cp_td_tab', 'foryou'); } catch { /* ignore */ }
+      onNavigate('traveler-dashboard');
+      return;
+    }
+    // Legacy static-page targets.
     window.location.href = getNavUrl(n);
   }
 

@@ -236,9 +236,9 @@ export default function ChatPage() {
 
   const peerRoleLabel = peerRole === 'traveler' ? t.chatRoleTraveler : peerRole === 'sender' ? t.chatRoleSender : peerRole;
 
-  // ── No auth — redirect directly to AuthPage (no interstitial) ───────────────
+  // ── No auth — redirect to the single auth surface (/auth.html), returning here ──
   if (!session) {
-    window.location.replace('/?page=auth&return=' + encodeURIComponent(location.href));
+    window.location.replace('/auth.html?return=' + encodeURIComponent(location.href));
     return null;
   }
 

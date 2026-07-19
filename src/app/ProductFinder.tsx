@@ -79,20 +79,27 @@ export default function ProductFinder({ onSelect }: Props) {
     if (!aiResult?.searchQuery) return;
     setLoading(true);
     setError('');
+    // Cold price is a slow-but-valid multi-country SERP fetch (~90s worst case; nginx 504s
+    // at 130s). Hard client cap just ABOVE nginx so a stalled socket can't spin the loader
+    // forever — it surfaces the Persian error + retry below instead. Never stuck.
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 135000);
     try {
       const res = await fetch('/api/product/price', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ query: aiResult.searchQuery }),
+        signal: ctrl.signal,
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'خطا');
+      const data = res.ok ? await res.json().catch(() => null) : null; // 504 HTML / garbage → null
+      if (!data?.ok) throw new Error((data && data.error) || 'خطا در دریافت قیمت‌ها');
       setPrices(data.ranked || data.results || []);
       setSelectedIdx(null);
       setStep('results');
     } catch (e: unknown) {
       setError((e instanceof Error ? e.message : null) || 'خطا در دریافت قیمت‌ها');
     } finally {
+      clearTimeout(timer);
       setLoading(false);
     }
   }

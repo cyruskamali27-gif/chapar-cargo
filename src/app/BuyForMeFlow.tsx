@@ -7,6 +7,7 @@ import { useLang } from '../lib/LangContext';
 import type { Translations } from './i18n';
 import ProductFinder from './ProductFinder';
 import ChaparConcierge from './ChaparConcierge';
+import { PhoneField } from '../lib/PhoneField';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -520,8 +521,7 @@ function BuyForMeForm({ t, isRTL, onHome, onNavigate, onNeedAuth, product, setPr
         </div>
         <div className="mb-3">
           <label className="ds-label">{t.spRecPhone}</label>
-          <input className="ds-input" type="tel" placeholder="+98..." dir="ltr"
-            value={recip.phone} onChange={e => setRecip({ ...recip, phone: e.target.value })} />
+          <PhoneField value={recip.phone} onChange={v => setRecip({ ...recip, phone: v })} defaultCountry="CA" />
         </div>
         <div className="mb-3">
           <label className="ds-label">{t.spRecEmail}</label>

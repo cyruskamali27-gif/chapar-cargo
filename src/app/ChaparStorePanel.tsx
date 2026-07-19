@@ -1,31 +1,53 @@
 // @ts-nocheck
 import { useState, useEffect } from "react";
-import { ArrowLeft, Check } from "lucide-react";
+import { ArrowLeft, Check, RotateCw } from "lucide-react";
 import { brandColor } from "./brandTheme";
-export default function ChaparStorePanel({ product, onContinue, onBack }) {
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [color, setColor] = useState(null);
+export default function ChaparStorePanel({ product, onContinue, onBack, initialVariantData = null }) {
+  // Perceived speed: the panel opens instantly with what the search result already gave us
+  // (image / title / price hint). Only the variants (colors/sizes) arrive later — `enriching`
+  // gates that section alone, never the whole panel.
+  //
+  // The variants scrape (Bright Data) is flaky: it can 504 after ~60s, or return an empty /
+  // garbage body (r.json() then throws). Two hard rules so the user is NEVER trapped:
+  //   1. a client-side timeout caps the wait — a hung scrape must not keep ادامه greyed.
+  //   2. every failure/empty-body is treated as `degraded` → honest note + retry, and ادامه
+  //      becomes tappable so the user can proceed without picking a variant.
+  const [data, setData] = useState(initialVariantData);
+  const [enriching, setEnriching] = useState(!initialVariantData);
+  const [degraded, setDegraded] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
+  const [color, setColor] = useState(initialVariantData?.colors?.[0]?.label ?? null);
   const [size, setSize] = useState(null);
   const [logoOk, setLogoOk] = useState(true);
   useEffect(() => {
-    let alive = true; setLoading(true);
+    if (initialVariantData) { setEnriching(false); setDegraded(false); return; } // prefetched — nothing to fetch
+    let alive = true; setEnriching(true); setDegraded(false);
+    const ctrl = new AbortController();
+    // Hard client cap — nginx only 504s at 60s, far too long to hold the button. 15s then fall back.
+    const timer = setTimeout(() => ctrl.abort(), 15000);
     (async () => {
       try {
-        const r = await fetch("/api/product/variants", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ query: product?.searchQuery || product?.title }) });
-        const d = await r.json(); if (alive) { setData(d); if (d?.colors?.[0]) setColor(d.colors[0].label); }
-      } catch { if (alive) setData({}); } finally { if (alive) setLoading(false); }
+        const r = await fetch("/api/product/variants", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ query: product?.searchQuery || product?.title }), signal: ctrl.signal });
+        const d = r.ok ? await r.json().catch(() => null) : null; // empty/garbage body → null, not a throw
+        if (!alive) return;
+        if (d?.ok) { setData(d); if (d.colors?.[0]) setColor(d.colors[0].label); } // valid (may be genuinely empty)
+        else { setData({}); setDegraded(true); }                                   // non-200 / empty body / ok:false
+      } catch { if (alive) { setData({}); setDegraded(true); } }                    // timeout / network
+      finally { clearTimeout(timer); if (alive) setEnriching(false); }
     })();
-    return () => { alive = false; };
-  }, [product]);
+    return () => { alive = false; clearTimeout(timer); ctrl.abort(); };
+  }, [product, initialVariantData, reloadKey]);
   const colors = data?.colors || [], sizes = data?.sizes || [];
   const brand = data?.brand || product?.brand || "";
   const domain = data?.brandDomain;
   const title = data?.title || product?.title || `${product?.brand || ""} ${product?.model || ""}`;
-  const price = data?.priceFrom;
+  const price = data?.priceFrom ?? product?.priceUSD ?? product?.priceLocal;
   const selColor = colors.find((c) => c.label === color);
   const heroImg = selColor?.image || colors[0]?.image || product?.image;
-  const canContinue = !sizes.length || !!size;
+  // ادامه is tappable in all three cases: (a) variants loaded, no sizes to pick; (b) a size is
+  // picked; (c) variants degraded/failed — proceed without a variant. Only held while `enriching`,
+  // which is now bounded by the 15s timeout above, so it can never stay greyed indefinitely.
+  const canContinue = !enriching && (degraded || !sizes.length || !!size);
   const accent = brandColor(brand, domain);
   const accentTint = accent + "26"; // ~15% opacity tint for selected bg
   return (
@@ -35,11 +57,28 @@ export default function ChaparStorePanel({ product, onContinue, onBack }) {
         {domain && logoOk ? <img src={`https://www.google.com/s2/favicons?sz=128&domain=${domain}`} onError={() => setLogoOk(false)} alt={brand} className="h-8 w-8 rounded bg-white/90 p-1 object-contain" /> : <div className="text-lg font-extrabold tracking-wide">{brand || "Store"}</div>}
         {brand && <div className="text-xs text-white/50">فروشگاهِ {brand}</div>}
       </div>
-      {loading ? <div className="py-16 text-center text-sm text-white/50">در حالِ آماده‌سازیِ فروشگاه…</div> : (
+      {heroImg && <img src={heroImg} alt={title} className="mb-3 h-44 w-full rounded-2xl bg-white object-contain" />}
+      {enriching && <div className="mb-3 text-xs text-white/50">در حال دریافت قیمت‌ها از فروشگاه‌ها — بار اول کمی طول می‌کشد</div>}
+      <div className="mb-1 text-base font-bold">{title}</div>
+      {price != null && <div className="mb-4 font-medium" style={{ color: accent }}>از ${price}</div>}
+      {enriching ? (
+        /* inline skeleton — only the variants section waits, the rest of the panel is live */
+        <div className="mb-5">
+          <div className="mb-2 h-3 w-10 animate-pulse rounded bg-white/10" />
+          <div className="flex flex-wrap gap-2">
+            {[0, 1, 2, 3].map((i) => <div key={i} className="h-14 w-14 animate-pulse rounded-xl bg-white/5" />)}
+          </div>
+        </div>
+      ) : degraded ? (
+        /* honest fallback — scrape failed/timed out/empty; never trap the user */
+        <div className="mb-5 rounded-xl border border-amber-400/20 bg-amber-400/5 p-3">
+          <div className="text-xs leading-relaxed text-white/70">رنگ/سایز در دسترس نیست — می‌توانید ادامه دهید</div>
+          <button onClick={() => setReloadKey((k) => k + 1)} className="mt-2 inline-flex items-center gap-1 text-xs font-bold text-white/80 hover:text-white">
+            <RotateCw size={13} /> تلاش دوباره
+          </button>
+        </div>
+      ) : (
         <>
-          {heroImg && <img src={heroImg} alt={title} className="mb-3 h-44 w-full rounded-2xl bg-white object-contain" />}
-          <div className="mb-1 text-base font-bold">{title}</div>
-          {price != null && <div className="mb-4 font-medium" style={{ color: accent }}>از ${price}</div>}
           {colors.length > 0 && (
             <div className="mb-4">
               <div className="mb-2 text-xs text-white/50">رنگ</div>
@@ -61,11 +100,11 @@ export default function ChaparStorePanel({ product, onContinue, onBack }) {
               </div>
             </div>
           )}
-          <button disabled={!canContinue} onClick={() => onContinue({ color, size, image: heroImg, link: selColor?.link || product?.link, priceUSD: price })} className="w-full rounded-2xl py-3.5 text-sm font-bold text-white disabled:opacity-40" style={{ background: `linear-gradient(135deg, ${accent}, ${accent}aa)` }}>
-            <span className="inline-flex items-center justify-center gap-1"><Check size={15} /> ادامه</span>
-          </button>
         </>
       )}
+      <button disabled={!canContinue} onClick={() => onContinue({ color, size, image: heroImg, link: selColor?.link || product?.link, priceUSD: price })} className="w-full rounded-2xl py-3.5 text-sm font-bold text-white disabled:opacity-40" style={{ background: `linear-gradient(135deg, ${accent}, ${accent}aa)` }}>
+        <span className="inline-flex items-center justify-center gap-1"><Check size={15} /> ادامه</span>
+      </button>
     </div>
   );
 }

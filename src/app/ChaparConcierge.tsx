@@ -39,6 +39,12 @@ export default function ChaparConcierge({ language = "fa", userName = "", userId
   const [muted, setMuted] = useState(false); const [orderProduct, setOrderProduct] = useState(null);
   const [stage, setStage] = useState(null); const [variant, setVariant] = useState(null);
   const [gridResults, setGridResults] = useState([]);
+  // Search outcome, kept separate from the results array so an empty grid never masquerades as
+  // "done". 'loading' → spinner, 'ok' → grid, 'empty' → honest no-match, 'unavailable' → Bright
+  // Data returned garbage/timed out (retryable). Both non-ok states show a retry button, never a
+  // dead-end or an endless loader. lastSearchQuery lets retry re-run the exact same search.
+  const [searchState, setSearchState] = useState("ok");
+  const [lastSearchQuery, setLastSearchQuery] = useState("");
   const [voiceErr, setVoiceErr] = useState("");
   const [priority, setPriority] = useState(null);   // "fast" | "any"
   // Set ONLY by the honest price comparison (pickCountry). It has no default: on the
@@ -51,11 +57,40 @@ export default function ChaparConcierge({ language = "fa", userName = "", userId
   const [publishResult, setPublishResult] = useState(null);
   const [compare, setCompare] = useState({ loading: false, data: null, error: false });
   const [quote, setQuote] = useState(null);   // the country the buyer picked out of the comparison
+  // Explicit buyer acknowledgement that they are publishing with NO estimated price. Publish is
+  // never auto-enabled on a missing price — the buyer either has a real price or ticks this.
+  const [noPriceAck, setNoPriceAck] = useState(false);
   const fileRef = useRef(null), scrollRef = useRef(null);
+  // Variants prefetch cache, keyed by the same expression the store panel fetches with
+  // (searchQuery || title — grid results carry no searchQuery). undefined = never asked,
+  // null = in flight, object = ready to hand the panel as initialVariantData.
+  const variantCache = useRef({});
   const [reduceMotion] = useState(() => typeof window !== "undefined" && !!window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches);
 
   useEffect(() => { window.speechSynthesis?.getVoices(); }, []);
   useEffect(() => { scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" }); }, [messages, loading]);
+
+  // As soon as search results land, warm the variants cache for the TOP 3 picks (not just #1),
+  // so tapping any of the likely choices opens the store panel with colors/sizes already there.
+  // Each warms an independent key; the server-side 12h variants cache then keeps popular items
+  // instant for every user. Degraded/error responses are never stored (server guards on that).
+  useEffect(() => {
+    if (!gridResults?.length) return;
+    for (const item of gridResults.slice(0, 3)) {
+      const key = item?.searchQuery || item?.title;
+      if (!key || variantCache.current[key] !== undefined) continue;
+      variantCache.current[key] = null; // in-flight marker — panel falls back to its own fetch
+      (async () => {
+        try {
+          const r = await fetch("/api/product/variants", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ query: key }) });
+          const d = await r.json();
+          // Only keep a meaningful result; a degraded scrape shouldn't shadow a later live retry.
+          if (d?.ok && d.colors?.length) variantCache.current[key] = d;
+          else delete variantCache.current[key];
+        } catch { delete variantCache.current[key]; } // failed — let the panel retry live
+      })();
+    }
+  }, [gridResults]);
 
   function speak(text) {
     if (muted || !window.speechSynthesis) return;
@@ -80,19 +115,34 @@ export default function ChaparConcierge({ language = "fa", userName = "", userId
   // Fan out the cheapest-country comparison. Cold, this is a real wait (~15-35s: five live
   // SERP fetches), which is why it gets the ذرات هوشمند indicator and its own stage rather
   // than blocking the chat.
-  async function runCompare() {
-    const q = orderProduct?.searchQuery || orderProduct?.title;
+  async function runCompare(qArg) {
+    // qArg lets confirmProduct start price with the just-confirmed product before setOrderProduct
+    // has committed. Retry buttons wire onClick={runCompare} and pass a MouseEvent — the string
+    // guard ignores that and falls back to the current product.
+    // lastSearchQuery sits AHEAD of title deliberately: grid results come back with
+    // searchQuery:null and a listing-specific title ("Apple - Refurbished Excellent - Right
+    // Replacement AirPod Pro - 2nd Generation"). Comparing THAT across five countries matches
+    // nothing — the honest-match filter returns ranked:[] in all 5 — which read to the buyer as
+    // "price never loads". The AI's clean query ("airpods pro 2") is what actually cross-matches.
+    const q = (typeof qArg === "string" && qArg) || orderProduct?.searchQuery || lastSearchQuery || orderProduct?.title;
     if (!q) { setCompare({ loading: false, data: null, error: true }); return; }
     setCompare({ loading: true, data: null, error: false });
+    // Cold price fans out ~5 live SERP fetches in parallel; the server's own worst case
+    // (BD_TIMEOUT_MS 45s + one 2.5s-backoff retry ≈ 92s) is well under nginx's 130s 504.
+    // Hard client cap just ABOVE nginx so a genuinely stalled socket can never hold the
+    // ذرات هوشمند loader open forever — it collapses into the honest error+retry state below.
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 135000);
     try {
       const r = await fetch("/api/product/price", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query: q, countries: PRICE_MARKETS }),
+        body: JSON.stringify({ query: q, countries: PRICE_MARKETS }), signal: ctrl.signal,
       });
-      const d = await r.json();
-      if (!d.ok) { setCompare({ loading: false, data: null, error: true }); return; }
+      const d = r.ok ? await r.json().catch(() => null) : null; // 504 HTML / garbage body → null, not a throw
+      if (!d?.ok) { setCompare({ loading: false, data: null, error: true }); return; }
       setCompare({ loading: false, data: d, error: false });
     } catch { setCompare({ loading: false, data: null, error: true }); }
+    finally { clearTimeout(timer); }
   }
 
   function pickCountry(row) {
@@ -105,6 +155,22 @@ export default function ChaparConcierge({ language = "fa", userName = "", userId
     setStage("publish");
   }
 
+  // The product search is a live Bright Data SERP fetch that is currently flaky (truncated bodies,
+  // occasional >60s). Server now returns ok:false on garbage instead of an empty-but-ok grid; here
+  // we translate every outcome into an explicit searchState so the UI is honest and retryable.
+  async function runProductSearch(q) {
+    setLastSearchQuery(q);
+    setSearchState("loading");
+    setGridResults([]);
+    try {
+      const r = await fetch("/api/product/search", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ query: q }) });
+      const sd = await r.json();
+      if (sd.ok && sd.results?.length) { setGridResults(sd.results); setSearchState("ok"); }
+      else if (sd.ok) { setSearchState("empty"); }        // valid response, genuinely no match
+      else { setSearchState("unavailable"); }             // ok:false → upstream garbage/timeout
+    } catch { setSearchState("unavailable"); }            // network/parse failure — retryable
+  }
+
   async function callAI(hist, img) {
     setLoading(true);
     try {
@@ -114,12 +180,8 @@ export default function ChaparConcierge({ language = "fa", userName = "", userId
       if (data.browse && data.searchQuery) {
         setMessages((m) => [...m, { role: "assistant", text: data.reply || "چند گزینه آوردم", _api: { role: "assistant", content: data.reply || "" } }]);
         speak(data.reply || "");
-        try {
-          const r = await fetch("/api/product/search", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ query: data.searchQuery }) });
-          const sd = await r.json();
-          setGridResults(sd.results || []);
-          setStage("grid");
-        } catch {}
+        setStage("grid");                 // show the grid section immediately (with its own loader)
+        runProductSearch(data.searchQuery);
         setLoading(false);
         return;
       }
@@ -143,9 +205,15 @@ export default function ChaparConcierge({ language = "fa", userName = "", userId
     } catch { setMessages((m) => [...m, { role: "assistant", text: "ارتباط برقرار نشد.", _api: null }]); } finally { setLoading(false); }
   }
 
-  function send(txt) { const t = (txt ?? input).trim(); if (!t || loading) return; const next = [...messages, { role: "user", text: t, _api: { role: "user", content: t } }]; setStage(null); setOrderProduct(null); setPublishResult(null); setGridResults([]); setQuote(null); setCompare({ loading: false, data: null, error: false }); setMessages(next); setInput(""); callAI(next); }
+  function send(txt) { const t = (txt ?? input).trim(); if (!t || loading) return; const next = [...messages, { role: "user", text: t, _api: { role: "user", content: t } }]; setStage(null); setOrderProduct(null); setPublishResult(null); setGridResults([]); setSearchState("ok"); setQuote(null); setNoPriceAck(false); setCompare({ loading: false, data: null, error: false }); setMessages(next); setInput(""); callAI(next); }
   function more() { if (loading) return; const next = [...messages, { role: "user", text: "بیشتر بگردیم.", _api: { role: "user", content: "Suggest a different option." } }]; setMessages(next); callAI(next); }
-  function confirmProduct(p) { setOrderProduct(p); setStage("store"); }
+  // DECOUPLE price from variants: the instant a product is confirmed, kick off the price
+  // comparison IN PARALLEL with the store panel's own variants fetch. Neither gates the other —
+  // variants failing/degrading never delays price, and price runs on its own loader/retry/state.
+  // The query is passed explicitly because setOrderProduct is async (runCompare would otherwise
+  // read the previous product). By the time the user reaches the price screen it is already in
+  // flight or done, so they never tap retry just to unblock it.
+  function confirmProduct(p) { setOrderProduct(p); setStage("store"); setNoPriceAck(false); runCompare(p?.searchQuery || lastSearchQuery || p?.title); }
   async function doPublish() {
     // Ownership guard: publishing requires a logged-in user — send them to auth instead of an anonymous post.
     if (!userId) { onNeedAuth?.(); return; }
@@ -154,7 +222,9 @@ export default function ChaparConcierge({ language = "fa", userName = "", userId
       const r = await fetch("/api/marketplace/publish", { method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ product: orderProduct, variant: variant || null,
           priority: priority || "any", country: estCountry, specialRequest: specialRequest || "",
-          priceQuote: quote || null, userId }) });
+          // Honest price record: a real quote, or null — never a fabricated/placeholder number.
+          // noPriceAck marks that the buyer explicitly accepted publishing without an estimate.
+          priceQuote: quote || null, noPriceAck: !hasPrice && noPriceAck, userId }) });
       const d = await r.json();
       if (d.ok) { setPublishResult(d.orderId); if (onPublished) setTimeout(() => onPublished(d.orderId), 1800); } else setPublishResult(null);
     } catch { setPublishResult(null); }
@@ -173,9 +243,23 @@ export default function ChaparConcierge({ language = "fa", userName = "", userId
     try { rec.start(); } catch (err) { setVoiceErr("خطا در شروع: " + (err?.message || err)); }
   }
 
+  // ── PRICE GATE for publish ──────────────────────────────────────────────────
+  // A real price is either the country the buyer picked out of the comparison (quote) or a
+  // price that came attached to the product itself. Anything else is "no price".
+  const hasPrice = quote?.priceUSD != null || orderProduct?.priceUSD != null;
+  // The comparison is fired at confirmProduct, so on the سریع / فرقی‌نمی‌کند paths it is
+  // usually still in flight when the buyer lands on publish — that is a LOADING state, not a
+  // failure, and must not be mistaken for one.
+  const priceLoading = !hasPrice && compare.loading;
+  // No price and nothing in flight = it failed or found nothing verifiable. Honest dead-end
+  // avoided by the explicit acknowledgement below rather than by silently publishing.
+  const priceFailed = !hasPrice && !compare.loading;
+
   const _lastMsg = messages[messages.length - 1];
   // Contextual status: after the reply is shown we're fetching product results; otherwise still thinking.
-  const thinkingStatus = (loading && _lastMsg?.role === "assistant") ? "در حال جست‌وجو…" : "در حال فکر کردن…";
+  // The product search is a live Bright Data SERP fetch that can take up to a minute cold — say so,
+  // rather than let a bare "در حال جست‌وجو…" read as a hang. (The request itself waits the full 60s.)
+  const thinkingStatus = (loading && _lastMsg?.role === "assistant") ? "در حال جست‌وجو… بار اول تا یک دقیقه طول می‌کشد" : "در حال فکر کردن…";
 
   return (
     <div dir={rtl ? "rtl" : "ltr"} className="mx-auto w-full max-w-2xl space-y-4 p-3 font-sans">
@@ -268,15 +352,39 @@ export default function ChaparConcierge({ language = "fa", userName = "", userId
       {stage && (
         <div className="overflow-hidden rounded-[28px]" style={CARD_BG}>
           {stage === "grid" && (
-            <ChaparGrid
-              results={gridResults}
-              onPick={(r) => confirmProduct(r)}
-              onBack={() => setStage(null)}
-            />
+            searchState === "loading" ? (
+              <div dir="rtl" className="p-6 text-center text-white">
+                <span className="cc-orbit mx-auto mb-3 block"><span className="cc-core" /><span className="cc-ring"><i /></span><span className="cc-ring"><i /></span><span className="cc-ring"><i /></span></span>
+                <div className="text-sm text-white/70">در حال جست‌وجوی فروشگاه‌ها…</div>
+                <div className="mt-1 text-xs text-white/45">بار اول تا یک دقیقه طول می‌کشد</div>
+              </div>
+            ) : searchState === "ok" ? (
+              <ChaparGrid
+                results={gridResults}
+                onPick={(r) => confirmProduct(r)}
+                onBack={() => setStage(null)}
+              />
+            ) : (
+              /* 'unavailable' (Bright Data garbage/timeout) or 'empty' (valid, no match) — both
+                 honest and retryable, never a dead-end or an endless spinner. */
+              <div dir="rtl" className="p-6 text-center text-white">
+                <div className="mb-1 text-sm font-bold text-white/90">
+                  {searchState === "unavailable" ? "جستجوی فروشگاه‌ها موقتاً در دسترس نیست" : "محصولی پیدا نشد"}
+                </div>
+                <div className="mb-4 text-xs text-white/50">
+                  {searchState === "unavailable" ? "ارتباط با فروشگاه‌ها ناپایدار است. لطفاً دوباره تلاش کنید." : "می‌توانید دوباره جست‌وجو کنید یا عبارت دیگری بنویسید."}
+                </div>
+                <div className="flex items-center justify-center gap-2">
+                  <button onClick={() => runProductSearch(lastSearchQuery)} disabled={!lastSearchQuery} className="inline-flex items-center gap-1 rounded-xl px-4 py-2 text-sm font-bold text-white disabled:opacity-40" style={{ background: "linear-gradient(135deg,#0e7490,#4f46e5)" }}><RotateCw size={15} /> تلاش دوباره</button>
+                  <button onClick={() => setStage(null)} className="rounded-xl border border-white/15 px-4 py-2 text-sm text-white/70">بازگشت</button>
+                </div>
+              </div>
+            )
           )}
           {stage === "store" && (
             <ChaparStorePanel
               product={orderProduct}
+              initialVariantData={variantCache.current[orderProduct?.searchQuery || orderProduct?.title || ""] || null}
               onContinue={(v) => { setVariant(v); setStage("priority"); }}
               onBack={() => { if (gridResults.length) { setStage("grid"); } else { setOrderProduct(null); setStage(null); } }}
             />
@@ -291,7 +399,7 @@ export default function ChaparConcierge({ language = "fa", userName = "", userId
                   <div className="text-sm font-bold text-white">سریع می‌خواهم ⚡</div>
                   <div className="mt-1 text-xs text-white/50">از کشورهایی که مسافر فعال دارند</div>
                 </button>
-                <button onClick={() => { setPriority("cheapest"); setStage("cheapest"); runCompare(); }}
+                <button onClick={() => { setPriority("cheapest"); setStage("cheapest"); if (!compare.loading && !compare.data) runCompare(); }}
                   className="rounded-2xl border border-white/10 bg-white/[0.04] p-4 text-right hover:bg-white/[0.08]">
                   <div className="text-sm font-bold text-white">ارزان‌ترین 💰</div>
                   <div className="mt-1 text-xs text-white/50">قیمت را در ۵ کشور مقایسه می‌کنیم و خودتان انتخاب می‌کنید</div>
@@ -452,20 +560,36 @@ export default function ChaparConcierge({ language = "fa", userName = "", userId
               </div>
 
               {(() => {
-                const missing = [];
-                if (!orderProduct?.title || orderProduct.title.trim().length <= 2) missing.push("نام محصول معتبر");
-                // A quote IS the price — a cheapest-flow order carries its own base price even
-                // when the chat never resolved one.
-                if (!orderProduct?.priceUSD && !quote?.priceUSD) missing.push("قیمت تخمینی");
+                // Title is the only hard requirement left. Price is NOT listed here — it has its
+                // own three-state gate below (loading / loaded / failed+acknowledged), because a
+                // missing price is a resolvable state, not a permanent "you forgot something".
                 // Country is deliberately NOT required: only the ارزان‌ترین path names one, and
-                // on the other two the traveler's route decides. Requiring it here would have
-                // dead-locked publish the moment the estimate screen was removed.
-                return missing.length > 0 ? (
+                // on the other two the traveler's route decides.
+                const titleBad = !orderProduct?.title || orderProduct.title.trim().length <= 2;
+                return titleBad ? (
                   <div className="mb-3 rounded-2xl border border-amber-400/30 bg-amber-400/10 p-3 text-xs text-amber-200">
-                    برای انتشار تکمیل کنید: {missing.join("، ")}
+                    برای انتشار تکمیل کنید: نام محصول معتبر
                   </div>
                 ) : null;
               })()}
+
+              {/* PRICE GATE — publish can never auto-advance past a missing price. */}
+              {priceLoading && (
+                <div className="mb-3 flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.04] p-3">
+                  <span className="cc-orbit shrink-0"><span className="cc-core" /><span className="cc-ring"><i /></span><span className="cc-ring"><i /></span><span className="cc-ring"><i /></span></span>
+                  <div className="text-xs text-white/70">در حال دریافت قیمت...</div>
+                </div>
+              )}
+              {priceFailed && (
+                <label className="mb-3 flex cursor-pointer items-start gap-2.5 rounded-2xl border border-amber-400/30 bg-amber-400/10 p-3">
+                  <input type="checkbox" checked={noPriceAck} onChange={(e) => setNoPriceAck(e.target.checked)}
+                    className="mt-0.5 h-4 w-4 shrink-0 accent-amber-400" />
+                  <span className="text-xs leading-relaxed text-amber-200">
+                    بدون قیمت تخمینی ادامه می‌دهم — قیمت نهایی را مسافر تعیین می‌کند
+                  </span>
+                </label>
+              )}
+
               {publishResult
                 ? <div className="rounded-2xl border border-emerald-400/30 bg-emerald-400/10 p-4 text-center text-sm text-emerald-300">سفارش منتشر شد ✓<div className="mt-1 text-xs text-emerald-200/70">کد سفارش: {publishResult}</div></div>
                 : !userId
@@ -473,9 +597,12 @@ export default function ChaparConcierge({ language = "fa", userName = "", userId
                     className="w-full rounded-2xl border border-cyan-400/40 bg-cyan-400/10 py-3 text-sm font-bold text-cyan-200">
                     برای انتشار در بازارگاه، وارد شوید
                   </button>
-                : <button disabled={publishing || !orderProduct?.title || (orderProduct.title.trim().length <= 2) || (!orderProduct?.priceUSD && !quote?.priceUSD)} onClick={doPublish}
+                : <button
+                    disabled={publishing || !orderProduct?.title || (orderProduct.title.trim().length <= 2)
+                      || priceLoading || (priceFailed && !noPriceAck)}
+                    onClick={doPublish}
                     className="w-full rounded-2xl bg-gradient-to-l from-cyan-700 to-indigo-600 py-3 text-sm font-bold text-white disabled:opacity-50">
-                    {publishing ? "در حال انتشار…" : "تأیید و انتشار در بازارگاه"}
+                    {publishing ? "در حال انتشار…" : priceLoading ? "در حال دریافت قیمت..." : "تأیید و انتشار در بازارگاه"}
                   </button>}
             </div>
           )}
