@@ -764,7 +764,12 @@ function MarketplacePage({ onBack, onHome, t, onBook, myOrderId, onClearMyOrder,
               {/* ── CMD-35 — the escrow card step. Rendered only once the order is actually waiting
                   on payment; it is self-contained and fails soft, so a Stripe.js outage degrades
                   this box alone and leaves accept/edit/delivery untouched. */}
-              {myOrder?.status === 'escrow_pending' && (
+              {/* CMD-36: also mount at escrow_locked. The component has a `locked` state — the 🔒
+                  "وجه در اسکرو قفل شد" panel that explains the money is held until delivery — but
+                  gating on escrow_pending alone unmounted it the moment the lock landed, so that
+                  panel only ever flashed in-session and was gone after any refresh. On mount the
+                  component re-reads escrowStatus and renders the locked panel itself. */}
+              {(myOrder?.status === 'escrow_pending' || myOrder?.status === 'escrow_locked') && (
                 <EscrowPaymentStep
                   orderId={myOrder.orderId}
                   userId={session?.userId}
