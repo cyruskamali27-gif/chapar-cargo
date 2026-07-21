@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useSession } from './SessionContext';
 import { useLang } from './LangContext';
 
@@ -12,15 +12,21 @@ export function useKycGate({ onNavigate }: Options = {}) {
   const [kycStatus, setKycStatus] = useState<string | null>(null);
   const [loading,   setLoading]   = useState(true);
 
-  useEffect(() => {
+  // CMD-24: exposed as `refetch` so the traveler-register KYC step can re-check the verdict after
+  // the user completes verification inline, without a full remount. A KYC verdict can flip from
+  // pending → verified asynchronously (manual review), so the step needs to be able to re-ask.
+  const refetch = useCallback(() => {
     if (!session) { setLoading(false); return; }
     const token = localStorage.getItem('cp_token');
     if (!token)   { setLoading(false); return; }
+    setLoading(true);
     fetch('/api/kyc/status', { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.ok ? r.json() : null)
       .then(d => { setKycStatus(d?.status ?? null); setLoading(false); })
       .catch(() => { setKycStatus(null); setLoading(false); });
   }, [session?.userId]);
+
+  useEffect(() => { refetch(); }, [refetch]);
 
   const isVerified  = kycStatus === 'verified';
   const showNotice  = !loading && !isVerified && !!session;
@@ -42,5 +48,5 @@ export function useKycGate({ onNavigate }: Options = {}) {
     </div>
   ) : null;
 
-  return { kycStatus, kycLoading: loading, isVerified, notice };
+  return { kycStatus, kycLoading: loading, isVerified, notice, refetch };
 }

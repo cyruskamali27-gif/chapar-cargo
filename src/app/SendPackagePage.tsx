@@ -8,6 +8,7 @@ import { IdentityVerification, CargoVerification } from './VerificationModules';
 import GuidedCapture from './GuidedCapture';
 import { useSession } from '../lib/SessionContext';
 import { useLang } from '../lib/LangContext';
+import { PROHIBITED_KEYWORDS } from '../lib/prohibited';   // CMD-24: shared source (was inline below)
 import { useVerifyGate } from '../lib/useVerifyGate';
 import { useKycGate } from '../lib/useKycGate';
 import { Store, genId, getLiveRate } from '../lib/store';
@@ -56,11 +57,6 @@ const CARGO_ITEMS_BASE = [
   { catKey: 'spCatGifts',       items: ['هدیه و سوغاتی','اسباب‌بازی','لوازم خانه','لوازم ورزشی','محصولات دیجیتال'] },
 ];
 
-const PROHIBITED_KEYWORDS = [
-  'مواد مخدر','هروئین','کوکائین','ماری‌جوانا','اپیوم','متامفتامین',
-  'اسلحه','سلاح','گلوله','بمب','انفجار','مهمات',
-  'heroin','cocaine','marijuana','weapon','gun','bomb','explosive','ammunition','drug',
-];
 
 const CASH_KEYWORDS = [
   'پول نقد','اسکناس','دلار نقدی','یورو نقد','cash','dollar bills','currency notes',

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { ArrowLeft, Home } from 'lucide-react';
 import GuidedCapture from './GuidedCapture';
+import TravelerOfferSheet from './TravelerOfferSheet';
 import { Store, genId } from '../lib/store';
 import { useSession } from '../lib/SessionContext';
 import { useLang } from '../lib/LangContext';
@@ -95,9 +96,27 @@ export default function TravelerDashboardPage({ onHome, onNewTrip, onNavigate }:
       if (localStorage.getItem('cp_td_tab') === 'foryou') { setTab('foryou'); localStorage.removeItem('cp_td_tab'); }
     } catch { /* ignore */ }
   }, []);
+
+  // S2 suggestions. Nested under /api/marketplace because nginx has no /api/suggest location —
+  // see the routing note in orders/server.js.
+  const loadSuggestions = useCallback(() => {
+    if (!session?.userId) { setSugLoading(false); return; }
+    setSugLoading(true);
+    fetch(`/api/marketplace/suggest/for-traveler?travelerId=${encodeURIComponent(session.userId)}`)
+      .then(r => r.json())
+      .then(d => setSug(d.ok ? d : null))
+      .catch(() => setSug(null))
+      .finally(() => setSugLoading(false));
+  }, [session?.userId]);
+  useEffect(() => { loadSuggestions(); }, [loadSuggestions]);
   // بازارگاه هوشمند — offers the matcher pushed TO this traveler (not bids they made).
   const [smartOffers, setSmartOffers] = useState<any[]>([]);
   const [actingOffer, setActingOffer] = useState('');
+  // بازارگاه هوشمند S2 — ranked open orders that fit this traveler's trips. Read-only: this
+  // endpoint writes nothing, so polling or re-fetching it is always safe.
+  const [sug, setSug] = useState<any>(null);
+  const [sugLoading, setSugLoading] = useState(true);
+  const [sugOffer, setSugOffer] = useState<{ orderId: string; product?: { title?: string | null } } | null>(null);
   const [tripView, setTripView]   = useState<'mine'|'market'>('mine'); // sub-view of the trips tab
   const [marketTrips, setMarketTrips] = useState<Trip[]>([]);          // server-backed open trips (all travelers)
   const [myTrips, setMyTrips]     = useState<Trip[]>([]);
@@ -616,10 +635,10 @@ export default function TravelerDashboardPage({ onHome, onNewTrip, onNavigate }:
             The cross-country case is the point: the buyer wanted country X, nobody flies from X,
             so we ask this traveler to bring it from THEIRS. Colors follow Rule 20 (gray-500 /
             cyan-700 / emerald-700 on white — all ≥4.5:1). */}
-        {tab === 'foryou' && (
-          smartOffers.length === 0 ? (
-            <div className="text-center py-12 text-gray-500">
-              <div className="text-5xl mb-3">🎯</div>
+        {tab === 'foryou' && (<>
+          {smartOffers.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              <div className="text-4xl mb-2">🎯</div>
               <div className="text-base font-bold text-gray-700 mb-1">فعلاً پیشنهادی نیست</div>
               <div className="text-sm">وقتی سفارشی با مسیر شما بخورد، همین‌جا نشان داده می‌شود.</div>
             </div>
@@ -700,8 +719,110 @@ export default function TravelerDashboardPage({ onHome, onNewTrip, onNavigate }:
                 );
               })}
             </div>
-          )
-        )}
+          )}
+
+          {/* ── بازارگاه هوشمند S2 — کالاهای پیشنهادی مسیر شما ──────────────────
+              SUGGESTIONS, not offers. The block above is what the matcher pushed at this
+              traveler and is a live commitment they can accept or decline. This block is a
+              browse aid: nothing has been offered, nothing is reserved, and the ranking is
+              read-only. Committing goes through the CMD-16 sheet, exactly as it does from the
+              marketplace — same component, one implementation. */}
+          <div className="mt-8 pt-6 border-t border-gray-100">
+            <div className="mb-1 text-base font-extrabold text-gray-900">کالاهای پیشنهادی مسیر شما</div>
+            <p className="mb-4 text-xs text-gray-500 leading-relaxed">
+              این‌ها هنوز پیشنهاد نشده‌اند — سفارش‌های بازی هستند که با مسیر و ظرفیت سفر شما می‌خوانند.
+            </p>
+
+            {sugLoading ? (
+              <div className="text-center py-8 text-gray-400 text-sm">در حال بررسی مسیرهای شما…</div>
+            ) : !sug ? (
+              <div className="rounded-2xl border border-gray-100 bg-gray-50 px-4 py-3 text-xs text-gray-500">
+                فهرست پیشنهادها در دسترس نیست — بعداً دوباره تلاش کنید.
+              </div>
+            ) : sug.items.length === 0 ? (
+              /* The two empties are DIFFERENT problems with different fixes — "you have no
+                 trips" must not be shown to someone who has trips that simply match nothing. */
+              <div className="text-center py-8">
+                <div className="text-4xl mb-2">🧭</div>
+                <div className="text-sm font-bold text-gray-700 mb-1">
+                  {sug.note?.startsWith('no open trips') ? 'هنوز سفری ثبت نکرده‌اید' : 'سفارشی مناسب مسیر شما نیست'}
+                </div>
+                <p className="text-xs text-gray-500 leading-relaxed max-w-xs mx-auto mb-4">
+                  {sug.note?.startsWith('no open trips')
+                    ? 'سفر خود را ثبت کنید تا سفارش‌های هم‌مسیر این‌جا نشان داده شود.'
+                    : 'به‌محض اینکه سفارشی با مسیر و ظرفیت شما بخورد، همین‌جا اضافه می‌شود.'}
+                </p>
+                {sug.note?.startsWith('no open trips') && (
+                  <button onClick={onNewTrip} className="px-5 py-2 rounded-xl bg-cyan-700 text-white text-sm font-bold">ثبت سفر</button>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {sug.items.map((s: any) => {
+                  const cross = s.kind === 'cross_country';
+                  const from  = MARKET_FA[s.fromCountry] || { flag: '🌍', name: s.fromCountry };
+                  return (
+                    <div key={s.orderId} className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm">
+                      <div className="flex items-start gap-3 mb-3">
+                        {s.product?.image
+                          ? <img src={s.product.image} alt="" className="w-14 h-14 rounded-xl object-cover border border-gray-100 flex-shrink-0" />
+                          : <div className="w-14 h-14 rounded-xl bg-gray-50 border border-gray-100 flex items-center justify-center text-xl flex-shrink-0">🛍️</div>}
+                        <div className="min-w-0 flex-1">
+                          <div className="text-sm font-extrabold text-gray-900 truncate">{s.product?.title || '—'}</div>
+                          <div className="text-[10px] text-gray-500 font-mono tracking-wide mt-0.5">{s.orderId}</div>
+                          <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                            <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${cross ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                              {cross ? 'کشور متفاوت' : 'مسیر مستقیم'}
+                            </span>
+                            <span className="text-[11px] text-gray-500">
+                              {from.flag} {from.name} ← {s.destCountry}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-3 gap-2 mb-3 text-center">
+                        <div className="rounded-xl bg-gray-50 border border-gray-100 py-2">
+                          <div className="text-[10px] text-gray-500 mb-0.5">ارزش کالا</div>
+                          <div className="text-xs font-extrabold text-gray-900">
+                            {s.rewardProxyUSD != null ? `$${s.rewardProxyUSD}` : '—'}
+                          </div>
+                        </div>
+                        <div className="rounded-xl bg-gray-50 border border-gray-100 py-2">
+                          <div className="text-[10px] text-gray-500 mb-0.5">وزن / ظرفیت</div>
+                          <div className="text-xs font-extrabold text-gray-900">
+                            {s.weightUnknown ? 'نامشخص' : `${s.estWeightKg} از ${s.remainingKg ?? '—'} kg`}
+                          </div>
+                        </div>
+                        <div className="rounded-xl bg-gray-50 border border-gray-100 py-2">
+                          <div className="text-[10px] text-gray-500 mb-0.5">ثبت شده</div>
+                          <div className="text-xs font-extrabold text-gray-900">
+                            {s.ageDays != null ? `${s.ageDays} روز پیش` : '—'}
+                          </div>
+                        </div>
+                      </div>
+
+                      {s.specialRequest && (
+                        <div className="mb-3 text-[11px] text-gray-500 bg-gray-50 border border-gray-100 rounded-xl px-3 py-2 leading-relaxed">
+                          {s.specialRequest}
+                        </div>
+                      )}
+
+                      {/* The handoff: browse → commit. Same sheet the marketplace opens. */}
+                      <button onClick={() => setSugOffer({ orderId: s.orderId, product: { title: s.product?.title } })}
+                        className="w-full py-2.5 rounded-xl bg-gradient-to-r from-cyan-700 to-blue-700 text-white text-sm font-bold">
+                        🤝 پیشنهاد می‌دهم
+                      </button>
+                      <div className="mt-2 text-[10px] text-gray-500 leading-relaxed">
+                        قیمت نهایی کالا را چاپار برای کشور شما استعلام می‌کند — دستمزد خود را در گام بعد وارد می‌کنید.
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </>)}
 
         {tab === 'orders' && (
           activeTrips.length === 0 ? (
@@ -956,6 +1077,18 @@ export default function TravelerDashboardPage({ onHome, onNewTrip, onNavigate }:
         <div className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-50 text-white text-sm font-bold px-5 py-2.5 rounded-full shadow-xl ${toastOk ? 'bg-gray-900' : 'bg-red-600'}`}>
           {toast}
         </div>
+      )}
+
+      {/* The CMD-16 commitment sheet, opened from an S2 suggestion card. Same component the
+          marketplace uses — a suggestion and a marketplace card commit through one code path. */}
+      {sugOffer && session?.userId && (
+        <TravelerOfferSheet
+          order={sugOffer}
+          travelerId={session.userId}
+          onClose={() => setSugOffer(null)}
+          onSubmitted={() => { setSug(null); loadSuggestions(); }}
+          onRegisterTrip={onNewTrip}
+        />
       )}
     </div>
   );

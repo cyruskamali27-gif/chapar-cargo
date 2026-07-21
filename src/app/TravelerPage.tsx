@@ -9,10 +9,10 @@ import { useLang } from '../lib/LangContext';
 import { useVerifyGate } from '../lib/useVerifyGate';
 import { useKycGate } from '../lib/useKycGate';
 import { Store, genId } from '../lib/store';
+import { publishTrip as publishTripToServer } from '../lib/tripPublish';   // P2 (CMD-22) — server trip write
+// aliased: this file already has a local publishTrip() that owns the whole submit flow.
 import SecuritySelector from './ProtectionSelector';
 import { type SecurityLevel } from './shipmentTypes';
-import { PhoneField, isValidPhoneNumber } from '../lib/PhoneField';
-import type { Country } from '../lib/PhoneField';
 
 // ── Static data (keys / flags that don't change with language) ────────────────
 
@@ -184,6 +184,7 @@ export default function TravelerPage({ onHome, onNavigate }: Props) {
 
   const [matchAllDates, setMatchAllDates] = useState(false);
   const [err, setErr] = useState('');
+  const [serverWriteError, setServerWriteError] = useState('');   // P2: publish reached the UI but not the server
 
   const today = new Date().toISOString().split('T')[0];
 
@@ -211,7 +212,8 @@ export default function TravelerPage({ onHome, onNavigate }: Props) {
     if (d.originIata) { const ap = getAirportByIata(d.originIata); if (ap) setOrigin(ap); }
     if (d.destIata)   { const ap = getAirportByIata(d.destIata);   if (ap) setDest(ap);   }
     if (d.date)           setDate(d.date);
-    if (d.phone)          setPhone(d.phone);
+    // d.phone deliberately NOT rehydrated — the session is the only source now. An old draft may
+    // still carry a number from before CMD-21; reading it back would resurrect the second copy.
     if (d.cargoOptions)   setCargoOptions(d.cargoOptions);
     if (d.selectedWeight) setSelectedWeight(d.selectedWeight);
     if (d.customKg)       setCustomKg(String(d.customKg));
@@ -230,12 +232,12 @@ export default function TravelerPage({ onHome, onNavigate }: Props) {
     if (!draftRef.current) { draftRef.current = true; return; }
     const draft: TravelDraft = {
       step, originIata: origin?.iata ?? null, destIata: dest?.iata ?? null,
-      date, phone, cargoOptions, selectedWeight, customKg: customKg ? parseFloat(customKg) : null,
+      date, cargoOptions, selectedWeight, customKg: customKg ? parseFloat(customKg) : null,
       priceCurrency, priceAmount: priceAmount ? parseFloat(priceAmount) : null,
       docType, verifyDone, payoutMethod, accountName, accountDone,
     };
     Store.set('travel_draft', draft);
-  }, [step, origin, dest, date, phone, cargoOptions, selectedWeight, customKg,
+  }, [step, origin, dest, date, cargoOptions, selectedWeight, customKg,
       priceCurrency, priceAmount, docType, verifyDone, payoutMethod, accountName, accountDone]);
 
   const needsCapacity = () =>
@@ -253,8 +255,8 @@ export default function TravelerPage({ onHome, onNavigate }: Props) {
     if (!origin)   { setErr(t.travErrNoOrigin);  return false; }
     if (!dest)     { setErr(t.travErrNoDest);    return false; }
     if (!date)     { setErr(t.travErrNoDate);    return false; }
-    if (!phone || !isValidPhoneNumber(phone))
-                   { setErr(t.travErrNoPhone);   return false; }
+    // CMD-21: no phone check. The number comes from the session (see the hydration effect) and was
+    // already verified at auth; re-collecting it here only created a second, divergent copy.
     return true;
   }
 
@@ -344,7 +346,7 @@ export default function TravelerPage({ onHome, onNavigate }: Props) {
 
     const newTripId = genId('T');
 
-    const trip = {
+    const trip: TripRecord = {
       id:            newTripId,
       origin:        origin.iata,
       originCity:    origin.city,
@@ -371,10 +373,48 @@ export default function TravelerPage({ onHome, onNavigate }: Props) {
       deliveryPhotoRequired:        deliveryPhotoReq,
     };
 
-    const trips: typeof trip[] = Store.get<typeof trip[]>('trips') ?? [];
+    const trips: TripRecord[] = Store.get<TripRecord[]>('trips') ?? [];
     trips.unshift(trip);
     Store.set('trips', trips.slice(0, 200));
     Store.del('travel_draft');
+
+    // ── P2 (CMD-22) — THE SERVER TRIP WRITE ─────────────────────────────────────
+    // Until this call existed, every trip published here lived only in localStorage: the matcher
+    // never saw it, S1/S2 never suggested it, and the S3 digest had nothing to digest. The local
+    // mirror above stays exactly as it was — this is additive.
+    //
+    // The corridor is derived from the AIRPORT'S COUNTRY, not the city. publishTrip() re-validates
+    // and refuses to post anything that is not resolvable to ISO2, because a bad corridor does not
+    // error — it just makes the trip invisible forever.
+    //
+    // This page is air-only (it is built on the airport autocomplete), so mode is 'air'. The shell
+    // will pass its selected mode through the same function in P3.
+    const pub = await publishTripToServer({
+      fromCountry:   origin.country,
+      toCountry:     dest.country,
+      date,
+      capacityKg:    capacity,
+      minPricePerKg: trip.minPricePerKg,
+      note:          trip.description,
+      mode:          'air',
+      userId:        session.userId,
+      travelerName:  trip.userName || null,
+    });
+
+    if (pub.ok && pub.tripId) {
+      // Mirror the REAL server id onto the local row. TravelerDashboardPage already guards its
+      // edit/delete server sync on `serverTripId`; without this the row stays a local-only ghost
+      // that can never be edited or deleted server-side.
+      trip.serverTripId = pub.tripId;
+      const cur = Store.get<TripRecord[]>('trips') ?? [];
+      Store.set('trips', cur.map(x => (x.id === trip.id ? { ...x, serverTripId: pub.tripId } : x)));
+    } else {
+      // Non-fatal for the local record — the trip still exists locally and the user is not blocked.
+      // But it IS logged loudly: a publish that silently half-succeeded is how this bug survived
+      // undetected in the first place.
+      console.error('[trip-publish] server write failed:', pub.error);
+      setServerWriteError(pub.error ?? 'unknown');
+    }
 
     try {
       await fetch('/api/approvals/create', {
@@ -422,6 +462,19 @@ export default function TravelerPage({ onHome, onNavigate }: Props) {
               <span>⏳</span><span>{t.travSuccessPending}</span>
             </div>
             <p className="text-gray-500 text-sm leading-relaxed mb-6">{t.travSuccessDesc}</p>
+
+            {/* P2: the server write is what makes a trip visible to the marketplace. If it failed,
+                say so plainly — the old behaviour (silently local-only) is exactly the bug this
+                phase fixes, and a success screen that hides it would recreate it. */}
+            {serverWriteError && (
+              <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 mb-6 text-right">
+                <div className="text-sm font-bold text-amber-800 mb-1">سفر شما ثبت شد، اما هنوز در بازارگاه دیده نمی‌شود.</div>
+                <div className="text-xs text-amber-700 leading-relaxed">
+                  ثبت روی سرور انجام نشد؛ سفر فعلاً فقط روی همین دستگاه ذخیره شده است. لطفاً دوباره تلاش کنید.
+                </div>
+                <div className="text-[10px] text-amber-600 font-mono mt-1">{serverWriteError}</div>
+              </div>
+            )}
 
             <div className="bg-cyan-50 border border-cyan-200 rounded-xl px-6 py-4 mb-6 text-center">
               <div className="text-xs font-bold text-cyan-600 uppercase tracking-wider mb-1">{t.travTrackingCode}</div>
@@ -483,16 +536,6 @@ export default function TravelerPage({ onHome, onNavigate }: Props) {
               <label className="ds-label">{t.travTripDate}</label>
               <input type="date" className="ds-input" min={today} value={date}
                 onChange={e => { setDate(e.target.value); setErr(''); }} />
-            </div>
-
-            <div className="mb-4">
-              <label className="ds-label">{t.travMobilePhone}</label>
-              <PhoneField
-                value={phone}
-                onChange={v => { setPhone(v); setErr(''); }}
-                defaultCountry={(isRTL ? 'IR' : 'CA') as Country}
-                placeholder={t.phonePlaceholder}
-              />
             </div>
 
             {matchBoxData !== null && (
@@ -746,6 +789,33 @@ export default function TravelerPage({ onHome, onNavigate }: Props) {
       </div>
     </div>
   );
+}
+
+// ── Local trip mirror ─────────────────────────────────────────────────────────
+// `serverTripId` is the link to the real orders-service record. Optional because a publish whose
+// server write failed still produces a valid local row — the dashboard just cannot sync it.
+interface TripRecord {
+  id: string;
+  origin: string; originCity: string; originFlag: string;
+  destination: string; destCity: string; destFlag: string;
+  date: string;
+  capacity: number | null;
+  cargoOptions: string[];
+  minPricePerKg: number | null;
+  priceCurrency: string;
+  phone: string;
+  payoutMethod: string | null;
+  description: string;
+  createdAt: number;
+  status: string;
+  userId: string;
+  userName: string;
+  securityLevel: SecurityLevel;
+  identityVerificationRequired: boolean;
+  cargoVerificationRequired: boolean;
+  otpDeliveryRequired: boolean;
+  deliveryPhotoRequired: boolean;
+  serverTripId?: string;
 }
 
 // ── Draft shape ───────────────────────────────────────────────────────────────

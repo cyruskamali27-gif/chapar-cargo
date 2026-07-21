@@ -1,7 +1,8 @@
 import { Shield, MapPin, Scan, Globe, Users, TrendingUp, CheckCircle, Package, ArrowRight, ChevronDown, Star, Lock, Zap, Clock, CreditCard, Award, BadgeCheck, Sparkles, Activity, Plane, DollarSign, Eye, FileCheck, Building2, Verified, Trophy, Target, BarChart3, Rocket, ArrowLeft, Home, AlertCircle } from 'lucide-react';
 import CargoScanPage from './CargoScanPage';
 import type { AngleEntry } from './CargoScanPage';
-import TravelerPageFull from './TravelerPage';
+// CMD-25: old TravelerPage registration RETIRED — replaced by TravelerRegisterShell.
+import TravelerRegisterShell from './TravelerRegisterShell';   // CMD-21 P1 — multi-route shell
 import SendPackagePage from './SendPackagePage';
 import MyOrdersPage from './MyOrdersPage';
 import WalletPage from './WalletPage';
@@ -17,6 +18,7 @@ import { type SecurityLevel } from './shipmentTypes';
 import { IdentityVerification, CargoVerification } from './VerificationModules';
 import SmartTester from './SmartTester';
 import BuyForMeFlow from './BuyForMeFlow';
+import TravelerOfferSheet from './TravelerOfferSheet';
 
 // ── Social media SVG icons ────────────────────────────────────────────────────
 function InstagramIcon({ className }: { className?: string }) {
@@ -60,7 +62,7 @@ import { useLang } from '../lib/LangContext';
 
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-type Page = 'home' | 'buy-for-me' | 'send-package' | 'traveler' | 'marketplace' | 'trust-safety' | 'investors' | 'faq' | 'auth' | 'my-orders' | 'wallet' | 'receipt' | 'profile' | 'notifications' | 'traveler-dashboard' | 'smart-tester' | 'cargo-scan';
+type Page = 'home' | 'buy-for-me' | 'send-package' | 'traveler' | 'marketplace' | 'trust-safety' | 'investors' | 'faq' | 'auth' | 'my-orders' | 'wallet' | 'receipt' | 'profile' | 'notifications' | 'traveler-dashboard' | 'smart-tester' | 'cargo-scan' | 'traveler-register';
 
 // ─── CountUpAnimation ─────────────────────────────────────────────────────────
 function CountUpAnimation({ end, suffix = '', prefix = '', duration = 2 }: { end: number; suffix?: string; prefix?: string; duration?: number }) {
@@ -408,9 +410,6 @@ function TravelerAcceptancePreview({ securityLevel }: { securityLevel: SecurityL
   );
 }
 
-function TravelerPage({ onBack, onHome, t, onNavigate }: { onBack: () => void; onHome: () => void; t: typeof translations['en']; onNavigate: (page: string) => void }) {
-  return <TravelerPageFull onBack={onBack} onHome={onHome} t={t as unknown as Record<string, string>} onNavigate={onNavigate} />;
-}
 
 // ── Shared marketplace card ─────────────────────────────────────────────────
 // ONE card implementation used by BOTH the travelers tab and the buyers tab.
@@ -474,7 +473,7 @@ function MarketplaceListingCard({
   );
 }
 
-function MarketplacePage({ onBack, onHome, t, onBook, myOrderId, onClearMyOrder }: { onBack: () => void; onHome: () => void; t: typeof translations['en']; onBook: () => void; myOrderId?: string | null; onClearMyOrder?: () => void }) {
+function MarketplacePage({ onBack, onHome, t, onBook, myOrderId, onClearMyOrder, onNeedAuth, onManageOrder, onRegisterTrip }: { onBack: () => void; onHome: () => void; t: typeof translations['en']; onBook: () => void; myOrderId?: string | null; onClearMyOrder?: () => void; onNeedAuth?: () => void; onManageOrder?: (orderId: string) => void; onRegisterTrip?: () => void }) {
   const { isRTL } = useLang();
   const { session } = useSession();
   const [from, setFrom] = useState('');
@@ -507,6 +506,24 @@ function MarketplacePage({ onBack, onHome, t, onBook, myOrderId, onClearMyOrder 
 
   // Reset green highlight whenever a new order is shown
   useEffect(() => { if (myOrderId) setIsHighlighted(true); }, [myOrderId]);
+
+  // ── Traveler-initiated offer (CMD-16) ───────────────────────────────────────
+  // A traveler browsing this board volunteers on a buy-request. `offerFor` is the order whose
+  // sheet is open; everything else — fetching eligible trips, the picker, submitting — lives in
+  // TravelerOfferSheet, which the traveler dashboard's S2 suggestions open too.
+  const [offerFor, setOfferFor] = useState<any>(null);
+
+  // The viewer split. Own order → the existing manage panel, never the offer sheet.
+  // Logged out → the site-wide auth surface. Otherwise → the picker.
+  function onCardAction(order: any) {
+    if (!session?.userId) { onNeedAuth?.(); return; }
+    if (order.userId && order.userId === session.userId) {
+      onManageOrder?.(order.orderId);
+      requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: 'smooth' }));
+      return;
+    }
+    setOfferFor(order);
+  }
 
   // بازارگاه هوشمند — the counter-offer a traveler triggered on this order.
   const [counter, setCounter] = useState<any>(null);
@@ -566,7 +583,7 @@ function MarketplacePage({ onBack, onHome, t, onBook, myOrderId, onClearMyOrder 
     try {
       const r = await fetch('/api/marketplace/update', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ orderId: myOrder.orderId, priority: editPrio, country: editCountry, specialRequest: editReq })
+        body: JSON.stringify({ orderId: myOrder.orderId, userId: session?.userId, priority: editPrio, country: editCountry, specialRequest: editReq })
       });
       const d = await r.json();
       if (d.ok) { setMyOrder(d.order); setEditMode(false); setSaveOk(true); setTimeout(() => setSaveOk(false), 2500); }
@@ -1044,12 +1061,33 @@ function MarketplacePage({ onBack, onHome, t, onBook, myOrderId, onClearMyOrder 
                 barValue={order.product?.priceUSD ? `$${order.product.priceUSD}` : 'در انتظار مسافر'}
                 barPct={35}
                 note={order.specialRequest || undefined}
-                buttonLabel="🤝 آماده پیشنهاد توسط مسافر"
+                // The old label ("آماده پیشنهاد توسط مسافر") described the order's STATE on a
+                // control that did nothing — it had no onButtonClick at all. Every order on this
+                // board is already offer-eligible, so the useful action is the traveler
+                // volunteering; on your own order it is managing the listing instead.
+                buttonLabel={
+                  order.userId && session?.userId && order.userId === session.userId
+                    ? '⚙️ مدیریت آگهی من'
+                    : '🤝 پیشنهاد می‌دهم'
+                }
+                onButtonClick={() => onCardAction(order)}
               />
             ))}
           </div>
         )}
       </div>
+
+      {/* CMD-16 offer sheet — now the SHARED component, so the S2 suggestion cards on the
+          traveler dashboard open this exact sheet rather than a second copy of it. */}
+      {offerFor && session?.userId && (
+        <TravelerOfferSheet
+          order={offerFor}
+          travelerId={session.userId}
+          onClose={() => setOfferFor(null)}
+          onSubmitted={(id) => setBuyerOrders(prev => prev.filter(o => o.orderId !== id))}
+          onRegisterTrip={onRegisterTrip}
+        />
+      )}
     </div>
   );
 }
@@ -1349,7 +1387,7 @@ function HeroSection({ t, setPage, isRTL }: { t: typeof translations['en']; setP
 
   const heroButtons = [
     { label: t.heroCta1, page: 'buy-for-me' as Page, primary: true },
-    { label: t.heroCta2, page: 'traveler' as Page,    primary: false },
+    { label: t.heroCta2, page: 'traveler-register' as Page,    primary: false },
     { label: t.heroCta3, page: 'send-package' as Page, primary: false },
   ];
 
@@ -1558,7 +1596,7 @@ function ServiceCardsSection({ t, setPage }: { t: typeof translations['en']; set
       photo: '/assets/photo-2.png',
       title: t.heroCta2,
       desc: t.homeFeat2Desc,
-      page: 'traveler' as Page,
+      page: 'traveler-register' as Page,
       tag: t.homeFeat2Tag,
     },
     {
@@ -2349,6 +2387,7 @@ const PAGE_ACCESS: Partial<Record<Page, 'auth'>> = {
   'buy-for-me':        'auth',   // P1 — parity with traveler (was public: the bug)
   'send-package':      'auth',
   'traveler':          'auth',
+  'traveler-register': 'auth',   // CMD-21 P1 — same auth gate as 'traveler'
   'my-orders':         'auth',
   'wallet':            'auth',
   'profile':           'auth',
@@ -2390,7 +2429,7 @@ export default function App() {
       return 'cargo-scan';
     }
     const p = new URLSearchParams(window.location.search).get('page');
-    const valid: Page[] = ['home','buy-for-me','send-package','traveler','marketplace','trust-safety','investors','faq','auth','my-orders','wallet','receipt','profile','notifications','traveler-dashboard','smart-tester','cargo-scan'];
+    const valid: Page[] = ['home','buy-for-me','send-package','traveler','marketplace','trust-safety','investors','faq','auth','my-orders','wallet','receipt','profile','notifications','traveler-dashboard','smart-tester','cargo-scan','traveler-register'];
     return valid.includes(p as Page) ? (p as Page) : 'home';
   });
   // Read ?mode=buyforme from URL to skip ModeSelector when arriving from kharid.html
@@ -2739,8 +2778,11 @@ export default function App() {
           {renderPage === 'home' && <HomePage t={t} setPage={setCurrentPage} isRTL={isRTL} />}
           {renderPage === 'buy-for-me' && <BuyForMePage onBack={() => window.history.back()} onHome={() => { window.location.href = 'https://chaparcargo.com/'; }} t={t} onNavigate={(p) => { setCurrentPage(p as Page); }} onNeedAuth={() => { goToAuth(authDeeplink('buy-for-me', initialBuyMode ?? 'buyforme')); }} initialMode={initialBuyMode ?? undefined} onPublished={(id) => { setMyOrderId(id); setCurrentPage('marketplace'); }} />}
           {renderPage === 'send-package' && <SendPackagePage onBack={() => window.history.back()} onHome={() => { window.location.href = 'https://chaparcargo.com/'; }} t={t} onNavigate={(p) => { setCurrentPage(p as Page); }} onVerifyCargo={(id) => { setScanListingId(id); setCurrentPage('cargo-scan'); }} />}
-          {renderPage === 'traveler' && <TravelerPage onBack={() => window.history.back()} onHome={() => { window.location.href = 'https://chaparcargo.com/'; }} t={t} onNavigate={(p) => { setCurrentPage(p as Page); }} />}
-          {renderPage === 'marketplace' && <MarketplacePage onBack={() => window.history.back()} onHome={() => { window.location.href = 'https://chaparcargo.com/'; }} t={t} onBook={() => setCurrentPage('send-package')} myOrderId={myOrderId} onClearMyOrder={() => setMyOrderId(null)} />}
+          {/* CMD-25: the old air-only, phone-collecting registration page is RETIRED. Both
+              ?page=traveler (legacy deeplinks) and ?page=traveler-register render the new
+              multi-route shell — there is now ONE registration path. */}
+          {(renderPage === 'traveler' || renderPage === 'traveler-register') && <TravelerRegisterShell onBack={() => window.history.back()} onHome={() => { window.location.href = 'https://chaparcargo.com/'; }} onNavigate={(p) => { setCurrentPage(p as Page); }} />}
+          {renderPage === 'marketplace' && <MarketplacePage onBack={() => window.history.back()} onHome={() => { window.location.href = 'https://chaparcargo.com/'; }} t={t} onBook={() => setCurrentPage('send-package')} myOrderId={myOrderId} onClearMyOrder={() => setMyOrderId(null)} onNeedAuth={() => { goToAuth(authDeeplink('marketplace')); }} onManageOrder={(id) => setMyOrderId(id)} onRegisterTrip={() => setCurrentPage('traveler-register')} />}
           {renderPage === 'trust-safety' && <TrustSafetyPage onBack={() => window.history.back()} onHome={() => { window.location.href = 'https://chaparcargo.com/'; }} t={t} />}
           {renderPage === 'investors' && <InvestorsPage onBack={() => window.history.back()} onHome={() => { window.location.href = 'https://chaparcargo.com/'; }} t={t} />}
           {renderPage === 'faq'  && <FAQPage  onBack={() => window.history.back()} onHome={() => { window.location.href = 'https://chaparcargo.com/'; }} t={t} />}
@@ -2749,7 +2791,7 @@ export default function App() {
           {renderPage === 'receipt' && <ReceiptPage onBack={() => setCurrentPage('my-orders')} onHome={() => { window.location.href = 'https://chaparcargo.com/'; }} t={t} trackId={receiptId} />}
           {renderPage === 'profile' && <ProfilePage onBack={() => window.history.back()} onHome={() => { window.location.href = 'https://chaparcargo.com/'; }} t={t} onOpenWallet={() => setCurrentPage('wallet')} onOpenOrders={() => setCurrentPage('my-orders')} />}
           {renderPage === 'notifications' && <NotificationsPage onBack={() => window.history.back()} onHome={() => { window.location.href = 'https://chaparcargo.com/'; }} t={t} onNavigate={(p) => setCurrentPage(p as Page)} onOpenOrder={(id) => { setMyOrderId(id); setCurrentPage('marketplace'); }} />}
-          {renderPage === 'traveler-dashboard' && <TravelerDashboardPage onBack={() => window.history.back()} onHome={() => { window.location.href = 'https://chaparcargo.com/'; }} t={t} onNewTrip={() => setCurrentPage('traveler')} onNavigate={(p) => setCurrentPage(p as Page)} />}
+          {renderPage === 'traveler-dashboard' && <TravelerDashboardPage onBack={() => window.history.back()} onHome={() => { window.location.href = 'https://chaparcargo.com/'; }} t={t} onNewTrip={() => setCurrentPage('traveler-register')} onNavigate={(p) => setCurrentPage(p as Page)} />}
           {renderPage === 'smart-tester' && <SmartTester onHome={() => { window.location.href = 'https://chaparcargo.com/'; }} />}
           {renderPage === 'cargo-scan' && (
             mobileHandoffToken
