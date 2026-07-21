@@ -19,6 +19,7 @@ import { IdentityVerification, CargoVerification } from './VerificationModules';
 import SmartTester from './SmartTester';
 import BuyForMeFlow from './BuyForMeFlow';
 import TravelerOfferSheet from './TravelerOfferSheet';
+import { EscrowPaymentStep } from './EscrowPaymentStep';   // CMD-35 — buyer card confirm for escrow lock
 
 // ── Social media SVG icons ────────────────────────────────────────────────────
 function InstagramIcon({ className }: { className?: string }) {
@@ -555,8 +556,10 @@ function MarketplacePage({ onBack, onHome, t, onBook, myOrderId, onClearMyOrder,
   // Poll while a traveler's acceptance is being priced — the counter-offer builds asynchronously
   // (a real SERP fetch for the traveler's country, ~20s), so the buyer must not be left staring
   // at a stale "waiting" state.
+  // CMD-35: escrow_pending polls too — beginPending() creates the PaymentIntent asynchronously
+  // after accept, so the card step only becomes available a beat later.
   useEffect(() => {
-    if (myOrder?.status !== 'traveler_accepted') return;
+    if (myOrder?.status !== 'traveler_accepted' && myOrder?.status !== 'escrow_pending') return;
     const id = setInterval(reloadMyOrder, 5000);
     return () => clearInterval(id);
   }, [myOrder?.status, reloadMyOrder]);
@@ -732,6 +735,10 @@ function MarketplacePage({ onBack, onHome, t, onBook, myOrderId, onClearMyOrder,
                   open:              { label: 'در انتظار مسافر',                    pct: '35%', cls: 'text-emerald-700' },
                   offered:           { label: 'به مسافرها پیشنهاد شد',              pct: '50%', cls: 'text-cyan-700'    },
                   traveler_accepted: { label: 'مسافری پیشنهاد را پذیرفت — در انتظار تأیید شما', pct: '70%', cls: 'text-cyan-700' },
+                  // CMD-35 — escrow states, so the chip stays honest through the payment step.
+                  escrow_pending:    { label: 'در انتظار پرداخت',                    pct: '80%', cls: 'text-amber-700'  },
+                  escrow_locked:     { label: 'پرداخت شد — وجه در اسکرو قفل شد',      pct: '90%', cls: 'text-emerald-700' },
+                  escrow_released:   { label: 'تحویل شد — وجه آزاد شد',               pct: '100%', cls: 'text-emerald-700' },
                 };
                 const st = SMART[myOrder?.status] || SMART.open;
                 return (
@@ -754,6 +761,17 @@ function MarketplacePage({ onBack, onHome, t, onBook, myOrderId, onClearMyOrder,
                   A traveler in a DIFFERENT country accepted. Show the honest price for THEIR
                   country next to what the buyer originally chose, and let them decide. Three
                   states, all first-class: a price, no-honest-result, and still-being-priced. */}
+              {/* ── CMD-35 — the escrow card step. Rendered only once the order is actually waiting
+                  on payment; it is self-contained and fails soft, so a Stripe.js outage degrades
+                  this box alone and leaves accept/edit/delivery untouched. */}
+              {myOrder?.status === 'escrow_pending' && (
+                <EscrowPaymentStep
+                  orderId={myOrder.orderId}
+                  userId={session?.userId}
+                  onLocked={reloadMyOrder}
+                />
+              )}
+
               {myOrder?.status === 'traveler_accepted' && (
                 <div className="mb-3 rounded-xl border border-cyan-200 bg-cyan-50 p-3">
                   <div className="text-xs font-bold text-cyan-800 mb-0.5">مسافری پیشنهاد را پذیرفت</div>
