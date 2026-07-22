@@ -1,3 +1,34 @@
+// ── CMD-53 — same-origin auth interceptor (trust unification) ─────────────────────────────────
+// The orders service now derives the caller from a VERIFIED token on every mutating/sensitive
+// endpoint (it ignores any client-supplied userId). So the SPA must present its Bearer token on
+// those calls. Rather than touch ~14 call sites (and risk missing one → silent 401), attach the
+// token once here, for same-origin /api/{marketplace,offers,trips,digest} requests only, and never
+// override an Authorization header a caller already set. Reads use optional auth, so this is safe
+// for them too. The token already travels to /api/auth and /api/kyc — same origin, no new exposure.
+(() => {
+  const AUTHED = /^\/api\/(marketplace|offers|trips|digest)\b/;
+  const orig = window.fetch.bind(window);
+  window.fetch = (input: RequestInfo | URL, init?: RequestInit) => {
+    try {
+      const url = typeof input === 'string' ? input
+                : input instanceof URL ? input.pathname
+                : (input as Request).url;
+      const path = url.startsWith('http') ? new URL(url).pathname : url;
+      if (AUTHED.test(path)) {
+        const token = localStorage.getItem('cp_token');
+        if (token) {
+          const headers = new Headers(init?.headers || (input instanceof Request ? input.headers : undefined));
+          if (!headers.has('Authorization')) {
+            headers.set('Authorization', `Bearer ${token}`);
+            return orig(input, { ...init, headers });
+          }
+        }
+      }
+    } catch { /* fall through to a plain fetch */ }
+    return orig(input, init);
+  };
+})();
+
 
 // Build banner. Reports the bundle version.json CLAIMS is live, and cross-checks it against
 // the script tag actually executing — if a deploy copies assets but forgets version.json (or

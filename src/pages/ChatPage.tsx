@@ -10,7 +10,7 @@
  * URL params: ?order= | ?id=  (peer/name/role are cosmetic, still read for the header)
  */
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Package, AlertTriangle, MessageSquare, Ban, Send, Lock } from 'lucide-react';
+import { Package, AlertTriangle, MessageSquare, Ban, Send, Lock, CheckCircle2, Loader2, Clock } from 'lucide-react';
 import { Store, getSession } from '../lib/store';
 import { useLang } from '../lib/LangContext';
 import type { translations } from '../app/i18n';
@@ -63,6 +63,11 @@ export default function ChatPage() {
   const [writable, setWritable]   = useState(true);
   const [sending, setSending]     = useState(false);
   const [loaded, setLoaded]       = useState(false);
+  // CMD-53 — dual confirm
+  const [status, setStatus]       = useState('');
+  const [role, setRole]           = useState<'buyer' | 'traveler' | ''>('');
+  const [confirms, setConfirms]   = useState<{ buyer: unknown; traveler: unknown }>({ buyer: null, traveler: null });
+  const [confirming, setConfirming] = useState(false);
 
   const sinceRef      = useRef(0);
   const msgsRef       = useRef<SrvMsg[]>([]);
@@ -93,6 +98,9 @@ export default function ChatPage() {
         const d = await r.json();
         setUnlocked(!!d.unlocked);
         setWritable(!!d.writable);
+        if (d.status) setStatus(d.status);
+        if (d.role) setRole(d.role);
+        if (d.confirmations) setConfirms(d.confirmations);
         if (Array.isArray(d.messages) && d.messages.length) {
           const fresh = d.messages as SrvMsg[];
           msgsRef.current = [...msgsRef.current, ...fresh];
@@ -168,6 +176,26 @@ export default function ChatPage() {
       setSending(false);
     }
   }
+
+  // CMD-53 — final confirmation
+  async function confirmDeal() {
+    if (confirming || !orderId) return;
+    setConfirming(true);
+    try {
+      const r = await fetch('/api/marketplace/confirm', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ orderId }),
+      });
+      const d = await r.json().catch(() => null);
+      if (r.ok && d?.ok) { if (d.confirmations) setConfirms(d.confirmations); if (d.orderStatus) setStatus(d.orderStatus); }
+      await poll();
+    } catch { /* poll will re-sync */ }
+    finally { setConfirming(false); }
+  }
+  const myConfirmed    = role === 'buyer' ? !!confirms.buyer : role === 'traveler' ? !!confirms.traveler : false;
+  const bothConfirmed  = !!confirms.buyer && !!confirms.traveler;
+  const showDualConfirm = unlocked && (status === 'awaiting_confirmations' || status === 'escrow_pending');
 
   const avatarLetter = () => ((session?.firstName as string) || '؟')[0] ?? '؟';
   const canSend = input.trim().length > 0 && !sending && writable;
@@ -265,6 +293,48 @@ export default function ChatPage() {
         <AlertTriangle className="w-4 h-4 shrink-0" aria-hidden />
         <span>{t.chatWarnBanner}</span>
       </div>
+
+      {/* CMD-53 — dual final-confirmation bar */}
+      {showDualConfirm && (
+        <div className="flex-shrink-0 px-4 py-3 bg-cyan-50 border-b border-cyan-100">
+          {status === 'escrow_pending' ? (
+            <div className="flex items-center gap-2 text-sm font-bold text-cyan-800">
+              <Clock className="w-4 h-4 shrink-0" aria-hidden />
+              {/* Honest: escrow is OFF in prod — the order truthfully waits, nothing pretends it ran */}
+              {t.dcBothDone} · {t.dcWaitingPayment}
+            </div>
+          ) : (
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <div className="min-w-0">
+                <div className="text-sm font-bold text-cyan-800">{t.dcTitle}</div>
+                <div className="text-[11px] text-cyan-700 mt-0.5">{t.dcDesc}</div>
+                <div className="flex items-center gap-3 mt-1.5 text-[11px]">
+                  <span className={`inline-flex items-center gap-1 ${confirms.buyer ? 'text-green-700' : 'text-gray-500'}`}>
+                    {confirms.buyer ? <CheckCircle2 className="w-3.5 h-3.5" aria-hidden /> : <Clock className="w-3.5 h-3.5" aria-hidden />}
+                    {t.chatRoleSender}
+                  </span>
+                  <span className={`inline-flex items-center gap-1 ${confirms.traveler ? 'text-green-700' : 'text-gray-500'}`}>
+                    {confirms.traveler ? <CheckCircle2 className="w-3.5 h-3.5" aria-hidden /> : <Clock className="w-3.5 h-3.5" aria-hidden />}
+                    {t.chatRoleTraveler}
+                  </span>
+                </div>
+              </div>
+              {myConfirmed ? (
+                <span className="inline-flex items-center gap-1.5 text-sm font-bold text-green-700 shrink-0">
+                  <CheckCircle2 className="w-4 h-4" aria-hidden />
+                  {bothConfirmed ? t.dcBothDone : t.dcYouConfirmed}
+                </span>
+              ) : (
+                <button onClick={confirmDeal} disabled={confirming}
+                  className="ds-btn-primary shrink-0 disabled:opacity-60" style={{ height: 38, padding: '0 18px' }}>
+                  {confirming ? <Loader2 className="w-4 h-4 animate-spin" aria-hidden /> : <CheckCircle2 className="w-4 h-4" aria-hidden />}
+                  {t.dcConfirmBtn}
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Messages */}
       <div ref={messagesEl} className="flex-1 overflow-y-auto px-4 py-3 flex flex-col gap-2">
