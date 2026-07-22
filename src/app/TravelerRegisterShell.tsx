@@ -10,6 +10,7 @@ import { Store, genId } from '../lib/store';
 import AirportCityAutocomplete, { type AirportOption } from './AirportCityAutocomplete';
 import GuidedCapture from './GuidedCapture';
 import TravelerAssistant, { type AssistSuggestion } from './TravelerAssistant';
+import PreferredChannelStep from './PreferredChannelStep';
 import { publishTrip, toISO2, COUNTRIES, type TripMode } from '../lib/tripPublish';
 import { PROHIBITED_CATEGORIES } from '../lib/prohibited';
 
@@ -944,6 +945,10 @@ function StepCarryPayout(p: {
           className="ds-input" placeholder="نام و نام خانوادگی صاحب حساب" />
         <p className="mt-2 text-[11px] text-gray-500">جزئیات تسویه فقط ذخیره می‌شود؛ در این مرحله پرداختی انجام نمی‌شود.</p>
       </div>
+
+      {/* CMD-51 (3a-1) — «از کجا خبرت کنیم؟». Additive: step4Valid() does NOT consult it, so
+          skipping leaves the account default ('email') and publish is unaffected. */}
+      <div className="mt-5"><PreferredChannelStep /></div>
     </div>
   );
 }

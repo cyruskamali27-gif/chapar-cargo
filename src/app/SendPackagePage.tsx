@@ -16,6 +16,7 @@ import { useVerifyGate } from '../lib/useVerifyGate';
 import { useKycGate } from '../lib/useKycGate';
 import { Store, genId, getLiveRate } from '../lib/store';
 import SecuritySelector from './ProtectionSelector';
+import PreferredChannelStep from './PreferredChannelStep';
 import { defaultSecurityLevel, type SecurityLevel } from './shipmentTypes';
 import { PhoneField, isValidPhoneNumber } from '../lib/PhoneField';
 import type { Country } from '../lib/PhoneField';
@@ -1634,6 +1635,10 @@ export default function SendPackagePage({ onHome, cargoType = 'personal', onNavi
                 </div>
               </>
             )}
+
+            {/* CMD-51 (3a-1) — «از کجا خبرت کنیم؟». Additive section, never a gate: the publish
+                button below is unchanged and does not consult it. */}
+            <div className="mb-4"><PreferredChannelStep /></div>
 
             {kycNotice}
             <Err msg={err} />
