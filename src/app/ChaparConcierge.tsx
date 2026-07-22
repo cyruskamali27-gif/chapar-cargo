@@ -63,6 +63,33 @@ const IDENTIFY_MAX_TURNS = 3;
 // Confidence thresholds — the same numbers drive the badge colour and the clarification
 // decision, so the badge always explains why we asked.
 const CONF_OK = 0.8, CONF_LOW = 0.6;
+// /api/ai/identify's SYSTEM_PROMPT is not language-aware — unlike /api/ai/chat it takes no
+// `language` and always answers in English. Live verification caught the result: a blank
+// photo in the fa UI produced "What product are you looking for?" in an otherwise Persian
+// RTL thread. The model's own wording is only trusted for en; every other language gets its
+// own string. Fixed here rather than in the prompt because the component is what knows the
+// UI language, and CMD-45 leaves the AI service untouched.
+// Magic-byte sniff. Only the three types the service whitelists are accepted; anything else
+// (including HEIC, which Gemini takes but browsers will not render in the preview) is
+// rejected with an honest message rather than staged and failed later.
+function sniffImageMime(buf) {
+  const b = new Uint8Array(buf);
+  if (b.length < 12) return null;
+  if (b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff) return "image/jpeg";
+  if (b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47 &&
+      b[4] === 0x0d && b[5] === 0x0a && b[6] === 0x1a && b[7] === 0x0a) return "image/png";
+  if (b[0] === 0x52 && b[1] === 0x49 && b[2] === 0x46 && b[3] === 0x46 &&
+      b[8] === 0x57 && b[9] === 0x45 && b[10] === 0x42 && b[11] === 0x50) return "image/webp";
+  return null;
+}
+
+const CLARIFY = {
+  fa: "محصول را از روی عکس تشخیص ندادم — نام یا برندش را می‌نویسید؟",
+  en: "I couldn't identify the product from that image — what is it?",
+  ar: "لم أتعرّف على المنتج من الصورة — ما اسمه أو علامته التجارية؟",
+  tr: "Ürünü fotoğraftan tanıyamadım — adı veya markası nedir?",
+  fr: "Je n'ai pas reconnu le produit sur la photo — quel est son nom ou sa marque ?",
+};
 
 export default function ChaparConcierge({ language = "fa", userName = "", userId, onNeedAuth, onPublished }: { language?: string; userName?: string; userId?: string; onNeedAuth?: () => void; onPublished?: (orderId: string) => void }) {
   const lang = LANGS[language] ? language : "fa";
@@ -126,6 +153,7 @@ export default function ChaparConcierge({ language = "fa", userName = "", userId
   // they want with it ("این را در سایز ۴۲"), exactly as they would in any messenger.
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);   // data: URL — preview AND payload
+  const [imageMime, setImageMime] = useState(null);         // SNIFFED, not the file's claim
   const [identifyResult, setIdentifyResult] = useState(null);
   const [showProductCard, setShowProductCard] = useState(false);
   const [imgErr, setImgErr] = useState("");
@@ -365,18 +393,29 @@ export default function ChaparConcierge({ language = "fa", userName = "", userId
   // ── Attachment staging ─────────────────────────────────────────────────────
   // One entry point for all three ways in — 📎 picker, paste, drag-and-drop — so the
   // validation can never be bypassed by choosing a different gesture.
-  function attachFile(f) {
+  async function attachFile(f) {
     if (!f) return;
-    const mime = (f.type || "").toLowerCase();
-    if (!IMG_MIMES.includes(mime)) { setImgErr("فقط عکس JPG، PNG یا WebP پذیرفته می‌شود"); return; }
+    // Size first — it is free and rejects the worst case without reading anything.
     if (f.size > IMG_MAX_BYTES) { setImgErr("حجم عکس بیش از ۴ مگابایت است — عکس کوچک‌تری بفرستید"); return; }
+    const claimed = (f.type || "").toLowerCase();
+    if (claimed && !IMG_MIMES.includes(claimed)) { setImgErr("فقط عکس JPG، PNG یا WebP پذیرفته می‌شود"); return; }
+    // f.type is NOT evidence: for a picker selection the browser derives it from the file
+    // EXTENSION, so a .txt renamed .jpg arrives claiming image/jpeg and sails past the check
+    // above. Live verification confirmed exactly that — it staged, and would have spent a
+    // Gemini call on 63 bytes of text. The header is the one thing a rename cannot forge.
+    let sniffed = null;
+    try { sniffed = sniffImageMime(await f.slice(0, 16).arrayBuffer()); }
+    catch { setImgErr("عکس خوانده نشد — دوباره تلاش کنید"); return; }
+    if (!sniffed) { setImgErr("این فایل عکس نیست — فقط JPG، PNG یا WebP"); return; }
     setImgErr("");
     const rd = new FileReader();
-    rd.onload = () => { setImageFile(f); setImagePreview(String(rd.result)); };
+    // The SNIFFED type is what travels: it is what the bytes actually are, and the service
+    // hands imageMimeType to Gemini verbatim.
+    rd.onload = () => { setImageFile(f); setImageMime(sniffed); setImagePreview(String(rd.result)); };
     rd.onerror = () => setImgErr("عکس خوانده نشد — دوباره تلاش کنید");
     rd.readAsDataURL(f);
   }
-  function clearImage() { setImageFile(null); setImagePreview(null); setImgErr(""); }
+  function clearImage() { setImageFile(null); setImagePreview(null); setImageMime(null); setImgErr(""); }
   function onPickFile(e) { attachFile(e.target.files?.[0]); e.target.value = ""; }
   function onPaste(e) {
     for (const it of e.clipboardData?.items || []) {
@@ -443,7 +482,7 @@ export default function ChaparConcierge({ language = "fa", userName = "", userId
       if (unclear && !clarifiedRef.current && !outOfTurns) {
         clarifiedRef.current = true;
         pendingIdentifyRef.current = { dataUrl, mime };
-        const q = d.clarifyingQuestion || "محصول را دقیق تشخیص ندادم — نام یا برندش را می‌نویسید؟";
+        const q = (lang === "en" && d.clarifyingQuestion) || CLARIFY[lang] || CLARIFY.en;
         setMessages((m) => [...m, { role: "assistant", text: q, _api: { role: "assistant", content: q } }]);
         speak(q); pulseReply();
         return;
@@ -483,7 +522,7 @@ export default function ChaparConcierge({ language = "fa", userName = "", userId
     // A staged photo — the identify path.
     if (imageFile && imagePreview) {
       primeTTS();
-      const dataUrl = imagePreview, mime = (imageFile.type || "image/jpeg").toLowerCase();
+      const dataUrl = imagePreview, mime = imageMime || "image/jpeg";
       const next = [...messages, { role: "user", text: t, image: dataUrl, _api: { role: "user", content: t || "Identify this product." } }];
       identifyTurnsRef.current = 0; clarifiedRef.current = false;
       resetFlow(); setMessages(next); setInput(""); clearImage();
@@ -667,7 +706,11 @@ export default function ChaparConcierge({ language = "fa", userName = "", userId
               {m.banner && (
                 <h1 className="mb-1.5 text-lg font-extrabold leading-tight text-white" style={{ textShadow: "0 0 18px rgba(34,211,238,.35)" }}>{m.banner}</h1>
               )}
-              <div className="rounded-2xl px-3.5 py-2 text-sm leading-relaxed" style={m.role === "user" ? { background: "linear-gradient(135deg,#22d3eecc,#6366f1cc)", color: "#fff" } : { background: "rgba(255,255,255,.06)", border: "1px solid rgba(255,255,255,.1)", color: "#eaf2ff" }}>{m.text}</div>
+              {/* An image sent with no caption used to render an empty gradient strip under
+                  the thumbnail — the photo alone is the message. */}
+              {m.text && (
+                <div className="rounded-2xl px-3.5 py-2 text-sm leading-relaxed" style={m.role === "user" ? { background: "linear-gradient(135deg,#22d3eecc,#6366f1cc)", color: "#fff" } : { background: "rgba(255,255,255,.06)", border: "1px solid rgba(255,255,255,.1)", color: "#eaf2ff" }}>{m.text}</div>
+              )}
 
               {/* ── اطلاعات محصول — the identify result ──────────────────────────
                   Confirming feeds confirmProduct(), the same call the chat product card
