@@ -1,6 +1,6 @@
 // @ts-nocheck
 import { useState, useRef, useEffect } from "react";
-import { Send, Mic, Image as ImageIcon, Check, RotateCw, ExternalLink, ShoppingBag, Volume2, VolumeX } from "lucide-react";
+import { Send, Mic, Paperclip, X, Check, RotateCw, ExternalLink, ShoppingBag, Volume2, VolumeX, ScanLine } from "lucide-react";
 import ChaparStorePanel from "./ChaparStorePanel";
 import ChaparGrid from "./ChaparGrid";
 
@@ -44,6 +44,25 @@ const MARKET_META = {
   TR: { flag: "🇹🇷", name: "ترکیه" }, DE: { flag: "🇩🇪", name: "آلمان" }, FR: { flag: "🇫🇷", name: "فرانسه" },
 };
 const fmtLocal = (v, c) => (v == null ? null : `${Number(v).toLocaleString("en-US", { maximumFractionDigits: 2 })} ${c || ""}`.trim());
+
+// ── Image capture (migrated in from the retired kharid-ai.html) ──────────────
+// That page could only reach the SPA through a localStorage bridge, so a captured product
+// arrived in BuyForMeFlow as a flat form seed — after a full document navigation, in a
+// different component tree, with no runCompare, no S1 chips and no publish guard. Capture
+// lives HERE now: the identify result is fed into confirmProduct(), the exact same entry
+// point the URL/chat flow uses, so every downstream stage applies unchanged.
+//
+// 4MB, not the service's 8MB: the base64 body is ~1.34x the file, and a phone photo well
+// under the server cap still costs a slow upload on an Iranian mobile connection. Rejecting
+// locally is instant and free; the server limit stays as the backstop.
+const IMG_MAX_BYTES = 4 * 1024 * 1024;
+const IMG_MIMES = ["image/jpeg", "image/png", "image/webp"];
+// Hard ceiling on the identify exchange. Past this we commit to the best guess we have
+// rather than interrogating the buyer about their own photo.
+const IDENTIFY_MAX_TURNS = 3;
+// Confidence thresholds — the same numbers drive the badge colour and the clarification
+// decision, so the badge always explains why we asked.
+const CONF_OK = 0.8, CONF_LOW = 0.6;
 
 export default function ChaparConcierge({ language = "fa", userName = "", userId, onNeedAuth, onPublished }: { language?: string; userName?: string; userId?: string; onNeedAuth?: () => void; onPublished?: (orderId: string) => void }) {
   const lang = LANGS[language] ? language : "fa";
@@ -102,6 +121,22 @@ export default function ChaparConcierge({ language = "fa", userName = "", userId
   // never auto-enabled on a missing price — the buyer either has a real price or ticks this.
   const [noPriceAck, setNoPriceAck] = useState(false);
   const fileRef = useRef(null), scrollRef = useRef(null);
+  // ── Image capture state ───────────────────────────────────────────────────
+  // The file is staged, NOT sent on pick: the buyer attaches a photo and then types what
+  // they want with it ("این را در سایز ۴۲"), exactly as they would in any messenger.
+  const [imageFile, setImageFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);   // data: URL — preview AND payload
+  const [identifyResult, setIdentifyResult] = useState(null);
+  const [showProductCard, setShowProductCard] = useState(false);
+  const [imgErr, setImgErr] = useState("");
+  const [dragging, setDragging] = useState(false);
+  // Kept as refs, not state: they gate the next call inside the same async turn, where a
+  // re-render has not happened yet and a state read would still see the previous value.
+  const identifyTurnsRef = useRef(0);
+  const clarifiedRef = useRef(false);
+  // The photo the buyer already sent, held so a clarification reply re-identifies the SAME
+  // image with the added words instead of asking them to attach it a second time.
+  const pendingIdentifyRef = useRef(null);   // { dataUrl, mime } | null
   // Variants prefetch cache, keyed by the same expression the store panel fetches with
   // (searchQuery || title — grid results carry no searchQuery). undefined = never asked,
   // null = in flight, object = ready to hand the panel as initialVariantData.
@@ -318,7 +353,171 @@ export default function ChaparConcierge({ language = "fa", userName = "", userId
     } catch { setMessages((m) => [...m, { role: "assistant", text: "ارتباط برقرار نشد.", _api: null }]); } finally { setLoading(false); }
   }
 
-  function send(txt) { const t = (txt ?? input).trim(); if (!t || loading) return; primeTTS(); const next = [...messages, { role: "user", text: t, _api: { role: "user", content: t } }]; setStage(null); setOrderProduct(null); setPublishResult(null); setGridResults([]); setSearchState("ok"); setQuote(null); setNoPriceAck(false); setCompare({ loading: false, data: null, error: false }); setMessages(next); setInput(""); callAI(next); }
+  // Everything a new request invalidates. Was inline in send(); the image path needs the
+  // identical reset, and two copies of this list would drift.
+  function resetFlow() {
+    setStage(null); setOrderProduct(null); setPublishResult(null); setGridResults([]);
+    setSearchState("ok"); setQuote(null); setNoPriceAck(false);
+    setCompare({ loading: false, data: null, error: false });
+    setShowProductCard(false); setIdentifyResult(null);
+  }
+
+  // ── Attachment staging ─────────────────────────────────────────────────────
+  // One entry point for all three ways in — 📎 picker, paste, drag-and-drop — so the
+  // validation can never be bypassed by choosing a different gesture.
+  function attachFile(f) {
+    if (!f) return;
+    const mime = (f.type || "").toLowerCase();
+    if (!IMG_MIMES.includes(mime)) { setImgErr("فقط عکس JPG، PNG یا WebP پذیرفته می‌شود"); return; }
+    if (f.size > IMG_MAX_BYTES) { setImgErr("حجم عکس بیش از ۴ مگابایت است — عکس کوچک‌تری بفرستید"); return; }
+    setImgErr("");
+    const rd = new FileReader();
+    rd.onload = () => { setImageFile(f); setImagePreview(String(rd.result)); };
+    rd.onerror = () => setImgErr("عکس خوانده نشد — دوباره تلاش کنید");
+    rd.readAsDataURL(f);
+  }
+  function clearImage() { setImageFile(null); setImagePreview(null); setImgErr(""); }
+  function onPickFile(e) { attachFile(e.target.files?.[0]); e.target.value = ""; }
+  function onPaste(e) {
+    for (const it of e.clipboardData?.items || []) {
+      if (it.type?.startsWith("image/")) {
+        const f = it.getAsFile();
+        if (f) { e.preventDefault(); attachFile(f); return; }
+      }
+    }
+  }
+  function onDrop(e) {
+    e.preventDefault(); setDragging(false);
+    attachFile(e.dataTransfer?.files?.[0]);
+  }
+
+  // ── Identify ───────────────────────────────────────────────────────────────
+  // Returns the product-shaped object the rest of this component already understands, so a
+  // photo and a typed query converge on ONE contract before anything downstream sees them.
+  function productFromIdentify(idf, dataUrl) {
+    const title = (idf.title || `${idf.brand || ""} ${idf.model || ""}`.trim()) || null;
+    return {
+      title,
+      brand: idf.brand || null,
+      model: idf.model || null,
+      category: idf.category || null,
+      // The clean query is what actually cross-matches in the 5-country fan-out — the same
+      // reason runCompare puts searchQuery ahead of title.
+      searchQuery: idf.searchQuery || title || "",
+      // The captured photo IS the product image. Never empty: the card, the publish summary
+      // and the marketplace listing all read this field.
+      image: dataUrl || null,
+      // Honest nulls. Gemini is looking at a photo, not a price tag — it has no verified
+      // number, and inventing one here would poison the publish price gate downstream.
+      priceUSD: null, currency: null, country: null, link: null,
+      confidence: typeof idf.confidence === "number" ? idf.confidence : null,
+      _fromImage: true,
+    };
+  }
+
+  async function runIdentify(hist, dataUrl, mime, text) {
+    setLoading(true);
+    identifyTurnsRef.current += 1;
+    const b64 = String(dataUrl).split(",")[1] || "";
+    try {
+      const ctrl = new AbortController();
+      const killer = setTimeout(() => ctrl.abort(), 30000);
+      const r = await fetch("/api/ai/identify", {
+        method: "POST", headers: { "Content-Type": "application/json" }, signal: ctrl.signal,
+        // imageMimeType, not mimeType: the service whitelists THIS field and silently falls
+        // back to image/jpeg on anything it does not recognise — a PNG sent under the wrong
+        // key reaches Gemini mislabelled.
+        body: JSON.stringify({ text: text || "", imageBase64: b64, imageMimeType: mime }),
+      }).finally(() => clearTimeout(killer));
+      const d = r.ok ? await r.json().catch(() => null) : null;
+      if (!d?.ok) throw new Error("identify_failed");
+
+      const conf = typeof d.confidence === "number" ? d.confidence : 0;
+      const title = (d.title || `${d.brand || ""} ${d.model || ""}`.trim()).trim();
+      const outOfTurns = identifyTurnsRef.current >= IDENTIFY_MAX_TURNS;
+      const unclear = !title || d.needsClarification || conf < CONF_LOW;
+
+      // ONE clarification, ever. A second "could you describe it?" on a photo the buyer
+      // already took reads as the assistant not working, so past this we commit to the best
+      // guess and let them correct it on the card.
+      if (unclear && !clarifiedRef.current && !outOfTurns) {
+        clarifiedRef.current = true;
+        pendingIdentifyRef.current = { dataUrl, mime };
+        const q = d.clarifyingQuestion || "محصول را دقیق تشخیص ندادم — نام یا برندش را می‌نویسید؟";
+        setMessages((m) => [...m, { role: "assistant", text: q, _api: { role: "assistant", content: q } }]);
+        speak(q); pulseReply();
+        return;
+      }
+
+      pendingIdentifyRef.current = null;
+      const product = productFromIdentify(d, dataUrl);
+      const idf = {
+        ...product,
+        // Say what we could not see, rather than leaving a blank the buyer reads as zero.
+        titleNote: title ? null : "نام محصول مشخص نیست",
+        priceNote: "قیمت در تصویر دیده نشد",
+        lowConfidence: conf < CONF_LOW,
+      };
+      setIdentifyResult(idf); setShowProductCard(true);
+      const lead = title ? `این را شناسایی کردم: ${title}` : "محصول را با اطمینان کامل تشخیص ندادم — بهترین حدسم این است:";
+      setMessages((m) => [...m, {
+        role: "assistant", text: lead, banner: title || null, identify: idf,
+        _api: { role: "assistant", content: `Identified from image: ${title || "unclear product"}` },
+      }]);
+      speak(lead); pulseReply();
+    } catch {
+      // DEGRADATION — identify is an enhancement, never a gate. A failed/timed-out/rate-
+      // limited call falls through to the ordinary vision chat, which is the exact path this
+      // component used before capture existed. The buyer keeps a working conversation.
+      pendingIdentifyRef.current = null;
+      setLoading(false);
+      await callAI(hist, { b64, mime });
+      return;
+    } finally { setLoading(false); }
+  }
+
+  function send(txt) {
+    const t = (txt ?? input).trim();
+    if (loading) return;
+
+    // A staged photo — the identify path.
+    if (imageFile && imagePreview) {
+      primeTTS();
+      const dataUrl = imagePreview, mime = (imageFile.type || "image/jpeg").toLowerCase();
+      const next = [...messages, { role: "user", text: t, image: dataUrl, _api: { role: "user", content: t || "Identify this product." } }];
+      identifyTurnsRef.current = 0; clarifiedRef.current = false;
+      resetFlow(); setMessages(next); setInput(""); clearImage();
+      runIdentify(next, dataUrl, mime, t);
+      return;
+    }
+
+    if (!t) return;
+
+    // A text answer to our one clarification — re-identify the SAME photo with the added
+    // words instead of making the buyer attach it again.
+    if (pendingIdentifyRef.current) {
+      primeTTS();
+      const { dataUrl, mime } = pendingIdentifyRef.current;
+      const next = [...messages, { role: "user", text: t, _api: { role: "user", content: t } }];
+      setMessages(next); setInput("");
+      runIdentify(next, dataUrl, mime, t);
+      return;
+    }
+
+    primeTTS();
+    const next = [...messages, { role: "user", text: t, _api: { role: "user", content: t } }];
+    resetFlow(); setMessages(next); setInput(""); callAI(next);
+  }
+
+  // Confirm → the SAME entry point the chat/URL flow uses. Not a parallel publish path:
+  // confirmProduct sets orderProduct, opens the store panel and fires runCompare, so the S1
+  // corridor chips and the three-state publish guard apply to a photographed product
+  // exactly as they do to a typed one — same session, same component tree, no bridge.
+  function confirmFromIdentify(idf) {
+    setShowProductCard(false);
+    const { titleNote, priceNote, lowConfidence, ...product } = idf;
+    confirmProduct(product);
+  }
   function more() { if (loading) return; const next = [...messages, { role: "user", text: "بیشتر بگردیم.", _api: { role: "user", content: "Suggest a different option." } }]; setMessages(next); callAI(next); }
   // DECOUPLE price from variants: the instant a product is confirmed, kick off the price
   // comparison IN PARALLEL with the store panel's own variants fetch. Neither gates the other —
@@ -343,7 +542,9 @@ export default function ChaparConcierge({ language = "fa", userName = "", userId
     } catch { setPublishResult(null); }
     setPublishing(false);
   }
-  function onImg(e) { const f = e.target.files?.[0]; if (!f) return; const rd = new FileReader(); rd.onload = () => { const d = String(rd.result), b = d.split(",")[1]; const next = [...messages, { role: "user", text: "📷", image: d, _api: { role: "user", content: "Identify this product." } }]; setMessages(next); callAI(next, { b64: b, mime: f.type || "image/jpeg" }); }; rd.readAsDataURL(f); e.target.value = ""; }
+  // onImg() lived here: it fired /api/ai/chat the instant a file was picked, with no
+  // preview, no validation and no way to cancel. Replaced by attachFile() + send() above,
+  // which stage the photo first and route it through identify.
   function voice() {
     primeTTS();   // this tap is the gesture iOS needs before it will ever speak
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -373,7 +574,11 @@ export default function ChaparConcierge({ language = "fa", userName = "", userId
   // Contextual status: after the reply is shown we're fetching product results; otherwise still thinking.
   // The product search is a live Bright Data SERP fetch that can take up to a minute cold — say so,
   // rather than let a bare "در حال جست‌وجو…" read as a hang. (The request itself waits the full 60s.)
-  const thinkingStatus = (loading && _lastMsg?.role === "assistant") ? "در حال جست‌وجو… بار اول تا یک دقیقه طول می‌کشد" : "در حال فکر کردن…";
+  // An identify call is recognisable without extra state: it is the only thing that runs
+  // while the last message is a user turn carrying an image.
+  const thinkingStatus = (loading && _lastMsg?.role === "user" && _lastMsg?.image) ? "در حال بررسی عکس…"
+    : (loading && _lastMsg?.role === "assistant") ? "در حال جست‌وجو… بار اول تا یک دقیقه طول می‌کشد"
+    : "در حال فکر کردن…";
 
   return (
     <div dir={rtl ? "rtl" : "ltr"} className="mx-auto w-full max-w-2xl space-y-4 p-3 font-sans">
@@ -435,15 +640,68 @@ export default function ChaparConcierge({ language = "fa", userName = "", userId
           blank, with no JS error and no chance for the error boundary to run.
           Removed rather than fixed: restore it only with a same-origin asset. */}
 
-      {/* ── SECTION 1 — AI CARD (always visible) ── */}
-      <div className="overflow-hidden rounded-[28px]" style={CARD_BG}>
+      {/* ── SECTION 1 — AI CARD (always visible) ──
+          Doubles as the drop zone. dragLeave is guarded on relatedTarget because every
+          child element fires one as the pointer crosses it — without that the highlight
+          strobes on and off while the buyer is still dragging over the card. */}
+      <div
+        className={"overflow-hidden rounded-[28px] transition-shadow " + (dragging ? "ring-2 ring-cyan-400/70" : "")}
+        style={CARD_BG}
+        onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+        onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) setDragging(false); }}
+        onDrop={onDrop}
+      >
+        {dragging && (
+          <div className="border-b border-cyan-400/30 bg-cyan-400/10 py-2 text-center text-xs font-bold text-cyan-200">
+            عکس محصول را اینجا رها کنید
+          </div>
+        )}
 
         {/* chat messages */}
         <div ref={scrollRef} className="max-h-[40vh] space-y-2 overflow-y-auto px-4 pt-2">
           {messages.map((m, i) => (
             <div key={i} className={`max-w-[86%] ${m.role === "user" ? "ms-auto" : "me-auto"}`} style={{ animation: "up .35s ease both" }}>
               {m.image && <img src={m.image} alt="" className="mb-1 max-h-28 rounded-xl border border-white/15" />}
+              {/* H1 banner — the identified product name, stated once and loudly, so the
+                  buyer can see at a glance what the photo was read as. */}
+              {m.banner && (
+                <h1 className="mb-1.5 text-lg font-extrabold leading-tight text-white" style={{ textShadow: "0 0 18px rgba(34,211,238,.35)" }}>{m.banner}</h1>
+              )}
               <div className="rounded-2xl px-3.5 py-2 text-sm leading-relaxed" style={m.role === "user" ? { background: "linear-gradient(135deg,#22d3eecc,#6366f1cc)", color: "#fff" } : { background: "rgba(255,255,255,.06)", border: "1px solid rgba(255,255,255,.1)", color: "#eaf2ff" }}>{m.text}</div>
+
+              {/* ── اطلاعات محصول — the identify result ──────────────────────────
+                  Confirming feeds confirmProduct(), the same call the chat product card
+                  makes. There is deliberately no second publish path here. */}
+              {m.identify && showProductCard && identifyResult === m.identify && (() => {
+                const idf = m.identify;
+                const c = idf.confidence;
+                const tone = c == null ? { cls: "border-white/15 bg-white/5 text-white/60", label: "بدون درجهٔ اطمینان" }
+                  : c >= CONF_OK ? { cls: "border-emerald-400/30 bg-emerald-400/15 text-emerald-300", label: `اطمینان بالا · ${Math.round(c * 100)}٪` }
+                  : c >= CONF_LOW ? { cls: "border-amber-400/30 bg-amber-400/15 text-amber-300", label: `اطمینان متوسط · ${Math.round(c * 100)}٪` }
+                  : { cls: "border-rose-400/30 bg-rose-400/15 text-rose-300", label: `اطمینان پایین · ${Math.round(c * 100)}٪` };
+                return (
+                  <div className="mt-2 rounded-2xl border border-white/10 p-3" style={{ background: "rgba(15,18,32,.7)" }}>
+                    <div className="mb-2 flex items-center gap-2 text-xs font-bold text-cyan-300"><ScanLine size={15} /> اطلاعات محصول</div>
+                    {idf.image && <img src={idf.image} alt="" className="mb-2 h-32 w-full rounded-xl object-cover" />}
+                    <div className="font-bold text-white">{idf.title || idf.titleNote}</div>
+                    {idf.category && <div className="mt-0.5 text-xs text-white/50">دستهٔ کالا: {idf.category}</div>}
+                    {/* Honest nulls — a photo carries no verified price, so we say so
+                        instead of showing a blank field that reads as free. */}
+                    <div className="mt-0.5 text-xs text-white/50">{idf.priceNote}</div>
+                    <div className={"mt-2 inline-block rounded-full border px-2 py-0.5 text-[10px] font-bold " + tone.cls}>{tone.label}</div>
+                    {idf.lowConfidence && (
+                      <div className="mt-2 rounded-xl border border-white/10 bg-white/[0.03] p-2 text-[11px] leading-relaxed text-white/50">
+                        اگر درست نیست، نام محصول را بنویسید تا دوباره بگردم.
+                      </div>
+                    )}
+                    <button onClick={() => confirmFromIdentify(idf)} disabled={!idf.title}
+                      className="mt-3 flex w-full items-center justify-center gap-1 rounded-xl py-2 text-sm font-bold text-white disabled:opacity-40"
+                      style={{ background: "linear-gradient(135deg,#047857,#0e7490)" }}>
+                      <Check size={15} /> بله، همین است
+                    </button>
+                  </div>
+                );
+              })()}
               {m.product && (
                 <div className="mt-2 rounded-2xl border border-white/10 p-3" style={{ background: "rgba(15,18,32,.7)" }}>
                   {m.product.image && (m.product.image.startsWith("http") || m.product.image.startsWith("data:")) && (
@@ -501,12 +759,25 @@ export default function ChaparConcierge({ language = "fa", userName = "", userId
           </div>
           {voiceErr && <div className="mb-1 text-center text-[11px] text-rose-300">{voiceErr}</div>}
           {ttsNote && !voiceErr && <div className="mb-1 text-center text-[11px] text-white/40">این دستگاه صدای فارسی ندارد — پاسخ‌ها فقط نوشته می‌شوند</div>}
+          {imgErr && <div className="mb-1 text-center text-[11px] text-rose-300">{imgErr}</div>}
+          {/* Attachment preview — staged, not sent. The ✕ is the cancel the old
+              pick-and-fire behaviour never offered. */}
+          {imagePreview && (
+            <div className="mb-2 flex items-center gap-2">
+              <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl border border-white/15">
+                <img src={imagePreview} alt="" className="h-full w-full object-cover" />
+                <button onClick={clearImage} aria-label="حذف عکس"
+                  className="absolute top-0.5 end-0.5 grid h-4 w-4 place-items-center rounded-full bg-black/65 text-white"><X size={10} /></button>
+              </div>
+              <div className="text-[11px] leading-relaxed text-white/50">عکس ضمیمه شد — بفرستید تا محصول را شناسایی کنم</div>
+            </div>
+          )}
           <div className="flex items-center gap-2">
-            <button onClick={() => fileRef.current?.click()} className="grid h-10 w-10 place-items-center rounded-full bg-white/5 text-white/60"><ImageIcon size={19} /></button>
-            <input ref={fileRef} type="file" accept="image/*" hidden onChange={onImg} />
+            <button onClick={() => fileRef.current?.click()} aria-label="ضمیمهٔ عکس" className="grid h-10 w-10 place-items-center rounded-full bg-white/5 text-white/60"><Paperclip size={19} /></button>
+            <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={onPickFile} />
             <button onClick={voice} className={`grid h-10 w-10 place-items-center rounded-full ${listening ? "bg-rose-500 text-white" : "bg-white/5 text-cyan-300"}`}><Mic size={19} /></button>
-            <input value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && send()} placeholder="بنویسید یا حرف بزنید…" className="flex-1 rounded-full border border-white/15 bg-white/5 px-4 py-2.5 text-sm text-white outline-none placeholder:text-white/50" />
-            <button onClick={() => send()} disabled={loading} className="grid h-10 w-10 place-items-center rounded-full text-white disabled:opacity-40" style={{ background: "linear-gradient(135deg,#0e7490,#4f46e5)" }}><Send size={18} /></button>
+            <input value={input} onChange={(e) => setInput(e.target.value)} onPaste={onPaste} onKeyDown={(e) => e.key === "Enter" && send()} placeholder={imagePreview ? "توضیحی اضافه کنید (اختیاری)…" : "بنویسید، عکس بفرستید یا حرف بزنید…"} className="flex-1 rounded-full border border-white/15 bg-white/5 px-4 py-2.5 text-sm text-white outline-none placeholder:text-white/50" />
+            <button onClick={() => send()} disabled={loading || (!input.trim() && !imageFile)} className="grid h-10 w-10 place-items-center rounded-full text-white disabled:opacity-40" style={{ background: "linear-gradient(135deg,#0e7490,#4f46e5)" }}><Send size={18} /></button>
           </div>
         </div>
       </div>

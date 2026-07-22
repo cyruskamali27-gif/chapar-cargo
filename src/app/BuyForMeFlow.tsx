@@ -567,41 +567,6 @@ function BuyForMeForm({ t, isRTL, onHome, onNavigate, onNeedAuth, product, setPr
   );
 }
 
-// ── Concierge handoff ─────────────────────────────────────────────────────────
-
-const HANDOFF_KEY = 'cp_ai_product';
-const HANDOFF_MAX_AGE_MS = 30 * 60 * 1000;
-
-// Read-once: the key is cleared whether or not it was usable, so a stale or malformed
-// payload cannot keep re-seeding the form on every later visit to this page.
-function readConciergeHandoff(): Partial<ProductInfo> | null {
-  if (typeof window === 'undefined') return null;
-  let raw: string | null = null;
-  try {
-    raw = window.localStorage.getItem(HANDOFF_KEY);
-    if (raw !== null) window.localStorage.removeItem(HANDOFF_KEY);
-  } catch { return null; }
-  if (!raw) return null;
-
-  try {
-    const env = JSON.parse(raw);
-    if (!env || typeof env !== 'object') return null;
-    if (typeof env.ts === 'number' && Date.now() - env.ts > HANDOFF_MAX_AGE_MS) return null;
-    const p = env.product;
-    if (!p || typeof p !== 'object' || typeof p.title !== 'string' || !p.title.trim()) return null;
-    const str = (v: unknown) => (typeof v === 'string' ? v : typeof v === 'number' ? String(v) : '');
-    return {
-      title:      str(p.title).slice(0, 200),
-      store:      str(p.store).slice(0, 120),
-      price:      str(p.price),
-      currency:   CURRENCIES.some(c => c.code === p.currency) ? String(p.currency) : 'USD',
-      qty:        str(p.qty) || '1',
-      imageUrl:   str(p.imageUrl),
-      productUrl: str(p.productUrl),
-    };
-  } catch { return null; }
-}
-
 // ── Public export ─────────────────────────────────────────────────────────────
 
 export default function BuyForMeFlow({ onBack, onHome, t, isRTL, onNavigate, onNeedAuth, initialMode, onPublished }: {
@@ -616,12 +581,9 @@ export default function BuyForMeFlow({ onBack, onHome, t, isRTL, onNavigate, onN
   const { lang } = useLang();
   const { session } = useSession();
   const [mode, setMode] = useState<Mode>(initialMode ?? 'selector');
-  // Lifted state — shared between ProductFinder (lead) and BuyForMeForm.
-  // Seeded from the kharid-ai.html concierge handoff when one is waiting: that page can only
-  // pass state through storage, since it is a separate document from this bundle.
-  const [product, setProduct] = useState<ProductInfo>(() => {
-    const empty: ProductInfo = { title: '', store: '', price: '', currency: 'USD', qty: '1', imageUrl: '', productUrl: '' };
-    return { ...empty, ...(readConciergeHandoff() ?? {}) };
+  // Lifted state — shared between ProductFinder (lead) and BuyForMeForm
+  const [product, setProduct] = useState<ProductInfo>({
+    title: '', store: '', price: '', currency: 'USD', qty: '1', imageUrl: '', productUrl: '',
   });
   const [value, setValue] = useState<ValueInfo>({ amount: '', currency: 'USD' });
 
