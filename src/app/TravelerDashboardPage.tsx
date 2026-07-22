@@ -555,7 +555,7 @@ export default function TravelerDashboardPage({ onHome, onNewTrip, onNavigate }:
                                 </span>
                               </a>
                               {canChat && (
-                                <a href={`/chat?order=${encodeURIComponent(o.trackId)}&peer=${encodeURIComponent(o.userId||'')}&name=${encodeURIComponent((o.firstName||'')+' '+(o.lastName||''))}&role=traveler`}
+                                <a href={`/film-preview.html?page=chat&order=${encodeURIComponent(o.trackId)}&name=${encodeURIComponent((o.firstName||'')+' '+(o.lastName||''))}&role=traveler`}
                                   className="flex items-center justify-center gap-1 px-3 py-1.5 bg-blue-50 border border-blue-200 text-blue-700 text-xs font-bold rounded-xl no-underline hover:bg-blue-100 transition-colors">
                                   {t.tdashChatSender}
                                 </a>

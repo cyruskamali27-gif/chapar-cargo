@@ -333,7 +333,7 @@ export default function MyOrdersPage({ onHome, onOpenReceipt }: Props) {
                       const trip  = trips.find(t => t.id === tripId);
                       const name  = trip?.userName || t.mordTraveler;
                       return (
-                        <a href={`/chat?order=${encodeURIComponent(o.trackId)}&peer=${encodeURIComponent(tripId)}&name=${encodeURIComponent(name)}&role=sender`}
+                        <a href={`/film-preview.html?page=chat&order=${encodeURIComponent(o.trackId)}&name=${encodeURIComponent(name)}&role=sender`}
                           className="text-[10px] font-bold px-2.5 py-1 rounded-lg bg-blue-50 border border-blue-200 text-blue-700 hover:bg-blue-100 transition-colors no-underline"
                           style={{ textDecoration:'none' }}>
                           {t.mordChat}

@@ -40,6 +40,7 @@ import AppErrorBoundary from "./app/AppErrorBoundary.tsx";
 import { LangProvider } from "./lib/LangContext.tsx";
 
 const path = window.location.pathname;
+const pageParam = new URLSearchParams(window.location.search).get('page');
 
 let element: React.ReactElement;
 
@@ -58,7 +59,7 @@ if (path.startsWith('/google-earth-preview')) {
   element = <OwnerPaymentPage />;
 } else if (path.startsWith('/traveler-deposit')) {
   element = <TravelerDepositPage />;
-} else if (path.startsWith('/chat')) {
+} else if (path.startsWith('/chat') || pageParam === 'chat') {
   element = <ChatPage />;
 } else if (path.startsWith('/dispute')) {
   element = <DisputePage />;
