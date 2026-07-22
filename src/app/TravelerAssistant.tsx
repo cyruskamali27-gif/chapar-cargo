@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Sparkles, Send, X, Plus } from 'lucide-react';
+import { Sparkles, Send, X, Plus, Check } from 'lucide-react';
 import { useLang } from '../lib/LangContext';
 
 // ── CMD-25 — traveler registration AI assistant (light theme) ──────────────────
@@ -28,12 +28,14 @@ const STARTERS = [
 ];
 
 export default function TravelerAssistant({
-  accent, onApply,
+  onApply, onUnavailable,
 }: {
-  accent: { text: string; mark: string; soft: string };
   // Applies a proposed value into the form. The SHELL owns the whitelist too — this is the only
   // way the assistant can affect form state, and only for the three allowed fields.
   onApply: (field: ApplyField, value: number | string) => void;
+  // CMD-48: told the shell the engine is unreachable so it can reveal the inline capacity field.
+  // This is a NOTIFICATION, not a gate — the shell shows a field, it never waits for us.
+  onUnavailable?: () => void;
 }) {
   const { isRTL } = useLang();
   const [open, setOpen]       = useState(false);
@@ -72,7 +74,8 @@ export default function TravelerAssistant({
       setMsgs(m => [...m, { role: 'assistant', text: d.reply || '…', suggestions }]);
     } catch {
       // Additive: an error is shown in-panel and never propagates to the form.
-      setErr('دستیار در دسترس نیست. می‌تونی فرم رو بدون کمک دستیار کامل کنی.');
+      setErr('دستیار در دسترس نیست. ظرفیت را می‌توانید مستقیم وارد کنید.');
+      onUnavailable?.();
     } finally {
       setLoading(false);
     }
@@ -88,12 +91,12 @@ export default function TravelerAssistant({
     return (
       <button onClick={() => setOpen(true)}
         className="w-full mb-5 flex items-center gap-2 rounded-2xl border px-4 py-3 bg-white text-start transition-colors hover:bg-gray-50"
-        style={{ borderColor: accent.mark }}>
-        <span className="inline-flex w-8 h-8 rounded-xl items-center justify-center flex-shrink-0" style={{ backgroundColor: accent.soft }}>
-          <Sparkles className="w-4 h-4" style={{ color: accent.mark }} aria-hidden />
+        style={{ borderColor: 'var(--ds-brand-border)' }}>
+        <span className="inline-flex w-8 h-8 rounded-xl items-center justify-center flex-shrink-0" style={{ backgroundColor: 'var(--ds-brand-bg)' }}>
+          <Sparkles className="w-4 h-4" style={{ color: 'var(--ds-brand-text)' }} aria-hidden />
         </span>
         <span className="flex-1">
-          <span className="block text-sm font-bold" style={{ color: accent.text }}>دستیار هوشمند مسافر</span>
+          <span className="block text-sm font-bold" style={{ color: 'var(--ds-brand-text)' }}>دستیار هوشمند مسافر</span>
           <span className="block text-[11px] text-gray-500">کمک برای تخمین ظرفیت و قوانین حمل — اختیاری</span>
         </span>
       </button>
@@ -101,12 +104,12 @@ export default function TravelerAssistant({
   }
 
   return (
-    <div className="mb-5 rounded-2xl border bg-white overflow-hidden" style={{ borderColor: accent.mark }} dir={isRTL ? 'rtl' : 'ltr'}>
+    <div className="mb-5 rounded-2xl border bg-white overflow-hidden" style={{ borderColor: 'var(--ds-brand-border)' }} dir={isRTL ? 'rtl' : 'ltr'}>
       {/* header — light */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
         <div className="flex items-center gap-2">
-          <span className="inline-flex w-8 h-8 rounded-xl items-center justify-center" style={{ backgroundColor: accent.soft }}>
-            <Sparkles className="w-4 h-4" style={{ color: accent.mark }} aria-hidden />
+          <span className="inline-flex w-8 h-8 rounded-xl items-center justify-center" style={{ backgroundColor: 'var(--ds-brand-bg)' }}>
+            <Sparkles className="w-4 h-4" style={{ color: 'var(--ds-brand-text)' }} aria-hidden />
           </span>
           <div>
             <div className="text-sm font-bold text-gray-900">دستیار هوشمند مسافر</div>
@@ -126,7 +129,7 @@ export default function TravelerAssistant({
             <div className="max-w-[88%]">
               <div className={`rounded-2xl px-3.5 py-2 text-[13px] leading-relaxed ${
                 m.role === 'user' ? 'text-white' : 'bg-white border border-gray-200 text-gray-800'}`}
-                style={m.role === 'user' ? { backgroundColor: accent.text } : undefined}>
+                style={m.role === 'user' ? { backgroundColor: 'var(--ds-brand-text)' } : undefined}>
                 {m.text}
               </div>
               {/* tap-to-apply suggestion chips */}
@@ -138,8 +141,8 @@ export default function TravelerAssistant({
                     return (
                       <button key={j} onClick={() => !done && apply(s, key)} disabled={done}
                         className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[12px] font-semibold border transition-colors disabled:opacity-70"
-                        style={{ borderColor: accent.mark, color: accent.text, backgroundColor: done ? accent.soft : '#fff' }}>
-                        {done ? '✓' : <Plus className="w-3 h-3" />}
+                        style={{ borderColor: 'var(--ds-brand-border)', color: 'var(--ds-brand-text)', backgroundColor: done ? 'var(--ds-brand-bg)' : '#fff' }}>
+                        {done ? <Check className="w-3 h-3" aria-hidden /> : <Plus className="w-3 h-3" aria-hidden />}
                         {s.label}
                       </button>
                     );
@@ -151,7 +154,7 @@ export default function TravelerAssistant({
         ))}
         {loading && (
           <div className="flex items-center gap-2 text-gray-400 text-xs">
-            <div className="w-3.5 h-3.5 border-2 rounded-full animate-spin" style={{ borderColor: accent.mark, borderTopColor: 'transparent' }} />
+            <div className="w-3.5 h-3.5 border-2 rounded-full animate-spin" style={{ borderColor: 'var(--ds-brand)', borderTopColor: 'transparent' }} />
             در حال فکر کردن…
           </div>
         )}
@@ -178,7 +181,7 @@ export default function TravelerAssistant({
           className="flex-1 h-10 px-3 rounded-xl border border-gray-200 bg-white text-sm focus:outline-none" />
         <button onClick={() => send()} disabled={loading || !input.trim()}
           className="w-10 h-10 rounded-xl flex items-center justify-center text-white disabled:opacity-40"
-          style={{ backgroundColor: accent.text }} aria-label="ارسال">
+          style={{ backgroundColor: 'var(--ds-brand-text)' }} aria-label="ارسال">
           <Send className="w-4 h-4" />
         </button>
       </div>

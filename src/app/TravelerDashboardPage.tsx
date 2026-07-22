@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
-import { ArrowLeft, Home } from 'lucide-react';
+import { ArrowLeft, Home, Plane, Package as PackageIcon, Star, DollarSign, Globe, Target,
+         Compass, Inbox, ClipboardList, Camera, ShoppingBag, X } from 'lucide-react';
+import { CargoIcon, cargoIcon, RouteArrow, Meta, MetaIcons, Stars } from './flowIcons';
 import GuidedCapture from './GuidedCapture';
 import TravelerOfferSheet from './TravelerOfferSheet';
 import { Store, genId } from '../lib/store';
@@ -26,9 +28,7 @@ interface Offer {
 }
 interface Rating { tripId: string; score: number; }
 
-const CARGO_ICONS: Record<string,string> = {
-  personal:'📦', medicine:'💊', documents:'📄', clothing:'👗', electronics:'💻', gift:'🎁', other:'📦', food:'🍱'
-};
+// CMD-48: categories draw from the shared Lucide map in flowIcons.tsx — no emoji.
 const OFFER_STATUS_CLS: Record<string,string> = {
   pending:   'bg-yellow-50 text-yellow-700 border-yellow-200',
   accepted:  'bg-green-50  text-green-700  border-green-200',
@@ -379,7 +379,7 @@ export default function TravelerDashboardPage({ onHome, onNewTrip, onNavigate }:
       const d = await r.json();
       if (r.ok && d.ok) {
         setToastOk(true);
-        setToast(action === 'accept' ? 'پذیرفتید ✓ — خریدار باید تأیید کند' : 'رد شد');
+        setToast(action === 'accept' ? 'پذیرفتید — خریدار باید تأیید کند' : 'رد شد');
       } else if (r.status === 409) {
         // Lost the race. This is a normal outcome of a broadcast, not an error — say so plainly.
         setToastOk(false);
@@ -421,13 +421,13 @@ export default function TravelerDashboardPage({ onHome, onNewTrip, onNavigate }:
         {/* Stat grid */}
         <div className="grid grid-cols-2 gap-3 mb-5">
           {[
-            { icon:'✈️', val:myTrips.length,                      lbl:t.tdashStatTrips,     cls:'text-blue-600'  },
-            { icon:'📦', val:deliveredCount,                      lbl:t.tdashStatDelivered, cls:'text-green-600' },
-            { icon:'⭐', val:avgRating > 0 ? avgRating.toFixed(1) : '—', lbl:t.tdashStatRating, cls:'text-amber-600' },
-            { icon:'💰', val:earnings > 0 ? fmtShortNum(earnings) : '—', lbl:t.tdashStatEarnings, cls:'text-green-600' },
+            { Icon:Plane,   val:myTrips.length,                      lbl:t.tdashStatTrips,     cls:'text-blue-600'  },
+            { Icon:PackageIcon, val:deliveredCount,                  lbl:t.tdashStatDelivered, cls:'text-green-600' },
+            { Icon:Star,    val:avgRating > 0 ? avgRating.toFixed(1) : '—', lbl:t.tdashStatRating, cls:'text-amber-600' },
+            { Icon:DollarSign, val:earnings > 0 ? fmtShortNum(earnings) : '—', lbl:t.tdashStatEarnings, cls:'text-green-600' },
           ].map(s => (
             <div key={s.lbl} className="bg-white border border-gray-100 rounded-2xl p-4 text-center shadow-sm">
-              <div className="text-2xl mb-1">{s.icon}</div>
+              <s.Icon className={`w-6 h-6 mx-auto mb-1.5 ${s.cls}`} aria-hidden />
               <div className={`text-2xl font-extrabold mb-0.5 ${s.cls}`}>{s.val}</div>
               <div className="text-[10px] font-bold text-gray-500 uppercase tracking-wide">{s.lbl}</div>
             </div>
@@ -477,7 +477,7 @@ export default function TravelerDashboardPage({ onHome, onNewTrip, onNavigate }:
                traveler who hasn't registered a trip yet. Empty state with the CTA that fills it,
                never a block. */
             <div className="text-center py-12">
-              <div className="text-5xl mb-3">✈️</div>
+              <Plane className="w-12 h-12 mx-auto mb-3 text-gray-300" aria-hidden />
               <div className="text-base font-bold text-gray-700 mb-1">{t.tdashNoTrips}</div>
               <div className="text-sm text-gray-500 mb-1">{t.tdashNoTripsDesc}</div>
               <div className="text-xs text-gray-500 mb-5 max-w-xs mx-auto leading-relaxed">
@@ -501,7 +501,7 @@ export default function TravelerDashboardPage({ onHome, onNewTrip, onNavigate }:
                     <div className="flex items-start justify-between mb-2">
                       <div>
                         <div className="text-base font-extrabold text-gray-900">
-                          {trip.originCity || trip.origin || '—'} ✈ {trip.destCity || trip.destination || '—'}
+                          {trip.originCity || trip.origin || '—'} <RouteArrow mode={trip.mode} isRTL /> {trip.destCity || trip.destination || '—'}
                         </div>
                         <div className="text-[10px] text-gray-500 font-mono tracking-wide mt-0.5">{trip.id}</div>
                       </div>
@@ -512,23 +512,23 @@ export default function TravelerDashboardPage({ onHome, onNewTrip, onNavigate }:
                       }`}>{isActive ? t.tdashTripActive : isPending ? t.tdashTripPending : t.tdashTripPast}</span>
                     </div>
                     <div className="flex flex-wrap gap-3 text-xs text-gray-500 mb-2">
-                      <span>📅 {fmtDate(trip.date)}</span>
-                      {trip.capacity != null   && <span>⚖️ {trip.capacity} kg</span>}
-                      {trip.minPricePerKg != null && <span>💰 $ {Number(trip.minPricePerKg).toFixed(2)}</span>}
-                      {trip.phone             && <span>📞 {trip.phone}</span>}
+                      <Meta icon={MetaIcons.Date}>{fmtDate(trip.date)}</Meta>
+                      {trip.capacity != null   && <Meta icon={MetaIcons.Weight}>{trip.capacity} kg</Meta>}
+                      {trip.minPricePerKg != null && <Meta icon={MetaIcons.Price}>{Number(trip.minPricePerKg).toFixed(2)}</Meta>}
+                      {trip.phone             && <Meta icon={MetaIcons.Phone}>{trip.phone}</Meta>}
                     </div>
                     {trip.cargoOptions && trip.cargoOptions.length > 0 && (
                       <div className="flex flex-wrap gap-1.5 mb-2">
                         {trip.cargoOptions.map(opt => (
                           <span key={opt} className="text-[11px] bg-blue-50 border border-blue-100 text-blue-700 font-bold rounded-lg px-2 py-0.5">
-                            {CARGO_ICONS[opt] || '📦'} {CARGO_LABELS[opt] || opt}
+                            <CargoIcon type={opt} className="w-3 h-3 inline-block align-middle me-1" />{CARGO_LABELS[opt] || opt}
                           </span>
                         ))}
                       </div>
                     )}
                     {tripAvg > 0 && (
                       <div className="text-sm text-amber-500 mb-2">
-                        {'⭐'.repeat(Math.round(tripAvg))}{'☆'.repeat(5 - Math.round(tripAvg))}
+                        <Stars value={tripAvg} />
                         <span className="font-bold text-amber-600 mr-1">{tripAvg.toFixed(1)}</span>
                         <span className="text-xs text-gray-500">({tripRatings.length} {t.tdashReviews})</span>
                       </div>
@@ -545,7 +545,7 @@ export default function TravelerDashboardPage({ onHome, onNewTrip, onNavigate }:
                             <div key={o.trackId} className="space-y-1">
                               <a href={`/track?id=${o.trackId}`}
                                 className="flex items-center gap-2 bg-blue-50 border border-blue-100 rounded-xl px-3 py-2 no-underline hover:bg-blue-100 transition-colors">
-                                <span className="text-lg">{CARGO_ICONS[o.cargoType || ''] || '📦'}</span>
+                                <CargoIcon type={o.cargoType} className="w-5 h-5 text-blue-600 flex-shrink-0" />
                                 <div className="flex-1 min-w-0">
                                   <div className="text-xs font-extrabold text-blue-700 font-mono">{o.trackId}</div>
                                   <div className="text-xs text-gray-500">{o.originLabel || o.origin || '—'} ← {o.destLabel || o.dest || '—'}</div>
@@ -599,7 +599,7 @@ export default function TravelerDashboardPage({ onHome, onNewTrip, onNavigate }:
           ) : (
           marketTrips.length === 0 ? (
             <div className="text-center py-12 text-gray-500">
-              <div className="text-5xl mb-3">🌍</div>
+              <Globe className="w-12 h-12 mx-auto mb-3 text-gray-300" aria-hidden />
               <div className="text-base font-bold text-gray-700 mb-1">{t.tdashNoTrips}</div>
             </div>
           ) : (
@@ -611,15 +611,15 @@ export default function TravelerDashboardPage({ onHome, onNewTrip, onNavigate }:
                     <div className="flex items-start justify-between mb-2">
                       <div>
                         <div className="text-base font-extrabold text-gray-900">
-                          {trip.originCity || trip.origin || '—'} ✈ {trip.destCity || trip.destination || '—'}
+                          {trip.originCity || trip.origin || '—'} <RouteArrow mode={trip.mode} isRTL /> {trip.destCity || trip.destination || '—'}
                         </div>
                         <div className="text-[10px] text-gray-500 font-mono tracking-wide mt-0.5">{trip.id}</div>
                       </div>
                       {owned && <span className="text-[10px] font-extrabold px-2.5 py-0.5 rounded-full border bg-cyan-50 text-cyan-700 border-cyan-200">{t.tdashTripActive}</span>}
                     </div>
                     <div className="flex flex-wrap gap-3 text-xs text-gray-500">
-                      <span>📅 {fmtDate(trip.date)}</span>
-                      {trip.capacity != null && <span>⚖️ {trip.capacity} kg</span>}
+                      <Meta icon={MetaIcons.Date}>{fmtDate(trip.date)}</Meta>
+                      {trip.capacity != null && <Meta icon={MetaIcons.Weight}>{trip.capacity} kg</Meta>}
                     </div>
                   </div>
                 );
@@ -638,7 +638,7 @@ export default function TravelerDashboardPage({ onHome, onNewTrip, onNavigate }:
         {tab === 'foryou' && (<>
           {smartOffers.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
-              <div className="text-4xl mb-2">🎯</div>
+              <Target className="w-10 h-10 mx-auto mb-2 text-gray-300" aria-hidden />
               <div className="text-base font-bold text-gray-700 mb-1">فعلاً پیشنهادی نیست</div>
               <div className="text-sm">وقتی سفارشی با مسیر شما بخورد، همین‌جا نشان داده می‌شود.</div>
             </div>
@@ -656,7 +656,7 @@ export default function TravelerDashboardPage({ onHome, onNewTrip, onNavigate }:
                     <div className="flex items-start gap-3 mb-3">
                       {ord.image
                         ? <img src={ord.image} alt="" className="w-14 h-14 rounded-xl object-cover border border-gray-100 flex-shrink-0" />
-                        : <div className="w-14 h-14 rounded-xl bg-gray-50 border border-gray-100 flex items-center justify-center text-xl flex-shrink-0">📦</div>}
+                        : <div className="w-14 h-14 rounded-xl bg-gray-50 border border-gray-100 flex items-center justify-center flex-shrink-0"><PackageIcon className="w-6 h-6 text-gray-400" aria-hidden /></div>}
                       <div className="min-w-0 flex-1">
                         <div className="text-sm font-extrabold text-gray-900 truncate">{ord.title || '—'}</div>
                         <div className="text-[10px] text-gray-500 font-mono tracking-wide mt-0.5">{o.orderId}</div>
@@ -705,7 +705,7 @@ export default function TravelerDashboardPage({ onHome, onNewTrip, onNavigate }:
                     <div className="flex gap-2">
                       <button disabled={busy} onClick={() => respondOffer(o.offerId, 'accept')}
                         className="flex-1 py-2.5 rounded-xl bg-emerald-700 text-white text-sm font-bold disabled:opacity-50">
-                        {busy ? 'در حال ثبت…' : 'می‌آورم ✓'}
+                        {busy ? 'در حال ثبت…' : 'می‌آورم'}
                       </button>
                       <button disabled={busy} onClick={() => respondOffer(o.offerId, 'decline')}
                         className="px-4 py-2.5 rounded-xl border border-gray-200 text-gray-600 text-sm font-bold disabled:opacity-50">
@@ -743,7 +743,7 @@ export default function TravelerDashboardPage({ onHome, onNewTrip, onNavigate }:
               /* The two empties are DIFFERENT problems with different fixes — "you have no
                  trips" must not be shown to someone who has trips that simply match nothing. */
               <div className="text-center py-8">
-                <div className="text-4xl mb-2">🧭</div>
+                <Compass className="w-10 h-10 mx-auto mb-2 text-gray-300" aria-hidden />
                 <div className="text-sm font-bold text-gray-700 mb-1">
                   {sug.note?.startsWith('no open trips') ? 'هنوز سفری ثبت نکرده‌اید' : 'سفارشی مناسب مسیر شما نیست'}
                 </div>
@@ -766,7 +766,7 @@ export default function TravelerDashboardPage({ onHome, onNewTrip, onNavigate }:
                       <div className="flex items-start gap-3 mb-3">
                         {s.product?.image
                           ? <img src={s.product.image} alt="" className="w-14 h-14 rounded-xl object-cover border border-gray-100 flex-shrink-0" />
-                          : <div className="w-14 h-14 rounded-xl bg-gray-50 border border-gray-100 flex items-center justify-center text-xl flex-shrink-0">🛍️</div>}
+                          : <div className="w-14 h-14 rounded-xl bg-gray-50 border border-gray-100 flex items-center justify-center flex-shrink-0"><ShoppingBag className="w-6 h-6 text-gray-400" aria-hidden /></div>}
                         <div className="min-w-0 flex-1">
                           <div className="text-sm font-extrabold text-gray-900 truncate">{s.product?.title || '—'}</div>
                           <div className="text-[10px] text-gray-500 font-mono tracking-wide mt-0.5">{s.orderId}</div>
@@ -819,7 +819,7 @@ export default function TravelerDashboardPage({ onHome, onNewTrip, onNavigate }:
                       {/* The handoff: browse → commit. Same sheet the marketplace opens. */}
                       <button onClick={() => setSugOffer({ orderId: s.orderId, product: { title: s.product?.title } })}
                         className="w-full py-2.5 rounded-xl bg-gradient-to-r from-cyan-700 to-blue-700 text-white text-sm font-bold">
-                        🤝 پیشنهاد می‌دهم
+                        پیشنهاد می‌دهم
                       </button>
                       <div className="mt-2 text-[10px] text-gray-500 leading-relaxed">
                         قیمت نهایی کالا را چاپار برای کشور شما استعلام می‌کند — دستمزد خود را در گام بعد وارد می‌کنید.
@@ -835,14 +835,14 @@ export default function TravelerDashboardPage({ onHome, onNewTrip, onNavigate }:
         {tab === 'orders' && (
           activeTrips.length === 0 ? (
             <div className="text-center py-12 text-gray-500">
-              <div className="text-5xl mb-3">✈️</div>
+              <Plane className="w-12 h-12 mx-auto mb-3 text-gray-300" aria-hidden />
               <div className="text-base font-bold text-gray-700 mb-1">{t.tdashNoActiveTrip}</div>
               <p className="text-sm mb-4">{t.tdashNoActiveTripDesc}</p>
               <button onClick={onNewTrip} className="ds-btn-primary px-6 py-2.5 text-sm">{t.tdashNewTrip}</button>
             </div>
           ) : openOrders.length === 0 ? (
             <div className="text-center py-12 text-gray-500">
-              <div className="text-5xl mb-3">📭</div>
+              <Inbox className="w-12 h-12 mx-auto mb-3 text-gray-300" aria-hidden />
               <div className="text-base font-bold text-gray-700 mb-1">{t.tdashNoOpenOrders}</div>
               <div className="text-sm">{t.tdashNoOpenOrdersDesc}</div>
             </div>
@@ -851,23 +851,23 @@ export default function TravelerDashboardPage({ onHome, onNewTrip, onNavigate }:
               <div className="text-xs font-bold text-gray-500 mb-3">{t.tdashOpenForOffers.replace('{n}', String(openOrders.length))}</div>
               <div className="space-y-3">
                 {openOrders.map(o => {
-                  const icon = CARGO_ICONS[o.cargoType || ''] || '📦';
+                  const OrdIcon = cargoIcon(o.cargoType);
                   const val  = o.valueUSD  ? `$ ${parseFloat(o.valueUSD).toFixed(0)}`
                              : o.valueToman ? Number(o.valueToman).toLocaleString('fa-IR') + ' ت' : '';
                   return (
                     <div key={o.trackId} className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm hover:border-cyan-200 transition-all">
                       <div className="flex items-start gap-3 mb-3">
-                        <div className="w-11 h-11 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-xl flex-shrink-0">{icon}</div>
+                        <div className="w-11 h-11 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center flex-shrink-0"><OrdIcon className="w-5 h-5 text-blue-600" aria-hidden /></div>
                         <div className="flex-1 min-w-0">
-                          <div className="text-sm font-extrabold text-gray-900">{o.originLabel || o.origin || '—'} ✈ {o.destLabel || o.dest || '—'}</div>
+                          <div className="text-sm font-extrabold text-gray-900">{o.originLabel || o.origin || '—'} <RouteArrow isRTL /> {o.destLabel || o.dest || '—'}</div>
                           <div className="text-[10px] text-gray-500 font-mono tracking-wide">{o.trackId}</div>
                         </div>
                         {val && <div className="text-sm font-extrabold text-amber-600 flex-shrink-0">{val}</div>}
                       </div>
                       <div className="flex flex-wrap gap-2 text-xs text-gray-500 mb-3">
-                        {o.cargoType && <span>📦 {o.cargoType}</span>}
-                        {o.weight    && <span>⚖️ {o.weight} kg</span>}
-                        {o.paidAt    && <span>📅 {fmtShortDate(o.paidAt)}</span>}
+                        {o.cargoType && <Meta icon={cargoIcon(o.cargoType)}>{o.cargoType}</Meta>}
+                        {o.weight    && <Meta icon={MetaIcons.Weight}>{o.weight} kg</Meta>}
+                        {o.paidAt    && <Meta icon={MetaIcons.Date}>{fmtShortDate(o.paidAt)}</Meta>}
                       </div>
                       <button onClick={() => openOfferModal(o)}
                         className="w-full ds-btn-primary py-2.5 text-sm rounded-xl">
@@ -885,7 +885,7 @@ export default function TravelerDashboardPage({ onHome, onNewTrip, onNavigate }:
         {tab === 'myoffers' && (
           myOffers.length === 0 ? (
             <div className="text-center py-12 text-gray-500">
-              <div className="text-5xl mb-3">📋</div>
+              <ClipboardList className="w-12 h-12 mx-auto mb-3 text-gray-300" aria-hidden />
               <div className="text-base font-bold text-gray-700 mb-1">{t.tdashNoOffers}</div>
               <div className="text-sm">{t.tdashNoOffersDesc}</div>
             </div>
@@ -901,7 +901,7 @@ export default function TravelerDashboardPage({ onHome, onNewTrip, onNavigate }:
                     <div className="flex items-start justify-between mb-2">
                       <div>
                         <div className="text-sm font-extrabold text-gray-900">
-                          {order?.originLabel || order?.origin || '—'} ✈ {order?.destLabel || order?.dest || '—'}
+                          {order?.originLabel || order?.origin || '—'} <RouteArrow isRTL /> {order?.destLabel || order?.dest || '—'}
                         </div>
                         <div className="text-[10px] text-gray-500 font-mono">{offer.trackId || offer.orderId}</div>
                       </div>
@@ -963,12 +963,12 @@ export default function TravelerDashboardPage({ onHome, onNewTrip, onNavigate }:
           <div className="w-full max-w-lg bg-white rounded-t-2xl p-5 pb-8 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-base font-extrabold">{t.tdashOfferModalTitle}</h3>
-              <button onClick={() => setOfferOrder(null)} className="text-gray-500 text-xl font-bold hover:text-gray-700">✕</button>
+              <button onClick={() => setOfferOrder(null)} className="text-gray-500 text-xl font-bold hover:text-gray-700" aria-label="بستن"><X className="w-5 h-5" aria-hidden /></button>
             </div>
             <div className="bg-blue-50 border border-blue-100 rounded-xl px-3 py-2.5 mb-4 flex items-center gap-3">
-              <span className="text-xl">{CARGO_ICONS[offerOrder.cargoType || ''] || '📦'}</span>
+              <CargoIcon type={offerOrder.cargoType} className="w-5 h-5 text-gray-500 flex-shrink-0" />
               <div className="flex-1 min-w-0">
-                <div className="text-sm font-bold">{offerOrder.originLabel || offerOrder.origin || '—'} ✈ {offerOrder.destLabel || offerOrder.dest || '—'}</div>
+                <div className="text-sm font-bold">{offerOrder.originLabel || offerOrder.origin || '—'} <RouteArrow isRTL /> {offerOrder.destLabel || offerOrder.dest || '—'}</div>
                 <div className="text-[10px] text-gray-500 font-mono">{offerOrder.trackId}</div>
               </div>
               {offerOrder.valueUSD && <div className="text-sm font-bold text-amber-600">$ {parseFloat(offerOrder.valueUSD).toFixed(0)}</div>}
@@ -1010,7 +1010,7 @@ export default function TravelerDashboardPage({ onHome, onNewTrip, onNavigate }:
           <div className="w-full max-w-lg bg-white rounded-t-2xl p-5 pb-8" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-1">
               <h3 className="text-base font-extrabold">{t.tdashEditTripTitle}</h3>
-              <button onClick={() => setEditTrip(null)} className="text-gray-500 text-xl font-bold hover:text-gray-700">✕</button>
+              <button onClick={() => setEditTrip(null)} className="text-gray-500 text-xl font-bold hover:text-gray-700" aria-label="بستن"><X className="w-5 h-5" aria-hidden /></button>
             </div>
             <div className="text-[10px] text-gray-500 font-mono mb-4">{editTrip.id}</div>
             <div className="mb-3">
@@ -1044,7 +1044,7 @@ export default function TravelerDashboardPage({ onHome, onNewTrip, onNavigate }:
                 </h3>
                 <div className="text-xs text-gray-500 mt-0.5">{t.tdashOrderLabel} {photoOrd}</div>
               </div>
-              <button onClick={() => setPhotoMode(null)} className="text-gray-500 text-xl font-bold hover:text-gray-700">✕</button>
+              <button onClick={() => setPhotoMode(null)} className="text-gray-500 text-xl font-bold hover:text-gray-700" aria-label="بستن"><X className="w-5 h-5" aria-hidden /></button>
             </div>
             {photoData ? (
               <div className="rounded-xl overflow-hidden border border-blue-200 mb-4 mt-3">
@@ -1053,7 +1053,7 @@ export default function TravelerDashboardPage({ onHome, onNewTrip, onNavigate }:
             ) : (
               <div className="bg-blue-50 border-2 border-dashed border-blue-300 rounded-xl p-7 text-center cursor-pointer mb-4 mt-3"
                 onClick={() => setPhotoCamOpen(true)}>
-                <div className="text-4xl mb-2">📷</div>
+                <Camera className="w-10 h-10 mx-auto mb-2 text-gray-300" aria-hidden />
                 <div className="text-sm font-bold text-blue-700">{t.tdashTakePhoto}</div>
               </div>
             )}

@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react';
+import { X, CheckCircle2, Plane, Luggage, Ban } from 'lucide-react';
+import { RouteArrow, Meta, MetaIcons } from './flowIcons';
 
 // ── CMD-16 traveler offer sheet ──────────────────────────────────────────────
 // Extracted from MarketplacePage so the S2 suggestion cards on the traveler dashboard open the
@@ -89,13 +91,13 @@ export default function TravelerOfferSheet({
             <div className="text-xs text-gray-500 truncate mt-0.5">{order.product?.title || order.orderId}</div>
           </div>
           <button onClick={() => !busy && onClose()}
-                  className="shrink-0 text-gray-400 hover:text-gray-700 text-xl leading-none px-1" aria-label="بستن">✕</button>
+                  className="shrink-0 text-gray-400 hover:text-gray-700 px-1" aria-label="بستن"><X className="w-5 h-5" aria-hidden /></button>
         </div>
 
         <div className="p-5">
           {done ? (
             <div className="text-center py-6">
-              <div className="text-4xl mb-3">✅</div>
+              <CheckCircle2 className="w-10 h-10 mx-auto mb-3 text-green-500" aria-hidden />
               <div className="text-base font-extrabold text-emerald-700 mb-1">{msg}</div>
               <p className="text-sm text-gray-500 leading-relaxed">
                 خریدار مطلع شد. پس از تأیید او، مرحله پرداخت امانی آغاز می‌شود.
@@ -104,7 +106,7 @@ export default function TravelerOfferSheet({
             </div>
           ) : trips === null ? (
             <div className="text-center py-10 text-gray-400">
-              <div className="text-2xl mb-2 animate-pulse">✈️</div>
+              <Plane className="w-7 h-7 mx-auto mb-2 text-gray-300 animate-pulse" aria-hidden />
               <div className="text-sm">در حال بررسی سفرهای شما…</div>
             </div>
           ) : err ? (
@@ -114,7 +116,7 @@ export default function TravelerOfferSheet({
             </div>
           ) : trips.length === 0 ? (
             <div className="text-center py-8">
-              <div className="text-4xl mb-3">🧳</div>
+              <Luggage className="w-10 h-10 mx-auto mb-3 text-gray-300" aria-hidden />
               <div className="text-sm font-bold text-gray-800 mb-1">هنوز سفری ثبت نکرده‌اید</div>
               <p className="text-xs text-gray-500 leading-relaxed mb-4">
                 برای پیشنهاد دادن به این سفارش، اول سفرتان را ثبت کنید.
@@ -147,7 +149,7 @@ export default function TravelerOfferSheet({
                         : picked ? 'border-cyan-500 bg-cyan-50'
                                  : 'border-gray-100 hover:border-cyan-200 bg-white'}`}>
                     <div className="flex items-center justify-between gap-2 mb-1">
-                      <span className="text-sm font-extrabold text-gray-900">{tr.from} ✈ {tr.to}</span>
+                      <span className="text-sm font-extrabold text-gray-900">{tr.from} <RouteArrow isRTL /> {tr.to}</span>
                       {tr.eligible && (
                         <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full
                           ${tr.kind === 'cross_country' ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}>
@@ -156,11 +158,11 @@ export default function TravelerOfferSheet({
                       )}
                     </div>
                     <div className="flex flex-wrap gap-3 text-[11px] text-gray-500">
-                      {tr.date && <span>📅 {fmtDate(tr.date)}</span>}
-                      {tr.remainingKg != null && <span>⚖️ {tr.remainingKg} کیلوگرم آزاد</span>}
+                      {tr.date && <Meta icon={MetaIcons.Date}>{fmtDate(tr.date)}</Meta>}
+                      {tr.remainingKg != null && <Meta icon={MetaIcons.Weight}>{tr.remainingKg} کیلوگرم آزاد</Meta>}
                     </div>
                     {!tr.eligible && tr.reasonFa && (
-                      <div className="mt-1.5 text-[11px] font-bold text-gray-500">⛔ {tr.reasonFa}</div>
+                      <div className="mt-1.5 text-[11px] font-bold text-gray-500 flex items-center gap-1"><Ban className="w-3 h-3 flex-shrink-0" aria-hidden />{tr.reasonFa}</div>
                     )}
                   </button>
                 );

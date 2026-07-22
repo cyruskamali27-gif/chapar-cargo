@@ -1,6 +1,9 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { motion } from 'motion/react';
-import { ArrowLeft, Home, CheckCircle, Smartphone, RefreshCw, Clock } from 'lucide-react';
+import { ArrowLeft, Home, CheckCircle, CheckCircle2, Smartphone, RefreshCw, Clock, Video,
+         SquareSlash, ScanSearch, ShieldAlert, Ban, AlertTriangle, Lock, IdCard, Lightbulb,
+         FileText, ScanFace, Mail, MessageSquare, Plane, X, CreditCard, Wallet, Landmark,
+         BookUser, Coins, CircleDollarSign } from 'lucide-react';
 import QRCode from 'react-qr-code';
 import AirportCityAutocomplete, { type AirportOption } from './AirportCityAutocomplete';
 import { getAirportByIata } from './airports';
@@ -33,19 +36,20 @@ const CURRENCIES = [
   { code: 'INR',  flag: '🇮🇳', rate: 0.012   },
   { code: 'AMD',  flag: '🇦🇲', rate: 0.0026  },
   { code: 'AZN',  flag: '🇦🇿', rate: 0.588   },
-  { code: 'USDT', flag: '💵',  rate: 1       },
-  { code: 'USDC', flag: '🔵',  rate: 1       },
+  { code: 'USDT', flag: '',    rate: 1       },
+  { code: 'USDC', flag: '',    rate: 1       },
   { code: 'IRR',  flag: '🇮🇷', rate: null    },
 ] as const;
 type CurrencyCode = typeof CURRENCIES[number]['code'];
 
+// CMD-48: payment methods carry Lucide marks, not emoji — same stroke as every other icon.
 const PAY_METHODS = [
-  { id: 'debit',  icon: '💳',  label: 'Debit Card'     },
-  { id: 'credit', icon: '💳',  label: 'Credit Card'    },
-  { id: 'paypal', icon: '🅿️', label: 'PayPal'         },
-  { id: 'wallet', icon: '📱',  label: 'Digital Wallet' },
-  { id: 'usdt',   icon: '₮',   label: 'USDT'           },
-  { id: 'usdc',   icon: '🔵',  label: 'USDC'           },
+  { id: 'debit',  Icon: CreditCard,        label: 'Debit Card'     },
+  { id: 'credit', Icon: CreditCard,        label: 'Credit Card'    },
+  { id: 'paypal', Icon: Landmark,          label: 'PayPal'         },
+  { id: 'wallet', Icon: Wallet,            label: 'Digital Wallet' },
+  { id: 'usdt',   Icon: CircleDollarSign,  label: 'USDT'           },
+  { id: 'usdc',   Icon: Coins,             label: 'USDC'           },
 ];
 
 const CARGO_ITEMS_BASE = [
@@ -104,7 +108,7 @@ function StepPills({ step }: { step: number }) {
                 ${done   ? 'bg-cyan-700 text-white'
                 : active ? 'bg-cyan-600 text-white ring-4 ring-cyan-100'
                 :          'bg-gray-100 text-gray-500'}`}>
-                {done ? '✓' : n}
+                {done ? <CheckCircle2 className="w-3.5 h-3.5" aria-hidden /> : n}
               </div>
               <span className={`text-[9px] font-semibold whitespace-nowrap hidden sm:block
                 ${active ? 'text-cyan-700' : done ? 'text-emerald-700' : 'text-gray-500'}`}>
@@ -194,9 +198,9 @@ export default function SendPackagePage({ onHome, cargoType = 'personal', onNavi
 
   // Doc types with translated names/reqs
   const DOC_TYPES = [
-    { key: 'passport', icon: '🛂', name: t.docPassportName, req: t.docFrontSelfieReq,     needBack: false },
-    { key: 'driver',   icon: '🪪', name: t.docDriverName,   req: t.docFrontBackSelfieReq, needBack: true  },
-    { key: 'national', icon: '🆔', name: t.docNationalName, req: t.docFrontBackSelfieReq, needBack: true  },
+    { key: 'passport', Icon: BookUser,   name: t.docPassportName, req: t.docFrontSelfieReq,     needBack: false },
+    { key: 'driver',   Icon: CreditCard, name: t.docDriverName,   req: t.docFrontBackSelfieReq, needBack: true  },
+    { key: 'national', Icon: IdCard,     name: t.docNationalName, req: t.docFrontBackSelfieReq, needBack: true  },
   ];
 
   const { session } = useSession();
@@ -666,10 +670,10 @@ export default function SendPackagePage({ onHome, cargoType = 'personal', onNavi
 
     const riskTxt = job.status === 'verified' ? t.spRiskLow : bad ? t.spRiskHigh : t.spRiskReview;
     const checks: string[] = [];
-    checks.push(`${t.spCheckMediaMatch}${r.match?.match === 'match' ? ' ✅' : mismatch ? ' ⚠️' : ''}`);
-    checks.push(`${t.spFraudRiskLabel} ${riskTxt}${job.status === 'verified' ? ' ✅' : ' ⚠️'}`);
+    checks.push(t.spCheckMediaMatch);
+    checks.push(`${t.spFraudRiskLabel} ${riskTxt}`);
     checks.push(`${t.spConfLabel} ${conf === 'high' ? t.spConfHigh : conf === 'medium' ? t.spConfMedium : t.spConfLow}`);
-    if (suspicious) checks.push(`${t.spFraudRiskLabel} ⚠️`);
+    if (suspicious) checks.push(t.spFraudRiskLabel);
     setInspChecks(checks);
 
     setScanComplete(true);
@@ -924,10 +928,12 @@ export default function SendPackagePage({ onHome, cargoType = 'personal', onNavi
         <PageHeader onHome={onHome} title={pageTitle} desc={pageDesc} />
         <div className="max-w-2xl mx-auto px-4 py-10 pb-24">
           <div className="ds-card p-8 text-center">
-            <div className="text-6xl mb-4">⏳</div>
+            <div className="inline-flex w-16 h-16 rounded-2xl items-center justify-center mb-4 bg-amber-50 border border-amber-200">
+              <Clock className="w-8 h-8 text-amber-600" aria-hidden />
+            </div>
             <h2 className="text-2xl font-extrabold text-gray-900 mb-2">{t.spSuccessTitle}</h2>
             <div className="inline-flex items-center gap-2 bg-amber-50 border border-amber-200 text-amber-700 text-sm font-bold rounded-xl px-4 py-2 mb-4">
-              <span>⏳</span><span>{t.spSuccessPending}</span>
+              <Clock className="w-4 h-4" aria-hidden /><span>{t.spSuccessPending}</span>
             </div>
             <p className="text-gray-500 text-sm leading-relaxed mb-6">{t.spSuccessDesc}</p>
             <div className="bg-cyan-50 border border-cyan-200 rounded-xl px-6 py-4 mb-4">
@@ -938,15 +944,15 @@ export default function SendPackagePage({ onHome, cargoType = 'personal', onNavi
               <span className="text-gray-500 font-semibold">{t.spRecConfirmStatus}:</span>
               {recConfirmSentVia === null ? (
                 <span className="inline-flex items-center gap-1 bg-amber-50 border border-amber-200 text-amber-700 font-bold rounded-lg px-3 py-1">
-                  ⏳ {t.spRecConfirmPending}
+                  <Clock className="w-3.5 h-3.5" aria-hidden />{t.spRecConfirmPending}
                 </span>
               ) : recConfirmSentVia === 'email' ? (
                 <span className="inline-flex items-center gap-1 bg-cyan-50 border border-cyan-200 text-cyan-700 font-bold rounded-lg px-3 py-1">
-                  ✉️ {t.spRecConfirmEmailSent}
+                  <Mail className="w-3.5 h-3.5" aria-hidden />{t.spRecConfirmEmailSent}
                 </span>
               ) : (
                 <span className="inline-flex items-center gap-1 bg-yellow-50 border border-yellow-200 text-yellow-700 font-bold rounded-lg px-3 py-1">
-                  📱 {t.spRecConfirmSmsPending}
+                  <MessageSquare className="w-3.5 h-3.5" aria-hidden />{t.spRecConfirmSmsPending}
                 </span>
               )}
             </div>
@@ -1067,7 +1073,7 @@ export default function SendPackagePage({ onHome, cargoType = 'personal', onNavi
                 {(showAllTrips ? matchData.all : matchData.forDate) > 0 ? (
                   <>
                     <div className="text-sm font-bold text-blue-700 mb-1">
-                      ✈️ {t.spMatchReady.replace('{n}', String(showAllTrips ? matchData.all : matchData.forDate))}
+                      <Plane className="w-4 h-4 inline-block align-middle me-1" aria-hidden />{t.spMatchReady.replace('{n}', String(showAllTrips ? matchData.all : matchData.forDate))}
                     </div>
                     <p className="text-xs text-blue-500 mb-3">{t.spMatchTravelersReady}</p>
                     <button onClick={() => onNavigate ? onNavigate('marketplace') : window.location.href = '/'}
@@ -1100,7 +1106,7 @@ export default function SendPackagePage({ onHome, cargoType = 'personal', onNavi
             <p className="text-sm text-gray-500 mb-4">{t.spStep2Desc}</p>
 
             <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 mb-4 text-xs text-amber-700 flex gap-2">
-              <span>🎥</span>
+              <Video className="w-4 h-4 flex-shrink-0" aria-hidden />
               <span>{t.spVideoHint}</span>
             </div>
 
@@ -1116,7 +1122,7 @@ export default function SendPackagePage({ onHome, cargoType = 'personal', onNavi
               </div>
               <button type="button" onClick={stopScan}
                 className="absolute top-3 right-3 bg-white/90 text-gray-800 text-xs font-bold px-3 py-1.5 rounded-full hover:bg-white transition-colors">
-                ⏹ {t.spVideoReRecord ?? 'Stop'}
+<SquareSlash className="w-3.5 h-3.5 inline-block align-middle me-1" aria-hidden />{t.spVideoReRecord ?? 'Stop'}
               </button>
             </div>
             <canvas ref={canvasRef} className="hidden" />
@@ -1124,7 +1130,7 @@ export default function SendPackagePage({ onHome, cargoType = 'personal', onNavi
             {!recording && !videoReady && (
               <button type="button" onClick={startScan}
                 className="w-full border-2 border-dashed border-gray-300 rounded-xl py-10 flex flex-col items-center gap-3 hover:border-cyan-400 hover:bg-cyan-50/30 transition-all">
-                <span className="text-4xl">🎥</span>
+                <Video className="w-9 h-9 text-gray-400" aria-hidden />
                 <span className="text-sm font-bold text-gray-600">{t.spVideoRecord}</span>
                 <span className="text-xs text-gray-500">{t.spVideoClickToRecord}</span>
               </button>
@@ -1134,7 +1140,7 @@ export default function SendPackagePage({ onHome, cargoType = 'personal', onNavi
               <div className="bg-green-50 border border-green-200 rounded-xl p-4 mb-2">
                 <div className="flex items-center gap-3 mb-3">
                   <span className="bg-green-100 border border-green-300 rounded-full px-3 py-1 text-xs font-bold text-green-700">
-                    ✅ {videoDur} {t.spVideoSecs}
+                    <CheckCircle2 className="w-3.5 h-3.5 inline-block align-middle me-1" aria-hidden />{videoDur} {t.spVideoSecs}
                   </span>
                   <button onClick={() => { resetScan(); startScan(); }}
                     className="text-xs text-cyan-600 font-bold underline bg-transparent border-none cursor-pointer">
@@ -1165,13 +1171,13 @@ export default function SendPackagePage({ onHome, cargoType = 'personal', onNavi
             <p className="text-sm text-gray-400 mb-4">{t.spStep3Desc}</p>
 
             <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 mb-4 text-xs text-amber-700 flex gap-2">
-              <span>🎥</span>
+              <Video className="w-4 h-4 flex-shrink-0" aria-hidden />
               <span>{t.spVideoHint}</span>
             </div>
 
             {!videoReady ? (
               <div className="w-full border-2 border-dashed border-gray-300 rounded-xl py-10 flex flex-col items-center gap-3 text-center">
-                <span className="text-4xl">🎥</span>
+                <Video className="w-9 h-9 text-gray-400" aria-hidden />
                 <span className="text-sm font-bold text-gray-600">{t.spVideoRecord}</span>
                 <button onClick={() => goStep(2)}
                   className="text-xs text-cyan-600 font-bold underline bg-transparent border-none cursor-pointer">
@@ -1182,7 +1188,7 @@ export default function SendPackagePage({ onHome, cargoType = 'personal', onNavi
               <div className="bg-green-50 border border-green-200 rounded-xl p-4">
                 <div className="flex items-center gap-3 mb-3">
                   <span className="bg-green-100 border border-green-300 rounded-full px-3 py-1 text-xs font-bold text-green-700">
-                    ✅ {videoDur} {t.spVideoSecs}
+                    <CheckCircle2 className="w-3.5 h-3.5 inline-block align-middle me-1" aria-hidden />{videoDur} {t.spVideoSecs}
                   </span>
                   <button onClick={() => { resetScan(); goStep(2); }}
                     className="text-xs text-cyan-600 font-bold underline bg-transparent border-none cursor-pointer">
@@ -1246,25 +1252,25 @@ export default function SendPackagePage({ onHome, cargoType = 'personal', onNavi
                       ${confidence === 'high' ? 'bg-green-50 text-green-700 border-green-200' :
                         confidence === 'medium' ? 'bg-amber-50 text-amber-700 border-amber-200' :
                         'bg-red-50 text-red-700 border-red-200'}`}>
-                      🔍 {t.spConfLabel} {confidence === 'high' ? t.spConfHigh : confidence === 'medium' ? t.spConfMedium : t.spConfLow}
+                      <ScanSearch className="w-3 h-3 inline-block align-middle me-1" aria-hidden />{t.spConfLabel} {confidence === 'high' ? t.spConfHigh : confidence === 'medium' ? t.spConfMedium : t.spConfLow}
                     </span>
                     <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full border
                       ${riskLevel === 'low' ? 'bg-green-50 text-green-700 border-green-200' :
                         riskLevel === 'review' ? 'bg-amber-50 text-amber-700 border-amber-200' :
                         'bg-red-50 text-red-700 border-red-200'}`}>
-                      🛡️ {riskLevel === 'low' ? t.spRiskLow : riskLevel === 'review' ? t.spRiskReview : t.spRiskHigh}
+                      <ShieldAlert className="w-3 h-3 inline-block align-middle me-1" aria-hidden />{riskLevel === 'low' ? t.spRiskLow : riskLevel === 'review' ? t.spRiskReview : t.spRiskHigh}
                     </span>
                   </div>
                 </div>
 
                 {illegalBlocked && (
                   <div className="bg-red-50 border border-red-300 rounded-xl p-4 text-sm text-red-700 font-bold">
-                    🚫 <strong>{t.spIllegalAlert}</strong>
+                    <Ban className="w-4 h-4 inline-block align-middle me-1" aria-hidden /><strong>{t.spIllegalAlert}</strong>
                   </div>
                 )}
                 {cashFlagged && !illegalBlocked && (
                   <div className="bg-amber-50 border border-amber-300 rounded-xl p-4 text-sm text-amber-700 font-bold">
-                    ⚠️ <strong>{t.spCashAlert}</strong>
+                    <AlertTriangle className="w-4 h-4 inline-block align-middle me-1" aria-hidden /><strong>{t.spCashAlert}</strong>
                   </div>
                 )}
 
@@ -1314,7 +1320,7 @@ export default function SendPackagePage({ onHome, cargoType = 'personal', onNavi
 
                 {inspDone && (
                   <div className="bg-green-50 border border-green-200 rounded-2xl p-5 text-center">
-                    <div className="text-2xl mb-2">✅</div>
+                    <CheckCircle2 className="w-7 h-7 mx-auto mb-2 text-green-600" aria-hidden />
                     <div className="text-sm font-extrabold text-green-700">{t.spInspectionDone}</div>
                     <div className="text-xs text-gray-500 mt-1">{t.spInspectionDoneDesc}</div>
                   </div>
@@ -1342,7 +1348,7 @@ export default function SendPackagePage({ onHome, cargoType = 'personal', onNavi
               <label className="ds-label">{t.spCurrency}</label>
               <button type="button" onClick={() => setShowCurrModal(true)}
                 className="w-full flex items-center gap-3 px-4 py-3 border-2 border-gray-200 rounded-xl hover:border-cyan-400 transition-colors bg-white">
-                <span className="text-xl">{currObj.flag}</span>
+                {currObj.flag ? <span className="text-xl">{currObj.flag}</span> : <Coins className="w-5 h-5 text-gray-500" aria-hidden />}
                 <span className="text-base font-extrabold text-cyan-600">{currObj.code}</span>
                 <span className="text-sm text-gray-500 flex-1 text-right">{CURR_LABELS[currObj.code] ?? currObj.code}</span>
                 <span className="text-gray-500 text-sm">▼</span>
@@ -1398,7 +1404,7 @@ export default function SendPackagePage({ onHome, cargoType = 'personal', onNavi
 
             {highValue && (
               <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-5">
-                <div className="text-xl mb-1">🔒</div>
+                <Lock className="w-5 h-5 mb-1 text-amber-600" aria-hidden />
                 <div className="text-sm font-extrabold text-amber-700 mb-1">{t.spHighValueTitle}</div>
                 <div className="text-xs text-amber-600">{t.spHighValueDesc}</div>
               </div>
@@ -1451,7 +1457,9 @@ export default function SendPackagePage({ onHome, cargoType = 'personal', onNavi
                   className={`w-full flex items-center gap-3 p-4 rounded-xl border-2 text-start transition-all
                     ${recDocCapture ? 'border-green-400 bg-green-50' : 'border-dashed border-gray-300 bg-gray-50 hover:border-cyan-400'}`}
                 >
-                  <span className="text-2xl">{recDocCapture ? '✅' : '🪪'}</span>
+                  {recDocCapture
+                    ? <CheckCircle2 className="w-6 h-6 text-green-600 flex-shrink-0" aria-hidden />
+                    : <IdCard className="w-6 h-6 text-gray-500 flex-shrink-0" aria-hidden />}
                   <div className="flex-1">
                     <div className="text-sm font-bold text-gray-700">{t.spRecDocCapture}</div>
                     <div className="text-xs text-gray-500">{t.spRecDocSubtitle}</div>
@@ -1489,7 +1497,7 @@ export default function SendPackagePage({ onHome, cargoType = 'personal', onNavi
                 <button key={d.key} onClick={() => selectDocType(d.key)}
                   className={`flex flex-col items-center gap-2 p-3 rounded-xl border-2 text-center transition-all
                     ${docType === d.key ? 'border-cyan-500 bg-cyan-50' : 'border-gray-200 bg-white hover:bg-gray-50'}`}>
-                  <span className="text-2xl">{d.icon}</span>
+                  <d.Icon className="w-6 h-6 text-gray-500 flex-shrink-0" aria-hidden />
                   <span className="text-sm font-bold text-gray-900">{d.name}</span>
                   <span className="text-[10px] text-gray-500">{d.req}</span>
                 </button>
@@ -1506,21 +1514,23 @@ export default function SendPackagePage({ onHome, cargoType = 'personal', onNavi
             {docType && !docVerified && !idVerifying && (
               <div className="space-y-3 mb-4">
                 <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-xs text-amber-700 flex gap-2">
-                  <span>💡</span><span>{t.spDocEdgeHint}</span>
+                  <Lightbulb className="w-4 h-4 flex-shrink-0" aria-hidden /><span>{t.spDocEdgeHint}</span>
                 </div>
                 {[
-                  { key: 'front'  as const, icon: '📄', label: t.spDocFrontLabel,  hint: t.spDocFrontHint,  camMode: 'document' as const },
+                  { key: 'front'  as const, Icon: FileText, label: t.spDocFrontLabel,  hint: t.spDocFrontHint,  camMode: 'document' as const },
                   ...(DOC_TYPES.find(d => d.key === docType)?.needBack
-                    ? [{ key: 'back' as const, icon: '📄', label: t.spDocBackLabel, hint: t.spDocFrontHint, camMode: 'document' as const }]
+                    ? [{ key: 'back' as const, Icon: FileText, label: t.spDocBackLabel, hint: t.spDocFrontHint, camMode: 'document' as const }]
                     : []),
-                  { key: 'selfie' as const, icon: '🤳', label: t.spDocSelfieLabel, hint: t.spDocSelfieHint, camMode: 'face'     as const },
+                  { key: 'selfie' as const, Icon: ScanFace, label: t.spDocSelfieLabel, hint: t.spDocSelfieHint, camMode: 'face'     as const },
                 ].map(slot => (
                   <button key={slot.key}
                     type="button"
                     onClick={() => setDocCamSlot(slot.key)}
                     className={`w-full flex items-center gap-3 p-4 rounded-xl border-2 text-start transition-all
                       ${docCaptures[slot.key] ? 'border-green-400 bg-green-50' : 'border-gray-200 bg-white hover:border-cyan-400'}`}>
-                    <span className="text-2xl">{docCaptures[slot.key] ? '✅' : slot.icon}</span>
+                    {docCaptures[slot.key]
+                      ? <CheckCircle2 className="w-6 h-6 text-green-600 flex-shrink-0" aria-hidden />
+                      : <slot.Icon className="w-6 h-6 text-gray-500 flex-shrink-0" aria-hidden />}
                     <div className="flex-1">
                       <div className="text-sm font-bold text-gray-700">{slot.label}</div>
                       <div className="text-xs text-gray-500">{slot.hint}</div>
@@ -1582,7 +1592,7 @@ export default function SendPackagePage({ onHome, cargoType = 'personal', onNavi
                 <button key={m.id} onClick={() => { setSelectedPay(m.id); setPayVerified(false); setPayVerifyItems([]); setErr(''); }}
                   className={`flex flex-col items-center gap-2 py-4 px-2 rounded-xl border-2 text-center transition-all
                     ${selectedPay === m.id ? 'border-cyan-500 bg-cyan-50' : 'border-gray-200 bg-white hover:bg-gray-50'}`}>
-                  <span className="text-2xl">{m.icon}</span>
+                  <m.Icon className="w-6 h-6 text-gray-500 flex-shrink-0" aria-hidden />
                   <span className="text-xs font-bold text-gray-700">{m.label}</span>
                 </button>
               ))}
@@ -1646,14 +1656,14 @@ export default function SendPackagePage({ onHome, cargoType = 'personal', onNavi
           <div className="w-full max-w-lg bg-white rounded-t-3xl max-h-[72vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="sticky top-0 bg-white border-b border-gray-100 px-5 py-4 flex items-center justify-between">
               <span className="text-base font-extrabold text-gray-900">{t.spCurrencyModal}</span>
-              <button onClick={() => setShowCurrModal(false)} className="text-gray-500 text-xl leading-none">✕</button>
+              <button onClick={() => setShowCurrModal(false)} className="text-gray-500 leading-none" aria-label="بستن"><X className="w-5 h-5" aria-hidden /></button>
             </div>
             <div className="pb-6">
               {CURRENCIES.map(c => (
                 <button key={c.code} onClick={() => { setSelectedCurr(c.code as CurrencyCode); setShowCurrModal(false); }}
                   className={`w-full flex items-center gap-3 px-5 py-3.5 hover:bg-gray-50 transition-colors
                     ${selectedCurr === c.code ? 'bg-cyan-50' : ''}`}>
-                  <span className="text-xl">{c.flag}</span>
+                  {c.flag ? <span className="text-xl">{c.flag}</span> : <Coins className="w-5 h-5 text-gray-500" aria-hidden />}
                   <span className="text-sm font-extrabold text-cyan-600 w-14 text-left">{c.code}</span>
                   <span className="flex-1 text-sm font-bold text-gray-700 text-right">{CURR_LABELS[c.code] ?? c.code}</span>
                   {selectedCurr === c.code && <CheckCircle className="w-4 h-4 text-cyan-600 flex-shrink-0" />}
@@ -1671,7 +1681,7 @@ export default function SendPackagePage({ onHome, cargoType = 'personal', onNavi
             <div className="sticky top-0 bg-white border-b border-gray-100 px-5 py-4">
               <div className="flex items-center justify-between mb-3">
                 <span className="text-base font-extrabold text-gray-900">{t.spCorrectItemModal}</span>
-                <button onClick={() => setShowItemModal(false)} className="text-gray-500 text-xl leading-none">✕</button>
+                <button onClick={() => setShowItemModal(false)} className="text-gray-500 leading-none" aria-label="بستن"><X className="w-5 h-5" aria-hidden /></button>
               </div>
               <input type="search" className="ds-input text-sm" placeholder={t.spItemSearch}
                 value={itemSearch} onChange={e => setItemSearch(e.target.value)} />

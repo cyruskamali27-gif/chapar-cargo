@@ -2804,7 +2804,10 @@ export default function App() {
           {/* CMD-25: the old air-only, phone-collecting registration page is RETIRED. Both
               ?page=traveler (legacy deeplinks) and ?page=traveler-register render the new
               multi-route shell — there is now ONE registration path. */}
-          {(renderPage === 'traveler' || renderPage === 'traveler-register') && <TravelerRegisterShell onBack={() => window.history.back()} onHome={() => { window.location.href = 'https://chaparcargo.com/'; }} onNavigate={(p) => { setCurrentPage(p as Page); }} />}
+          {/* CMD-48 T2: `key` forces a fresh mount. Without it, React reconciles 'traveler' and
+              'traveler-register' as the same element and the wizard keeps its old step — which is
+              how a returning user could land past «نوع مسیر». Mode select is now step 0, always. */}
+          {(renderPage === 'traveler' || renderPage === 'traveler-register') && <TravelerRegisterShell key="traveler-register" onBack={() => window.history.back()} onHome={() => { window.location.href = 'https://chaparcargo.com/'; }} onNavigate={(p) => { setCurrentPage(p as Page); }} />}
           {renderPage === 'marketplace' && <MarketplacePage onBack={() => window.history.back()} onHome={() => { window.location.href = 'https://chaparcargo.com/'; }} t={t} onBook={() => setCurrentPage('send-package')} myOrderId={myOrderId} onClearMyOrder={() => setMyOrderId(null)} onNeedAuth={() => { goToAuth(authDeeplink('marketplace')); }} onManageOrder={(id) => setMyOrderId(id)} onRegisterTrip={() => setCurrentPage('traveler-register')} />}
           {renderPage === 'trust-safety' && <TrustSafetyPage onBack={() => window.history.back()} onHome={() => { window.location.href = 'https://chaparcargo.com/'; }} t={t} />}
           {renderPage === 'investors' && <InvestorsPage onBack={() => window.history.back()} onHome={() => { window.location.href = 'https://chaparcargo.com/'; }} t={t} />}

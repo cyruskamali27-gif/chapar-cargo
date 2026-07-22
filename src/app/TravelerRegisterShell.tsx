@@ -1,26 +1,34 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
 import { Plane, Bus, TrainFront, Ship, ArrowLeft, ArrowRight, Home, Check, CheckCircle2,
-         ShieldCheck, Clock, XCircle, RefreshCw, AlertTriangle } from 'lucide-react';
+         ShieldCheck, Clock, XCircle, RefreshCw, AlertTriangle, Scale, IdCard, BookUser,
+         CreditCard, Camera, ScanFace, Loader2 } from 'lucide-react';
 import { useSession } from '../lib/SessionContext';
 import { useLang } from '../lib/LangContext';
 import { useKycGate } from '../lib/useKycGate';
 import { Store, genId } from '../lib/store';
 import AirportCityAutocomplete, { type AirportOption } from './AirportCityAutocomplete';
-import { IdentityVerification } from './VerificationModules';
+import GuidedCapture from './GuidedCapture';
 import TravelerAssistant, { type AssistSuggestion } from './TravelerAssistant';
 import { publishTrip, toISO2, COUNTRIES, type TripMode } from '../lib/tripPublish';
 import { PROHIBITED_CATEGORIES } from '../lib/prohibited';
 
-// ── ثبت مسافر چندمسیره — P3 shell (CMD-23) ────────────────────────────────────
+// ── ثبت مسافر چندمسیره — CMD-48 ───────────────────────────────────────────────
 //
 // P1 (CMD-21) shipped step 0 (mode select) + the shell. P2 (CMD-22) shipped the shared
-// tripPublish.ts. P3 (this) fills in the REAL step 1 (per-mode origin/dest) and step 2 (date /
-// capacity / optionals) and wires publish through that SAME tripPublish.ts — one publish path,
-// one ISO2 contract, no divergence from the old page.
+// tripPublish.ts. P3 (CMD-23) filled in steps 1/2 and wired publish through that SAME
+// tripPublish.ts — one publish path, one ISO2 contract.
 //
-// Steps 3 (KYC) and 4 (carry / payout) remain P4 placeholders. Publish fires from step 4 for now;
-// P4 adds the real gates before it.
+// CMD-48 does four things:
+//   1. ONE DESIGN SYSTEM. The shell used to carry four per-mode accent palettes and raw
+//      Tailwind greys, so «ثبت مسافر» and «ثبت کالا» looked like two different products.
+//      Everything now renders on the shared --ds-* tokens (styles/design-system.css) with
+//      ONE accent, exactly like SendPackagePage. Travel mode is expressed by icon + label.
+//   2. The air corridor gets a real IATA route card (ds-route-card) instead of flag emoji.
+//   3. The standalone capacity page is GONE. Capacity is a conversation with the assistant,
+//      with a compact inline field as the additive fallback (see CapacityField below).
+//   4. «احراز هویت» is a real doc-type → capture → status flow over the EXISTING kyc +
+//      face-match services. No service contract changed.
 //
 // NO PHONE FIELD — the traveler's phone is on the session (P1 item 3).
 //
@@ -33,30 +41,15 @@ import { PROHIBITED_CATEGORIES } from '../lib/prohibited';
 
 type ModeId = TripMode;
 
-// ── mode tokens (Rule 20: ≥4.5:1 text / ≥3:1 icons, measured on white — see P1 note) ──
-// `mark` (-600) is icons+rails only; `text` (-700) carries any white label. White-on-mark fails
-// for air/land/sea, which is exactly why the two are separate keys.
-const MODES: { id: ModeId; label: string; hint: string; Icon: typeof Plane;
-               text: string; mark: string; soft: string; ring: string }[] = [
-  { id: 'air',  label: 'هوایی',  hint: 'پرواز — چمدان مسافری',      Icon: Plane,
-    text: '#0369a1', mark: '#0284c7', soft: '#f0f9ff', ring: '#bae6fd' },
-  { id: 'land', label: 'زمینی',  hint: 'اتوبوس، ون یا خودرو',        Icon: Bus,
-    text: '#b45309', mark: '#d97706', soft: '#fffbeb', ring: '#fde68a' },
-  { id: 'rail', label: 'ریلی',   hint: 'قطار بین‌شهری یا بین‌المللی', Icon: TrainFront,
-    text: '#4338ca', mark: '#4f46e5', soft: '#eef2ff', ring: '#c7d2fe' },
-  { id: 'sea',  label: 'دریایی', hint: 'کشتی — ظرفیت بیشتر، زمان بیشتر', Icon: Ship,
-    text: '#0f766e', mark: '#0d9488', soft: '#f0fdfa', ring: '#99f6e4' },
+// Mode is IDENTITY, not theme: an icon and a label. The accent belongs to the design system.
+const MODES: { id: ModeId; label: string; hint: string; Icon: typeof Plane }[] = [
+  { id: 'air',  label: 'هوایی',  hint: 'پرواز — چمدان مسافری',            Icon: Plane     },
+  { id: 'land', label: 'زمینی',  hint: 'اتوبوس، ون یا خودرو',              Icon: Bus       },
+  { id: 'rail', label: 'ریلی',   hint: 'قطار بین‌شهری یا بین‌المللی',       Icon: TrainFront },
+  { id: 'sea',  label: 'دریایی', hint: 'کشتی — ظرفیت بیشتر، زمان بیشتر',  Icon: Ship      },
 ];
 
-const NEUTRAL = { text: '#374151', mark: '#6b7280', soft: '#f9fafb', ring: '#e5e7eb' };
-
-const STEPS = [
-  { n: 0, label: 'نوع مسیر' },
-  { n: 1, label: 'مبدأ و مقصد' },
-  { n: 2, label: 'تاریخ و ظرفیت' },
-  { n: 3, label: 'احراز هویت' },
-  { n: 4, label: 'حمل و تسویه' },
-];
+const STEPS = ['نوع مسیر', 'مبدأ و مقصد', 'تاریخ سفر', 'احراز هویت', 'حمل و تسویه'];
 
 // Per-mode optional carrier reference labels. OPTIONAL, and never rendered as verified — a
 // self-declared flight number is not a confirmed booking. Land has a free-text vehicle type only.
@@ -86,6 +79,11 @@ const PAYOUT_METHODS = [
   { key: 'usdc',   label: 'USDC' },
 ];
 
+// Kill-switch for the capacity assistant. `off` forces the inline capacity field for everyone —
+// the same surface a network failure produces, so the fallback path is testable without breaking
+// the network. Anything else (including unset) leaves the assistant on.
+const AI_ENABLED = (import.meta.env.VITE_TRAVELER_AI ?? '') !== 'off';
+
 const today = new Date().toISOString().split('T')[0];
 
 export default function TravelerRegisterShell({
@@ -99,6 +97,8 @@ export default function TravelerRegisterShell({
   // The shell never fabricates a verdict; it reads the service and re-checks on demand.
   const { isVerified, kycStatus, kycLoading, refetch: refetchKyc } = useKycGate({});
 
+  // Step ALWAYS starts at 0 — «نوع مسیر» is the first screen from every entry point, with no
+  // deeplink, draft or prop able to seed a later step. See the App.tsx `key` note (CMD-48 T2).
   const [step, setStep] = useState(0);
   const [mode, setMode] = useState<ModeId | null>(null);
   const [dir, setDir]   = useState(1);   // direction of travel through the wizard, not text dir
@@ -111,7 +111,7 @@ export default function TravelerRegisterShell({
   const [fromCity, setFromCity] = useState('');   // display/detail only — NEVER sent as a corridor
   const [toCity,   setToCity]   = useState('');
 
-  // ── step 2 — date/capacity + optionals ──
+  // ── step 2 — date + assistant-driven capacity + optionals ──
   const [date, setDate]           = useState('');
   const [arrivalDate, setArrivalDate] = useState('');
   const [capacityKg, setCapacityKg]   = useState('');
@@ -119,9 +119,21 @@ export default function TravelerRegisterShell({
   const [note, setNote]               = useState('');
   const [ref1, setRef1]               = useState('');   // mode-specific carrier ref (optional)
   const [ref2, setRef2]               = useState('');
+  // The assistant reports its own unavailability (env flag or a failed /api/ai/chat call). The
+  // shell reacts by revealing the inline capacity field — it never waits on, or blocks for, the AI.
+  const [aiDown, setAiDown]           = useState(!AI_ENABLED);
+  // Set when the traveler tries to advance without a capacity. Reveals the same inline field, so a
+  // traveler who simply never asked the assistant is never stuck.
+  const [capacityNudge, setCapacityNudge] = useState(false);
 
-  // ── step 3 (KYC) — inline capture toggle ──
-  const [kycCaptureOpen, setKycCaptureOpen] = useState(true);
+  // ── step 3 (احراز هویت) ──
+  const [docType,   setDocType]   = useState<KycDocType | null>(null);
+  const [capture,   setCapture]   = useState<null | 'document' | 'face'>(null);
+  const [docDone,   setDocDone]   = useState(false);
+  const [selfieDone, setSelfieDone] = useState(false);
+  const [faceMatch, setFaceMatch] = useState<'idle' | 'running' | 'sent' | 'failed'>('idle');
+  const [docKey,    setDocKey]    = useState<string | null>(null);
+  const [selfieKey, setSelfieKey] = useState<string | null>(null);
 
   // ── step 4 (carry + payout) ──
   const [carry, setCarry]                 = useState<string[]>([]);
@@ -135,14 +147,28 @@ export default function TravelerRegisterShell({
   const [serverWriteError, setServerWriteError] = useState('');
   const [validationErr, setValidationErr]       = useState('');
 
-  const theme = useMemo(() => MODES.find(m => m.id === mode) ?? NEUTRAL, [mode]);
-
   // The corridor countries, resolved to ISO2. Air derives from the airport's country; the other
   // modes already hold ISO2 in fromCC/toCC. toISO2 accepts either, so this is one code path.
   const fromCountry = mode === 'air' ? airOrigin?.country : fromCC;
   const toCountry   = mode === 'air' ? airDest?.country   : toCC;
   const fromISO = toISO2(fromCountry);
   const toISO   = toISO2(toCountry);
+
+  // Face-match fires once both artefacts exist — the SAME endpoint and payload the cargo flow
+  // uses. The kyc/face-match services are untouched; this only calls them.
+  useEffect(() => {
+    if (!docKey || !selfieKey || faceMatch !== 'idle') return;
+    const token = localStorage.getItem('cp_token');
+    if (!token) return;
+    setFaceMatch('running');
+    fetch('/api/kyc/passport/face-match', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ selfieMediaKey: selfieKey, passportMediaKey: docKey }),
+    })
+      .then(r => { setFaceMatch(r.ok ? 'sent' : 'failed'); if (r.ok) refetchKyc(); })
+      .catch(() => setFaceMatch('failed'));
+  }, [docKey, selfieKey, faceMatch, refetchKyc]);
 
   const enterFrom = (isRTL ? -1 : 1) * dir * 28;
   const variants = reduce
@@ -169,7 +195,7 @@ export default function TravelerRegisterShell({
   const canAdvance =
     step === 0 ? mode !== null :
     step === 1 ? step1Valid()  :
-    step === 2 ? step2Valid()  :
+    step === 2 ? !!date        :   // capacity is nudged, not gated at the button — see go()
     step === 3 ? step3Valid()  :
     step === 4 ? step4Valid()  :
     true;
@@ -178,12 +204,18 @@ export default function TravelerRegisterShell({
     setValidationErr('');
     if (next > step) {
       if (step === 1 && !step1Valid()) { setValidationErr('مبدأ و مقصد را کامل کنید.'); return; }
-      if (step === 2 && !step2Valid()) { setValidationErr('تاریخ حرکت و ظرفیت (کیلوگرم) الزامی است.'); return; }
+      if (step === 2 && !step2Valid()) {
+        // Never a dead end: reveal the compact capacity field right here and say why.
+        if (!(parseFloat(capacityKg) > 0)) setCapacityNudge(true);
+        setValidationErr(!date ? 'تاریخ حرکت الزامی است.' : 'ظرفیت (کیلوگرم) را وارد کنید یا از دستیار کمک بگیرید.');
+        return;
+      }
       if (step === 3 && !step3Valid()) { setValidationErr('برای ادامه باید احراز هویت شما تأیید شده باشد.'); return; }
     }
     if (next === step) return;
     setDir(next > step ? 1 : -1);
     setStep(next);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   // The ONLY channel through which the AI assistant can affect the form. Whitelisted to the three
@@ -260,36 +292,38 @@ export default function TravelerRegisterShell({
     setPublishing(false);
   }
 
+  const corridor = {
+    fromCode: mode === 'air' ? (airOrigin?.iata ?? '') : (fromISO ?? ''),
+    fromName: mode === 'air' ? (airOrigin?.city ?? '') : (fromCity || COUNTRIES.find(c => c.iso2 === fromISO)?.fa || ''),
+    toCode:   mode === 'air' ? (airDest?.iata ?? '')   : (toISO ?? ''),
+    toName:   mode === 'air' ? (airDest?.city ?? '')   : (toCity || COUNTRIES.find(c => c.iso2 === toISO)?.fa || ''),
+  };
+
   // ── success screen ──
   if (result) {
-    const m = MODES.find(x => x.id === mode);
     return (
-      <div className="min-h-screen bg-gray-50 pt-16 sm:pt-18" dir={isRTL ? 'rtl' : 'ltr'}>
-        <div className="max-w-2xl mx-auto px-4 py-10">
-          <div className="rounded-2xl border border-gray-200 bg-white p-6 text-center">
-            <div className="inline-flex w-14 h-14 rounded-2xl items-center justify-center mb-3"
-                 style={{ backgroundColor: (m ?? MODES[0]).soft }}>
-              <CheckCircle2 className="w-8 h-8" style={{ color: (m ?? MODES[0]).text }} aria-hidden />
+      <div className="min-h-screen bg-white pt-16 sm:pt-18" dir={isRTL ? 'rtl' : 'ltr'}>
+        <div className="max-w-2xl mx-auto px-4 py-10 pb-24">
+          <div className="ds-card p-8 text-center">
+            <div className="inline-flex w-16 h-16 rounded-2xl items-center justify-center mb-4"
+                 style={{ background: 'var(--ds-success-bg)', border: '1px solid var(--ds-success-border)' }}>
+              <CheckCircle2 className="w-8 h-8" style={{ color: 'var(--ds-success)' }} aria-hidden />
             </div>
-            <h2 className="text-xl font-extrabold text-gray-900 mb-1">سفر شما ثبت شد</h2>
-            <p className="text-sm text-gray-600 mb-4">سفر شما در بازارگاه دیده می‌شود و با سفارش‌های هم‌مسیر تطبیق داده می‌شود.</p>
+            <h2 className="text-2xl font-extrabold text-gray-900 mb-2">سفر شما ثبت شد</h2>
+            <p className="text-gray-500 text-sm leading-relaxed mb-6">
+              سفر شما در بازارگاه دیده می‌شود و با سفارش‌های هم‌مسیر تطبیق داده می‌شود.
+            </p>
 
-            <div className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 mb-4 text-center">
-              <div className="text-[11px] font-bold text-gray-500 mb-0.5">شناسه سفر</div>
-              <div className="text-base font-extrabold text-gray-900 font-mono tracking-wide">{result.tripId}</div>
-            </div>
-
-            <div className="flex items-center justify-center gap-2 text-gray-800 font-bold mb-6">
-              <span>{COUNTRIES.find(c => c.iso2 === fromISO)?.flag} {fromISO}</span>
-              <span className="text-gray-400 text-sm">←</span>
-              <span>{COUNTRIES.find(c => c.iso2 === toISO)?.flag} {toISO}</span>
-              <span className="mx-1 text-gray-300">·</span>
-              <span className="text-sm text-gray-600">{capacityKg} kg</span>
+            <div className="bg-cyan-50 border border-cyan-200 rounded-xl px-6 py-4 mb-4">
+              <div className="text-xs font-bold text-cyan-600 uppercase tracking-wider mb-1">شناسهٔ سفر</div>
+              <div className="text-xl font-extrabold text-gray-900 tracking-wider font-mono">{result.tripId}</div>
             </div>
 
-            <button onClick={onHome}
-              className="w-full h-12 rounded-xl text-white font-bold"
-              style={{ backgroundColor: (m ?? MODES[0]).text }}>
+            <div className="mb-6">
+              <RouteCard mode={mode!} {...corridor} meta={`${capacityKg} kg`} isRTL={isRTL} />
+            </div>
+
+            <button onClick={onHome} className="ds-btn-primary w-full" style={{ height: 48 }}>
               بازگشت به خانه
             </button>
           </div>
@@ -300,39 +334,21 @@ export default function TravelerRegisterShell({
 
   return (
     // App chrome is a fixed h-16 sm:h-18 z-50 header — pad + stick beneath it (P1 fix).
-    <div className="min-h-screen bg-gray-50 pt-16 sm:pt-18" dir={isRTL ? 'rtl' : 'ltr'}>
-      <header className="sticky top-16 sm:top-18 z-20 bg-white/95 backdrop-blur border-b border-gray-200">
+    <div className="min-h-screen bg-white pt-16 sm:pt-18" dir={isRTL ? 'rtl' : 'ltr'}>
+      <header className="sticky top-16 sm:top-18 z-20 bg-white/95 backdrop-blur" style={{ borderBottom: '1px solid var(--ds-border)' }}>
         <div className="max-w-2xl mx-auto px-4 h-14 flex items-center justify-between">
           <button onClick={onBack} aria-label="بازگشت"
-            className="w-9 h-9 rounded-xl hover:bg-gray-100 flex items-center justify-center text-gray-700 transition-colors">
+            className="w-9 h-9 rounded-xl hover:bg-gray-100 flex items-center justify-center text-gray-500 transition-colors">
             {isRTL ? <ArrowRight className="w-5 h-5" /> : <ArrowLeft className="w-5 h-5" />}
           </button>
-          <h1 className="text-[15px] font-bold text-gray-900">ثبت مسافر</h1>
+          <h1 className="text-[15px] font-bold text-gray-900">ثبت مسیر مسافر</h1>
           <button onClick={onHome} aria-label="خانه"
-            className="w-9 h-9 rounded-xl hover:bg-gray-100 flex items-center justify-center text-gray-700 transition-colors">
+            className="w-9 h-9 rounded-xl hover:bg-gray-100 flex items-center justify-center text-gray-500 transition-colors">
             <Home className="w-5 h-5" />
           </button>
         </div>
-
-        {/* progress rail — the one surface that carries the mode accent */}
         <div className="max-w-2xl mx-auto px-4 pb-3">
-          <div className="flex items-center gap-1.5">
-            {STEPS.map(s => {
-              const done   = s.n < step;
-              const active = s.n === step;
-              return (
-                <div key={s.n} className="flex-1">
-                  <motion.div className="h-1 rounded-full"
-                    animate={{ backgroundColor: done || active ? theme.mark : '#e5e7eb' }}
-                    transition={reduce ? { duration: 0 } : { duration: 0.35, ease: 'easeOut' }} />
-                  <div className="mt-1.5 text-[10px] font-semibold truncate text-center"
-                       style={{ color: active || done ? theme.text : '#6b7280' }}>
-                    {s.label}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+          <StepPills step={step} />
         </div>
       </header>
 
@@ -342,35 +358,40 @@ export default function TravelerRegisterShell({
             initial="enter" animate="center" exit="exit"
             transition={reduce ? { duration: 0 } : { duration: 0.28, ease: [0.22, 1, 0.36, 1] }}>
 
-            {step === 0 && <StepMode mode={mode} onPick={setMode} reduce={!!reduce} />}
+            {step === 0 && <StepMode mode={mode} onPick={setMode} />}
 
             {step === 1 && (
               <StepOriginDest
-                mode={mode!} theme={theme}
+                mode={mode!} corridor={corridor} isRTL={isRTL}
                 airOrigin={airOrigin} airDest={airDest} setAirOrigin={setAirOrigin} setAirDest={setAirDest}
                 fromCC={fromCC} toCC={toCC} setFromCC={setFromCC} setToCC={setToCC}
-                fromCity={fromCity} toCity={toCity} setFromCity={setFromCity} setToCity={setToCity}
-                reduce={!!reduce} />
+                fromCity={fromCity} toCity={toCity} setFromCity={setFromCity} setToCity={setToCity} />
             )}
 
             {step === 2 && (
-              <StepDateCapacity
-                mode={mode!} theme={theme}
+              <StepDate
+                mode={mode!}
                 date={date} setDate={setDate} arrivalDate={arrivalDate} setArrivalDate={setArrivalDate}
                 capacityKg={capacityKg} setCapacityKg={setCapacityKg}
                 minPrice={minPrice} setMinPrice={setMinPrice} note={note} setNote={setNote}
                 ref1={ref1} setRef1={setRef1} ref2={ref2} setRef2={setRef2}
-                onApply={applyAssist} reduce={!!reduce} />
+                onApply={applyAssist}
+                aiEnabled={AI_ENABLED} aiDown={aiDown} onAiDown={() => setAiDown(true)}
+                showInlineCapacity={aiDown || capacityNudge} />
             )}
 
             {step === 3 && (
-              <StepKyc mode={mode!} theme={theme} reduce={!!reduce}
-                isVerified={isVerified} kycStatus={kycStatus} kycLoading={kycLoading}
-                captureOpen={kycCaptureOpen} setCaptureOpen={setKycCaptureOpen} onRecheck={refetchKyc} />
+              <StepKyc
+                mode={mode!}
+                isVerified={isVerified} kycStatus={kycStatus} kycLoading={kycLoading} onRecheck={refetchKyc}
+                docType={docType} setDocType={setDocType}
+                docDone={docDone} selfieDone={selfieDone} faceMatch={faceMatch}
+                onOpenCapture={setCapture} />
             )}
 
             {step === 4 && (
-              <StepCarryPayout mode={mode!} theme={theme} reduce={!!reduce}
+              <StepCarryPayout
+                mode={mode!}
                 carry={carry} setCarry={setCarry}
                 prohibitedAck={prohibitedAck} setProhibitedAck={setProhibitedAck}
                 payoutMethod={payoutMethod} setPayoutMethod={setPayoutMethod}
@@ -394,20 +415,20 @@ export default function TravelerRegisterShell({
       </main>
 
       {/* sticky footer nav */}
-      <div className="fixed bottom-0 inset-x-0 bg-white border-t border-gray-200">
+      <div className="fixed bottom-0 inset-x-0 bg-white" style={{ borderTop: '1px solid var(--ds-border)' }}>
         <div className="max-w-2xl mx-auto px-4 py-3 flex items-center gap-3">
           {step > 0 && (
             <button onClick={() => go(step - 1)} disabled={publishing}
-              className="px-5 h-12 rounded-xl border border-gray-300 text-gray-700 font-semibold hover:bg-gray-50 transition-colors disabled:opacity-40">
+              className="ds-btn-secondary disabled:opacity-40" style={{ height: 48 }}>
               قبلی
             </button>
           )}
           <button
             onClick={() => { if (step === 4) doPublish(); else go(Math.min(step + 1, 4)); }}
             disabled={!canAdvance || publishing}
-            className="flex-1 h-12 rounded-xl text-white font-bold transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
-            style={{ backgroundColor: mode ? theme.text : '#374151' }}>
-            {publishing ? 'در حال ثبت…' : step === 0 ? 'ادامه' : step === 4 ? 'ثبت سفر' : 'بعدی'}
+            className="ds-btn-primary flex-1 disabled:opacity-40 disabled:cursor-not-allowed"
+            style={{ height: 48 }}>
+            {publishing ? 'در حال ثبت…' : step === 4 ? 'ثبت سفر' : step === 0 ? 'ادامه' : 'بعدی'}
           </button>
         </div>
         {!session && (
@@ -416,34 +437,117 @@ export default function TravelerRegisterShell({
           </div>
         )}
       </div>
+
+      {/* KYC capture — full-screen, launched from step 3. Uses the SAME GuidedCapture the cargo
+          flow uses, so doc upload / liveness / face-match all run against the existing services. */}
+      {capture && (
+        <GuidedCapture
+          mode={capture}
+          liveness={capture === 'face'}
+          initialDocType={capture === 'document' ? (docType ?? undefined) : undefined}
+          onBack={() => setCapture(null)}
+          onHome={() => setCapture(null)}
+          onComplete={(r) => {
+            setCapture(null);
+            if (r.docMediaKey)    { setDocKey(r.docMediaKey);    setDocDone(true); }
+            if (r.selfieMediaKey) { setSelfieKey(r.selfieMediaKey); setSelfieDone(true); }
+            refetchKyc();
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+// ── Step rail ─────────────────────────────────────────────────────────────────
+// Visually identical to SendPackagePage's StepPills — same dot size, same connector, same
+// numbering, same active ring. That equality IS the "one design system" requirement.
+function StepPills({ step }: { step: number }) {
+  return (
+    <div className="flex items-center gap-0 overflow-x-auto pb-1 -mx-1 px-1">
+      {STEPS.map((label, i) => {
+        const done   = i < step;
+        const active = i === step;
+        return (
+          <div key={label} className="flex items-center flex-shrink-0">
+            {i > 0 && <div className={`ds-step-connector w-3 sm:w-5 ${done ? 'ds-step-connector--done' : ''}`} />}
+            <div className="flex flex-col items-center gap-0.5">
+              <div className={`ds-step-dot ${done ? 'ds-step-dot--done' : active ? 'ds-step-dot--active' : ''}`}>
+                {done ? <Check className="w-3.5 h-3.5" aria-hidden /> : i + 1}
+              </div>
+              <span className={`text-[9px] font-semibold whitespace-nowrap hidden sm:block ${
+                active ? 'text-cyan-700' : done ? 'text-emerald-700' : 'text-gray-500'}`}>
+                {label}
+              </span>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ── Route card — IATA left / route line centre / IATA right (CMD-48 T3) ───────
+// Replaces the flag-emoji + arrow treatment. Codes are the international constant; the city
+// name is the human read. The centre is a hairline with one small mode glyph on it — no
+// clip-art, and it composes identically in RTL because the grid is direction-agnostic and the
+// two ends are labelled, not positional.
+function RouteCard({ mode, fromCode, fromName, toCode, toName, meta, isRTL }: {
+  mode: ModeId; fromCode: string; fromName: string; toCode: string; toName: string;
+  meta?: string; isRTL: boolean;
+}) {
+  const m = MODES.find(x => x.id === mode)!;
+  return (
+    <div>
+      <div className="ds-route-card">
+        <div className="min-w-0">
+          <div className="ds-route-label">مبدأ</div>
+          <div className={`ds-route-iata ${fromCode ? '' : 'ds-route-iata--empty'}`}>{fromCode || '– – –'}</div>
+          {fromName && <div className="ds-route-city">{fromName}</div>}
+        </div>
+
+        <div className="ds-route-line" aria-hidden>
+          <span className="ds-route-dot" />
+          <m.Icon className="w-4 h-4 flex-shrink-0"
+                  style={{ transform: `rotate(${isRTL ? -90 : 90}deg)` }} />
+          <span className="ds-route-dot" />
+        </div>
+
+        <div className="min-w-0 text-end">
+          <div className="ds-route-label">مقصد</div>
+          <div className={`ds-route-iata ${toCode ? '' : 'ds-route-iata--empty'}`}>{toCode || '– – –'}</div>
+          {toName && <div className="ds-route-city">{toName}</div>}
+        </div>
+      </div>
+      {meta && (
+        <div className="mt-2 flex items-center justify-center gap-2 text-xs text-gray-500">
+          <m.Icon className="w-3.5 h-3.5" aria-hidden /><span>مسیر {m.label}</span>
+          <span className="text-gray-300">·</span><span>{meta}</span>
+        </div>
+      )}
     </div>
   );
 }
 
 // ── Step 0 — mode select ──────────────────────────────────────────────────────
-function StepMode({ mode, onPick, reduce }:
-  { mode: ModeId | null; onPick: (id: ModeId) => void; reduce: boolean }) {
+function StepMode({ mode, onPick }: { mode: ModeId | null; onPick: (id: ModeId) => void }) {
   return (
     <div>
       <h2 className="text-xl font-extrabold text-gray-900 mb-1">سفر شما از چه راهی است؟</h2>
-      <p className="text-sm text-gray-600 mb-5">هر مسیر اطلاعات کمی متفاوت می‌خواهد. با انتخاب نوع مسیر، فقط همان‌ها را می‌پرسیم.</p>
+      <p className="text-sm text-gray-500 mb-5">هر مسیر اطلاعات کمی متفاوت می‌خواهد. با انتخاب نوع مسیر، فقط همان‌ها را می‌پرسیم.</p>
       <div className="grid grid-cols-2 gap-3">
         {MODES.map(m => {
           const selected = mode === m.id;
           return (
-            <button key={m.id} onClick={() => onPick(m.id)} aria-pressed={selected}
-              className="relative text-start rounded-2xl border-2 p-4 bg-white transition-colors focus:outline-none focus-visible:ring-4"
-              style={{ borderColor: selected ? m.mark : '#e5e7eb', backgroundColor: selected ? m.soft : '#ffffff' }}>
-              <motion.span layoutId={selected ? 'mode-mark' : undefined}
-                transition={reduce ? { duration: 0 } : { type: 'spring', stiffness: 380, damping: 30 }}
-                className="inline-flex w-11 h-11 rounded-xl items-center justify-center mb-3"
-                style={{ backgroundColor: m.soft }}>
-                <m.Icon className="w-6 h-6" style={{ color: m.mark }} aria-hidden />
-              </motion.span>
-              <div className="font-bold text-[15px]" style={{ color: selected ? m.text : '#111827' }}>{m.label}</div>
-              <div className="text-[11px] leading-snug mt-0.5 text-gray-600">{m.hint}</div>
+            <button key={m.id} onClick={() => onPick(m.id)} aria-pressed={selected} className="ds-choice p-4">
+              <span className={`inline-flex w-11 h-11 rounded-xl items-center justify-center mb-3 ${
+                selected ? 'bg-cyan-100' : 'bg-gray-100'}`}>
+                <m.Icon className={`w-6 h-6 ${selected ? 'text-cyan-700' : 'text-gray-500'}`} aria-hidden />
+              </span>
+              <div className={`font-bold text-[15px] ${selected ? 'text-cyan-700' : 'text-gray-900'}`}>{m.label}</div>
+              <div className="text-[11px] leading-snug mt-0.5 text-gray-500">{m.hint}</div>
               {selected && (
-                <span className="absolute top-3 end-3 w-5 h-5 rounded-full flex items-center justify-center" style={{ backgroundColor: m.text }}>
+                <span className="absolute top-3 end-3 w-5 h-5 rounded-full bg-cyan-600 flex items-center justify-center">
                   <Check className="w-3 h-3 text-white" aria-hidden />
                 </span>
               )}
@@ -456,20 +560,18 @@ function StepMode({ mode, onPick, reduce }:
   );
 }
 
-// ── mode header (icon + label), shared by steps 1/2/placeholder ───────────────
-function ModeHeader({ mode, theme, title, reduce }:
-  { mode: ModeId; theme: typeof NEUTRAL; title: string; reduce: boolean }) {
+// ── mode header (icon + label), shared by steps 1–4 ───────────────────────────
+function StepHeader({ mode, title, desc }: { mode: ModeId; title: string; desc?: string }) {
   const m = MODES.find(x => x.id === mode)!;
   return (
     <div className="flex items-center gap-3 mb-5">
-      <motion.span layoutId="mode-mark"
-        transition={reduce ? { duration: 0 } : { type: 'spring', stiffness: 380, damping: 30 }}
-        className="inline-flex w-11 h-11 rounded-xl items-center justify-center" style={{ backgroundColor: m.soft }}>
-        <m.Icon className="w-6 h-6" style={{ color: m.mark }} aria-hidden />
-      </motion.span>
-      <div>
-        <div className="text-[11px] font-semibold" style={{ color: theme.text }}>مسیر {m.label}</div>
+      <span className="inline-flex w-11 h-11 rounded-xl items-center justify-center bg-cyan-50 border border-cyan-100 flex-shrink-0">
+        <m.Icon className="w-6 h-6 text-cyan-700" aria-hidden />
+      </span>
+      <div className="min-w-0">
+        <div className="text-[11px] font-semibold text-cyan-700">مسیر {m.label}</div>
         <h2 className="text-lg font-extrabold text-gray-900 leading-tight">{title}</h2>
+        {desc && <p className="text-xs text-gray-500 mt-0.5">{desc}</p>}
       </div>
     </div>
   );
@@ -478,17 +580,15 @@ function ModeHeader({ mode, theme, title, reduce }:
 // ── country picker (native select — accessible, RTL-safe, no fake autocomplete) ──
 // Reads COUNTRIES from tripPublish.ts — the ONE country source. Its value is ISO2, sent verbatim
 // as the corridor. No 8th copy of any country table.
-function CountrySelect({ label, value, onChange, accent }:
-  { label: string; value: string; onChange: (iso2: string) => void; accent: string }) {
+function CountrySelect({ label, value, onChange }:
+  { label: string; value: string; onChange: (iso2: string) => void }) {
   return (
     <div>
-      <label className="block text-xs font-bold text-gray-600 mb-1.5">{label}</label>
-      <select value={value} onChange={e => onChange(e.target.value)}
-        className="w-full h-12 px-3 rounded-xl border-2 bg-white text-gray-900 text-sm font-medium focus:outline-none"
-        style={{ borderColor: value ? accent : '#e5e7eb' }}>
+      <label className="ds-label font-semibold">{label}</label>
+      <select value={value} onChange={e => onChange(e.target.value)} className="ds-input">
         <option value="">— کشور را انتخاب کنید —</option>
         {COUNTRIES.map(c => (
-          <option key={c.iso2} value={c.iso2}>{c.flag} {c.fa} ({c.iso2})</option>
+          <option key={c.iso2} value={c.iso2}>{c.fa} ({c.iso2})</option>
         ))}
       </select>
     </div>
@@ -497,17 +597,22 @@ function CountrySelect({ label, value, onChange, accent }:
 
 // ── Step 1 — origin / destination (per mode) ──────────────────────────────────
 function StepOriginDest(p: {
-  mode: ModeId; theme: typeof NEUTRAL;
+  mode: ModeId; isRTL: boolean;
+  corridor: { fromCode: string; fromName: string; toCode: string; toName: string };
   airOrigin: AirportOption | null; airDest: AirportOption | null;
   setAirOrigin: (v: AirportOption | null) => void; setAirDest: (v: AirportOption | null) => void;
   fromCC: string; toCC: string; setFromCC: (v: string) => void; setToCC: (v: string) => void;
   fromCity: string; toCity: string; setFromCity: (v: string) => void; setToCity: (v: string) => void;
-  reduce: boolean;
 }) {
   const ref = MODE_REF[p.mode];
   return (
     <div>
-      <ModeHeader mode={p.mode} theme={p.theme} title="مبدأ و مقصد" reduce={p.reduce} />
+      <StepHeader mode={p.mode} title="مبدأ و مقصد" />
+
+      {/* Live corridor preview — fills in as the traveler picks. */}
+      <div className="mb-5">
+        <RouteCard mode={p.mode} {...p.corridor} isRTL={p.isRTL} />
+      </div>
 
       {p.mode === 'air' ? (
         <div className="space-y-4">
@@ -519,21 +624,19 @@ function StepOriginDest(p: {
         <div className="space-y-4">
           {/* Country is the REQUIRED, corridor-bearing field (ISO2). City is optional detail. */}
           <div className="grid grid-cols-1 gap-4">
-            <CountrySelect label="کشور مبدأ" value={p.fromCC} onChange={p.setFromCC} accent={p.theme.mark} />
+            <CountrySelect label="کشور مبدأ" value={p.fromCC} onChange={p.setFromCC} />
             <div>
-              <label className="block text-xs font-bold text-gray-600 mb-1.5">{ref.placeFrom}</label>
+              <label className="ds-label font-semibold">{ref.placeFrom}</label>
               <input type="text" value={p.fromCity} onChange={e => p.setFromCity(e.target.value)}
-                className="w-full h-12 px-3 rounded-xl border-2 border-gray-200 bg-white text-sm focus:outline-none"
-                placeholder={ref.cityLabel} />
+                className="ds-input" placeholder={ref.cityLabel} />
             </div>
           </div>
           <div className="grid grid-cols-1 gap-4">
-            <CountrySelect label="کشور مقصد" value={p.toCC} onChange={p.setToCC} accent={p.theme.mark} />
+            <CountrySelect label="کشور مقصد" value={p.toCC} onChange={p.setToCC} />
             <div>
-              <label className="block text-xs font-bold text-gray-600 mb-1.5">{ref.placeTo}</label>
+              <label className="ds-label font-semibold">{ref.placeTo}</label>
               <input type="text" value={p.toCity} onChange={e => p.setToCity(e.target.value)}
-                className="w-full h-12 px-3 rounded-xl border-2 border-gray-200 bg-white text-sm focus:outline-none"
-                placeholder={ref.cityLabel} />
+                className="ds-input" placeholder={ref.cityLabel} />
             </div>
           </div>
           <p className="text-[11px] text-gray-500">کشور برای تطبیق در بازارگاه استفاده می‌شود؛ نام شهر فقط برای نمایش است.</p>
@@ -543,50 +646,81 @@ function StepOriginDest(p: {
   );
 }
 
-// ── Step 2 — date / capacity / optionals ──────────────────────────────────────
-function StepDateCapacity(p: {
-  mode: ModeId; theme: typeof NEUTRAL;
+// ── Step 2 — travel date (capacity is conversational — CMD-48 T4) ─────────────
+// The standalone «ظرفیت خود را اعلام کنید» page is deleted. Capacity now comes from the
+// assistant as a tap-to-apply proposal. The inline field below is the ADDITIVE fallback: it
+// appears when the assistant is switched off, when it fails, or the moment the traveler tries to
+// advance without a capacity. It is a single field in the flow — never a page of its own — so no
+// AI outcome can dead-end registration.
+function StepDate(p: {
+  mode: ModeId;
   date: string; setDate: (v: string) => void; arrivalDate: string; setArrivalDate: (v: string) => void;
   capacityKg: string; setCapacityKg: (v: string) => void;
   minPrice: string; setMinPrice: (v: string) => void; note: string; setNote: (v: string) => void;
   ref1: string; setRef1: (v: string) => void; ref2: string; setRef2: (v: string) => void;
   onApply: (field: AssistSuggestion['field'], value: number | string) => void;
-  reduce: boolean;
+  aiEnabled: boolean; aiDown: boolean; onAiDown: () => void; showInlineCapacity: boolean;
 }) {
   const ref = MODE_REF[p.mode];
-  const inputCls = 'w-full h-12 px-3 rounded-xl border-2 border-gray-200 bg-white text-sm focus:outline-none';
+  const hasCapacity = parseFloat(p.capacityKg) > 0;
   return (
     <div>
-      <ModeHeader mode={p.mode} theme={p.theme} title="تاریخ و ظرفیت" reduce={p.reduce} />
+      <StepHeader mode={p.mode} title="تاریخ سفر" desc="ظرفیت را با دستیار تعیین کنید یا خودتان وارد کنید." />
 
-      {/* AI helper — light theme, tap-to-apply, additive. Lives on the capacity step because that
-          is what it can genuinely help estimate. Collapsed by default; never blocks the form. */}
-      <TravelerAssistant accent={p.theme} onApply={p.onApply} />
+      {p.aiEnabled && !p.aiDown && (
+        <TravelerAssistant onApply={p.onApply} onUnavailable={p.onAiDown} />
+      )}
 
       <div className="space-y-4">
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-xs font-bold text-gray-600 mb-1.5">تاریخ حرکت<span className="text-red-500"> *</span></label>
-            <input type="date" min={today} value={p.date} onChange={e => p.setDate(e.target.value)} className={inputCls} />
+            <label className="ds-label font-semibold">تاریخ حرکت<span className="text-red-500"> *</span></label>
+            <input type="date" min={today} value={p.date} onChange={e => p.setDate(e.target.value)} className="ds-input" />
           </div>
           <div>
-            <label className="block text-xs font-bold text-gray-600 mb-1.5">تاریخ رسیدن (اختیاری)</label>
-            <input type="date" min={p.date || today} value={p.arrivalDate} onChange={e => p.setArrivalDate(e.target.value)} className={inputCls} />
+            <label className="ds-label font-semibold">تاریخ رسیدن (اختیاری)</label>
+            <input type="date" min={p.date || today} value={p.arrivalDate} onChange={e => p.setArrivalDate(e.target.value)} className="ds-input" />
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-xs font-bold text-gray-600 mb-1.5">ظرفیت (کیلوگرم)<span className="text-red-500"> *</span></label>
+        {/* Capacity readout once the assistant has proposed one — compact, always editable. */}
+        {hasCapacity && !p.showInlineCapacity && (
+          <div className="flex items-center gap-3 rounded-2xl border border-cyan-200 bg-cyan-50 px-4 py-3">
+            <Scale className="w-5 h-5 text-cyan-700 flex-shrink-0" aria-hidden />
+            <div className="flex-1 min-w-0">
+              <div className="text-[11px] font-bold text-cyan-700">ظرفیت اعلام‌شده</div>
+              <div className="text-sm font-extrabold text-gray-900">{p.capacityKg} کیلوگرم</div>
+            </div>
             <input type="number" min="0" step="0.5" inputMode="decimal" value={p.capacityKg}
-              onChange={e => p.setCapacityKg(e.target.value)} className={inputCls} placeholder="مثلاً ۱۰" />
+              onChange={e => p.setCapacityKg(e.target.value)}
+              aria-label="ویرایش ظرفیت (کیلوگرم)"
+              className="ds-input w-24 text-center" style={{ padding: '8px 10px' }} />
           </div>
-          <div>
-            <label className="block text-xs font-bold text-gray-600 mb-1.5">حداقل قیمت هر کیلو ($) (اختیاری)</label>
-            <input type="number" min="0" step="1" inputMode="decimal" value={p.minPrice}
-              onChange={e => p.setMinPrice(e.target.value)} className={inputCls} placeholder="اختیاری" />
+        )}
+
+        {/* Additive fallback — one inline field, never a page. */}
+        {p.showInlineCapacity && (
+          <div className="rounded-2xl border border-gray-200 bg-white p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <Scale className="w-4 h-4 text-gray-500" aria-hidden />
+              <span className="text-sm font-bold text-gray-800">ظرفیت قابل حمل</span>
+              <span className="text-red-500">*</span>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <input type="number" min="0" step="0.5" inputMode="decimal" value={p.capacityKg}
+                onChange={e => p.setCapacityKg(e.target.value)} className="ds-input"
+                placeholder="ظرفیت (کیلوگرم)" aria-label="ظرفیت به کیلوگرم" />
+              <input type="number" min="0" step="1" inputMode="decimal" value={p.minPrice}
+                onChange={e => p.setMinPrice(e.target.value)} className="ds-input"
+                placeholder="حداقل قیمت هر کیلو ($)" aria-label="حداقل قیمت هر کیلوگرم به دلار" />
+            </div>
+            <p className="mt-2 text-[11px] text-gray-500">
+              {p.aiDown
+                ? 'دستیار در دسترس نیست — ظرفیت را مستقیم وارد کنید. ثبت سفر ادامه دارد.'
+                : 'ظرفیت را وارد کنید تا بتوانید ادامه دهید.'}
+            </p>
           </div>
-        </div>
+        )}
 
         {/* Mode-specific OPTIONAL carrier references. Clearly optional; a self-declared ref is a
             note, never a verified booking, and is stored as text only. */}
@@ -594,12 +728,12 @@ function StepDateCapacity(p: {
           <div className="text-xs font-bold text-gray-500 mb-3">جزئیات سفر (اختیاری)</div>
           <div className="grid grid-cols-1 gap-3">
             {ref.ref1 && (
-              <input type="text" value={p.ref1} onChange={e => p.setRef1(e.target.value)} className={inputCls} placeholder={ref.ref1} />
+              <input type="text" value={p.ref1} onChange={e => p.setRef1(e.target.value)} className="ds-input" placeholder={ref.ref1} />
             )}
             {ref.ref2 && (
-              <input type="text" value={p.ref2} onChange={e => p.setRef2(e.target.value)} className={inputCls} placeholder={ref.ref2} />
+              <input type="text" value={p.ref2} onChange={e => p.setRef2(e.target.value)} className="ds-input" placeholder={ref.ref2} />
             )}
-            <input type="text" value={p.note} onChange={e => p.setNote(e.target.value)} className={inputCls} placeholder="توضیحات (اختیاری)" />
+            <input type="text" value={p.note} onChange={e => p.setNote(e.target.value)} className="ds-input" placeholder="توضیحات (اختیاری)" />
           </div>
           <p className="mt-2 text-[11px] text-gray-500">این موارد خوداظهاری است و به‌عنوان «تأییدشده» نمایش داده نمی‌شود.</p>
         </div>
@@ -608,24 +742,56 @@ function StepDateCapacity(p: {
   );
 }
 
-// ── Step 3 — KYC (real gate, reuses /api/kyc/status + IdentityVerification) ────
+// ── Step 3 — احراز هویت (CMD-48 T5) ───────────────────────────────────────────
+// Three honest surfaces: pick a document, capture it, capture a selfie — then the SERVICE's
+// verdict, never ours. Every state below is read from /api/kyc/status; the component has no way
+// to declare someone verified.
+export type KycDocType = 'passport' | 'national_id' | 'drivers_license';
+
+const KYC_DOCS: { key: KycDocType; label: string; hint: string; Icon: typeof IdCard }[] = [
+  { key: 'passport',         label: 'پاسپورت',        hint: 'صفحهٔ مشخصات',            Icon: BookUser   },
+  { key: 'national_id',      label: 'کارت ملی',       hint: 'روی کارت و پشت کارت',      Icon: IdCard     },
+  { key: 'drivers_license',  label: 'گواهی‌نامه',      hint: 'روی کارت و پشت کارت',      Icon: CreditCard },
+];
+
 function StepKyc(p: {
-  mode: ModeId; theme: typeof NEUTRAL; reduce: boolean;
-  isVerified: boolean; kycStatus: string | null; kycLoading: boolean;
-  captureOpen: boolean; setCaptureOpen: (v: boolean) => void; onRecheck: () => void;
+  mode: ModeId;
+  isVerified: boolean; kycStatus: string | null; kycLoading: boolean; onRecheck: () => void;
+  docType: KycDocType | null; setDocType: (v: KycDocType) => void;
+  docDone: boolean; selfieDone: boolean; faceMatch: 'idle' | 'running' | 'sent' | 'failed';
+  onOpenCapture: (m: 'document' | 'face') => void;
 }) {
   // Neutral status labels only — no internal reasons leaked (matches the service contract).
-  const STATUS: Record<string, { label: string; cls: string; Icon: typeof Clock }> = {
-    verified:     { label: 'تأیید شده',       cls: 'bg-green-50 text-green-700 border-green-200', Icon: ShieldCheck },
-    under_review: { label: 'در حال بررسی',     cls: 'bg-blue-50 text-blue-700 border-blue-200',    Icon: Clock },
-    pending:      { label: 'در انتظار مدارک',  cls: 'bg-gray-50 text-gray-600 border-gray-200',    Icon: Clock },
-    rejected:     { label: 'رد شده',           cls: 'bg-red-50 text-red-700 border-red-200',       Icon: XCircle },
+  const STATUS: Record<string, { label: string; cls: string; Icon: typeof Clock; desc: string }> = {
+    verified:     { label: 'تأیید شده',      cls: 'bg-green-50 text-green-700 border-green-200', Icon: ShieldCheck,
+                    desc: 'هویت شما تأیید شده است. می‌توانید ادامه دهید.' },
+    under_review: { label: 'در حال بررسی',    cls: 'bg-blue-50 text-blue-700 border-blue-200',   Icon: Clock,
+                    desc: 'مدارک شما ارسال شد و در حال بررسی است. نتیجه به‌زودی اعلام می‌شود.' },
+    pending:      { label: 'در انتظار مدارک', cls: 'bg-gray-50 text-gray-600 border-gray-200',   Icon: Clock,
+                    desc: 'برای ثبت سفر، مدرک شناسایی و سلفی خود را ثبت کنید.' },
+    rejected:     { label: 'رد شده',          cls: 'bg-red-50 text-red-700 border-red-200',      Icon: XCircle,
+                    desc: 'مدارک تأیید نشد. می‌توانید دوباره و با کیفیت بهتر تلاش کنید.' },
   };
   const badge = STATUS[p.kycStatus ?? 'pending'] ?? STATUS.pending;
+  const rejected = p.kycStatus === 'rejected';
 
   return (
     <div>
-      <ModeHeader mode={p.mode} theme={p.theme} title="احراز هویت" reduce={p.reduce} />
+      <StepHeader mode={p.mode} title="احراز هویت" desc="برای ثبت سفر، هویت شما باید تأیید شود." />
+
+      {/* (e) honest state — always visible, always from the service */}
+      <div className="ds-card p-4 mb-4">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-sm font-bold text-gray-800">وضعیت احراز هویت</span>
+          <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full border ${badge.cls}`}>
+            {p.kycLoading
+              ? <Loader2 className="w-3 h-3 animate-spin" aria-hidden />
+              : <badge.Icon className="w-3 h-3" aria-hidden />}
+            {badge.label}
+          </span>
+        </div>
+        <p className="text-sm text-gray-500 leading-relaxed">{badge.desc}</p>
+      </div>
 
       {p.isVerified ? (
         // Verified — never fabricated; this branch only renders when the service returned 'verified'.
@@ -638,27 +804,60 @@ function StepKyc(p: {
         </div>
       ) : (
         <div className="space-y-4">
-          <div className="rounded-2xl border border-gray-200 bg-white p-4">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-bold text-gray-800">وضعیت احراز هویت</span>
-              <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full border ${badge.cls}`}>
-                <badge.Icon className="w-3 h-3" />{badge.label}
-              </span>
+          {/* (a) document type */}
+          <div>
+            <div className="text-xs font-bold text-gray-600 mb-2">۱ — نوع مدرک را انتخاب کنید<span className="text-red-500"> *</span></div>
+            <div className="grid grid-cols-3 gap-3">
+              {KYC_DOCS.map(d => {
+                const on = p.docType === d.key;
+                return (
+                  <button key={d.key} onClick={() => p.setDocType(d.key)} aria-pressed={on} className="ds-choice p-3 text-center">
+                    <span className={`inline-flex w-10 h-10 rounded-xl items-center justify-center mb-2 ${on ? 'bg-cyan-100' : 'bg-gray-100'}`}>
+                      <d.Icon className={`w-5 h-5 ${on ? 'text-cyan-700' : 'text-gray-500'}`} aria-hidden />
+                    </span>
+                    <div className={`text-[13px] font-bold ${on ? 'text-cyan-700' : 'text-gray-900'}`}>{d.label}</div>
+                    <div className="text-[10px] text-gray-500 mt-0.5 leading-snug">{d.hint}</div>
+                  </button>
+                );
+              })}
             </div>
-            <p className="text-sm text-gray-600 leading-relaxed">
-              برای ثبت سفر باید هویت شما تأیید شود. مدرک شناسایی و سلفی خود را بارگذاری کنید؛ پس از
-              بررسی، وضعیت به «تأیید شده» تغییر می‌کند.
-            </p>
           </div>
 
-          {/* The REAL capture UI, wired to the kyc service (doc upload + face-match). Not simulated. */}
-          <IdentityVerification enabled={p.captureOpen} onToggle={p.setCaptureOpen}
-            status={p.isVerified ? 'VERIFIED' : 'PENDING'} />
+          {/* (b)(c) capture — camera first, file fallback lives inside GuidedCapture */}
+          <div>
+            <div className="text-xs font-bold text-gray-600 mb-2">۲ — مدرک و سلفی خود را ثبت کنید<span className="text-red-500"> *</span></div>
+            <div className="grid grid-cols-2 gap-3">
+              <CaptureTile
+                Icon={Camera} label="عکس مدرک" done={p.docDone}
+                disabled={!p.docType}
+                hint={p.docType ? 'دوربین یا انتخاب فایل' : 'ابتدا نوع مدرک را انتخاب کنید'}
+                onClick={() => p.onOpenCapture('document')} />
+              <CaptureTile
+                Icon={ScanFace} label="سلفی زنده" done={p.selfieDone}
+                hint="تشخیص زنده‌بودن + تطبیق چهره"
+                onClick={() => p.onOpenCapture('face')} />
+            </div>
+          </div>
 
+          {/* (d) face-match is the EXISTING service; we only report what it said */}
+          {p.faceMatch !== 'idle' && (
+            <div className={`rounded-xl border px-4 py-3 text-sm font-semibold flex items-center gap-2 ${
+              p.faceMatch === 'running' ? 'bg-blue-50 border-blue-200 text-blue-700'
+              : p.faceMatch === 'sent'  ? 'bg-blue-50 border-blue-200 text-blue-700'
+              :                           'bg-amber-50 border-amber-200 text-amber-800'}`}>
+              {p.faceMatch === 'running'
+                ? <><Loader2 className="w-4 h-4 animate-spin" aria-hidden />در حال تطبیق چهره با مدرک…</>
+                : p.faceMatch === 'sent'
+                ? <><Clock className="w-4 h-4" aria-hidden />تطبیق چهره ارسال شد؛ نتیجه در وضعیت بالا اعلام می‌شود.</>
+                : <><AlertTriangle className="w-4 h-4" aria-hidden />تطبیق چهره ارسال نشد. دوباره تلاش کنید.</>}
+            </div>
+          )}
+
+          {/* (e) retry — explicit for a rejected verdict, always available as a re-check */}
           <button onClick={p.onRecheck} disabled={p.kycLoading}
-            className="w-full h-11 rounded-xl border border-gray-300 text-gray-700 font-semibold hover:bg-gray-50 transition-colors flex items-center justify-center gap-2 disabled:opacity-50">
-            <RefreshCw className={`w-4 h-4 ${p.kycLoading ? 'animate-spin' : ''}`} />
-            بررسی مجدد وضعیت
+            className="ds-btn-secondary w-full disabled:opacity-50" style={{ height: 44 }}>
+            <RefreshCw className={`w-4 h-4 ${p.kycLoading ? 'animate-spin' : ''}`} aria-hidden />
+            {rejected ? 'تلاش دوباره و بررسی وضعیت' : 'بررسی مجدد وضعیت'}
           </button>
           <p className="text-[11px] text-gray-500 text-center">تا زمانی که وضعیت «تأیید شده» نشود، امکان ثبت سفر وجود ندارد.</p>
         </div>
@@ -667,9 +866,25 @@ function StepKyc(p: {
   );
 }
 
+function CaptureTile({ Icon, label, hint, done, disabled, onClick }: {
+  Icon: typeof Camera; label: string; hint: string; done: boolean; disabled?: boolean; onClick: () => void;
+}) {
+  return (
+    <button type="button" onClick={onClick} disabled={disabled}
+      className="ds-choice p-4 flex flex-col items-center justify-center gap-2 text-center disabled:opacity-45 disabled:cursor-not-allowed"
+      style={done ? { borderColor: 'var(--ds-success-border)', background: 'var(--ds-success-bg)' } : undefined}>
+      {done
+        ? <CheckCircle2 className="w-6 h-6" style={{ color: 'var(--ds-success)' }} aria-hidden />
+        : <Icon className="w-6 h-6 text-gray-500" aria-hidden />}
+      <span className={`text-sm font-bold ${done ? 'text-green-700' : 'text-gray-900'}`}>{label}</span>
+      <span className="text-[10px] text-gray-500 leading-snug">{done ? 'ثبت شد' : hint}</span>
+    </button>
+  );
+}
+
 // ── Step 4 — carry options + prohibited-goods hard-stop + payout ──────────────
 function StepCarryPayout(p: {
-  mode: ModeId; theme: typeof NEUTRAL; reduce: boolean;
+  mode: ModeId;
   carry: string[]; setCarry: (v: string[]) => void;
   prohibitedAck: boolean; setProhibitedAck: (v: boolean) => void;
   payoutMethod: string | null; setPayoutMethod: (v: string) => void;
@@ -680,24 +895,18 @@ function StepCarryPayout(p: {
 
   return (
     <div>
-      <ModeHeader mode={p.mode} theme={p.theme} title="حمل و تسویه" reduce={p.reduce} />
+      <StepHeader mode={p.mode} title="حمل و تسویه" />
 
       {/* carry categories */}
       <div className="mb-5">
         <div className="text-xs font-bold text-gray-600 mb-2">چه نوع کالایی حمل می‌کنید؟<span className="text-red-500"> *</span></div>
         <div className="flex flex-wrap gap-2">
-          {CARRY_OPTIONS.map(o => {
-            const on = p.carry.includes(o.key);
-            return (
-              <button key={o.key} onClick={() => toggleCarry(o.key)} aria-pressed={on}
-                className="px-3 h-10 rounded-xl border-2 text-sm font-semibold transition-colors"
-                style={{ borderColor: on ? p.theme.mark : '#e5e7eb',
-                         backgroundColor: on ? p.theme.soft : '#ffffff',
-                         color: on ? p.theme.text : '#374151' }}>
-                {o.label}
-              </button>
-            );
-          })}
+          {CARRY_OPTIONS.map(o => (
+            <button key={o.key} onClick={() => toggleCarry(o.key)} aria-pressed={p.carry.includes(o.key)}
+              className="ds-choice px-3 h-10 text-sm font-semibold">
+              {o.label}
+            </button>
+          ))}
         </div>
       </div>
 
@@ -723,23 +932,16 @@ function StepCarryPayout(p: {
       <div>
         <div className="text-xs font-bold text-gray-600 mb-2">روش تسویه<span className="text-red-500"> *</span></div>
         <div className="flex flex-wrap gap-2 mb-3">
-          {PAYOUT_METHODS.map(m => {
-            const on = p.payoutMethod === m.key;
-            return (
-              <button key={m.key} onClick={() => p.setPayoutMethod(m.key)} aria-pressed={on}
-                className="px-3 h-10 rounded-xl border-2 text-sm font-semibold transition-colors"
-                style={{ borderColor: on ? p.theme.mark : '#e5e7eb',
-                         backgroundColor: on ? p.theme.soft : '#ffffff',
-                         color: on ? p.theme.text : '#374151' }}>
-                {m.label}
-              </button>
-            );
-          })}
+          {PAYOUT_METHODS.map(m => (
+            <button key={m.key} onClick={() => p.setPayoutMethod(m.key)} aria-pressed={p.payoutMethod === m.key}
+              className="ds-choice px-3 h-10 text-sm font-semibold">
+              {m.label}
+            </button>
+          ))}
         </div>
-        <label className="block text-xs font-bold text-gray-600 mb-1.5">نام صاحب حساب<span className="text-red-500"> *</span></label>
+        <label className="ds-label font-semibold">نام صاحب حساب<span className="text-red-500"> *</span></label>
         <input type="text" value={p.accountName} onChange={e => p.setAccountName(e.target.value)}
-          className="w-full h-12 px-3 rounded-xl border-2 border-gray-200 bg-white text-sm focus:outline-none"
-          placeholder="نام و نام خانوادگی صاحب حساب" />
+          className="ds-input" placeholder="نام و نام خانوادگی صاحب حساب" />
         <p className="mt-2 text-[11px] text-gray-500">جزئیات تسویه فقط ذخیره می‌شود؛ در این مرحله پرداختی انجام نمی‌شود.</p>
       </div>
     </div>

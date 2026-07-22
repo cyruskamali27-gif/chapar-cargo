@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { IdCard } from 'lucide-react';
 import { useSession } from './SessionContext';
 import { useLang } from './LangContext';
 
@@ -36,7 +37,7 @@ export function useKycGate({ onNavigate }: Options = {}) {
       dir={isRTL ? 'rtl' : 'ltr'}
       className="mt-3 flex flex-col sm:flex-row items-start sm:items-center gap-3 px-4 py-3 bg-amber-50 border border-amber-200 rounded-xl"
     >
-      <span className="text-xl flex-shrink-0">🪪</span>
+      <IdCard className="w-5 h-5 text-amber-600 flex-shrink-0" aria-hidden />
       <p className="text-sm text-amber-800 font-medium flex-1">{t.kycGateNotice}</p>
       <button
         type="button"

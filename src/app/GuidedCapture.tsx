@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion } from 'motion/react';
-import { ArrowLeft, Home, CheckCircle, AlertCircle, RefreshCw, Shield, Camera, Info, User, FileText } from 'lucide-react';
+import { ArrowLeft, Home, CheckCircle, AlertCircle, RefreshCw, Shield, Camera, Info, User, FileText, ImageUp } from 'lucide-react';
 import { useLang } from '../lib/LangContext';
 import type { Translations } from './i18n';
 
@@ -8,7 +8,7 @@ import type { Translations } from './i18n';
 
 export type CaptureMode = 'cargo' | 'face' | 'document' | 'photo';
 
-type DocType = 'passport' | 'national_id' | 'drivers_license';
+export type DocType = 'passport' | 'national_id' | 'drivers_license';
 
 type Phase = 'doc-select' | 'consent' | 'starting' | 'capturing' | 'uploading' | 'analyzing' | 'result' | 'cam-denied' | 'error'
            | 'liveness-loading' | 'liveness-step' | 'liveness-verifying' | 'liveness-result';
@@ -48,6 +48,9 @@ export interface GuidedCaptureProps {
   liveness?: boolean;
   // KYC-specific
   nationality?: string;   // ISO 3166-1 alpha-2, e.g. 'IR' — controls doc-type options shown
+  // CMD-48: when the CALLER already ran the doc-type choice (the traveler «احراز هویت» step
+  // does), skip the built-in doc-select screen instead of asking the same question twice.
+  initialDocType?: DocType;
   // common
   onBack: () => void;
   onHome: () => void;
@@ -403,6 +406,7 @@ export default function GuidedCapture({
   overrideToken,
   liveness,
   nationality,
+  initialDocType,
   onBack,
   onHome,
   onComplete,
@@ -410,7 +414,9 @@ export default function GuidedCapture({
   const { t, isRTL } = useLang();
   const dir = isRTL ? 'rtl' : 'ltr';
 
-  const [phase, setPhase] = useState<Phase>(mode === 'document' ? 'doc-select' : 'consent');
+  const [phase, setPhase] = useState<Phase>(
+    mode === 'document' && !initialDocType ? 'doc-select' : 'consent',
+  );
   const [jobId, setJobId] = useState<string | null>(null);
   const [anglePlan, setAnglePlan] = useState<AngleEntry[]>([]);
   const [currentIdx, setCurrentIdx] = useState(0);
@@ -439,7 +445,7 @@ export default function GuidedCapture({
   const overlayRafRef  = useRef<number | null>(null);
 
   // Document-type selection state
-  const [selectedDocType, setSelectedDocType] = useState<DocType | null>(null);
+  const [selectedDocType, setSelectedDocType] = useState<DocType | null>(initialDocType ?? null);
   const selectedDocTypeRef = useRef<DocType | null>(null);
   selectedDocTypeRef.current = selectedDocType;
 
@@ -532,6 +538,9 @@ export default function GuidedCapture({
   }
 
   async function startCamera(nextPhase: Phase = 'capturing') {
+    // No getUserMedia at all (insecure origin, locked-down browser, in-app webview): fall through
+    // to the same surface a denial produces — which now offers the file fallback.
+    if (!navigator.mediaDevices?.getUserMedia) { setPhase('cam-denied'); return; }
     try {
       const facingMode = mode === 'face' ? 'user' : 'environment';
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -642,6 +651,41 @@ export default function GuidedCapture({
       setErrMsg(err instanceof Error ? err.message : t.scanErrCreate);
       setPhase('error');
     }
+  }
+
+  // ── CMD-48 — file fallback ──────────────────────────────────────────────────
+  // When the camera is unavailable or denied, KYC must not dead-end. The picked file(s) are
+  // wrapped as CapturedFrames and pushed through the SAME finishCapture path, so document
+  // upload, doc/validate, MRZ and selfie upload all hit the existing services unchanged. No
+  // service contract is touched — only the source of the bytes differs.
+  async function handleFilePick(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files ?? []);
+    if (e.target) e.target.value = '';
+    if (!files.length) return;
+    stopCamera();
+    const need = mode === 'document' && selectedDocTypeRef.current === 'drivers_license' ? 2 : 1;
+    const picked: CapturedFrame[] = files.slice(0, need).map((f, i) => ({
+      blob:  f,
+      angle: (mode === 'document' ? (i === 0 ? 'doc-front' : 'doc-back') : mode === 'face' ? 'selfie' : 'photo'),
+    }));
+    if (picked.length < need) {
+      setErrMsg(t.scanErrNetwork);
+      setPhase('error');
+      return;
+    }
+    setFrames(picked);
+    await finishCapture(picked);
+  }
+
+  function FileFallback({ label }: { label: string }) {
+    const multiple = mode === 'document' && selectedDocTypeRef.current === 'drivers_license';
+    return (
+      <label className="ds-btn-secondary cursor-pointer" style={{ height: 44 }}>
+        <ImageUp className="w-4 h-4" aria-hidden />
+        {label}
+        <input type="file" accept="image/*" multiple={multiple} className="hidden" onChange={handleFilePick} />
+      </label>
+    );
   }
 
   async function handleCapture() {
@@ -1171,10 +1215,18 @@ export default function GuidedCapture({
           </div>
           <h2 className="text-xl font-bold text-white text-center mb-2">{t.scanCamDeniedTitle}</h2>
           <p className="text-gray-400 text-sm text-center mb-4 leading-relaxed">{t.scanCamDeniedDesc}</p>
-          <div className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 mb-8 text-sm text-gray-400 text-center">
+          <div className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 mb-6 text-sm text-gray-400 text-center">
             {t.scanCamDeniedHow}
           </div>
-          <button onClick={onBack} className="ds-btn-secondary">{t.navBack}</button>
+          {/* Camera denied is not a dead end — upload the same photo from the device instead. */}
+          <div className="flex flex-col items-stretch gap-3 w-full max-w-xs">
+            <FileFallback label={t.scanUploadInstead} />
+            <button onClick={() => startCamera(mode === 'face' && liveness ? 'liveness-step' : 'capturing')}
+              className="ds-btn-secondary" style={{ height: 44 }}>
+              <RefreshCw className="w-4 h-4" aria-hidden />{t.scanRetryAnalysis}
+            </button>
+            <button onClick={onBack} className="ds-btn-secondary" style={{ height: 44 }}>{t.navBack}</button>
+          </div>
         </div>
       </FullScreen>
     );
