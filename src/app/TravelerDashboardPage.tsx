@@ -793,6 +793,14 @@ export default function TravelerDashboardPage({ onHome, onNewTrip, onNavigate }:
                           <div className="text-xs font-extrabold text-gray-900">
                             {s.weightUnknown ? 'نامشخص' : `${s.estWeightKg} از ${s.remainingKg ?? '—'} kg`}
                           </div>
+                          {/* The capacity-fit figure above is driven by estWeightKg, which for most
+                              open orders is the CMD-46 estimator's output rather than a declared
+                              weight. Say so — a traveler planning around "0.95 kg" deserves to know
+                              it was inferred. Only for source 'ai_estimate': orders whose weight
+                              came from elsewhere must not be labelled an estimate. */}
+                          {!s.weightUnknown && s.estWeightSource === 'ai_estimate' && (
+                            <div className="text-[9px] font-normal text-gray-400 leading-tight">تخمینی</div>
+                          )}
                         </div>
                         <div className="rounded-xl bg-gray-50 border border-gray-100 py-2">
                           <div className="text-[10px] text-gray-500 mb-0.5">ثبت شده</div>

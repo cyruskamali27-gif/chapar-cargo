@@ -22,6 +22,11 @@ const TYPE_META: Record<string, { icon: string; cls: string; group: string }> = 
   buyer_accepted:         { icon:'🤝', cls:'ni-accepted',  group:'offer'    },
   delivery_confirmed:     { icon:'📦', cls:'ni-delivery',  group:'delivery' },
   dispute_update:         { icon:'⚠️', cls:'ni-dispute',  group:'dispute'  },
+  // S3 route digest. Grouped with 'offer' so it survives the Offer filter chip: a digest is a
+  // batch of carry opportunities, and the only other groups are delivery and dispute, which it
+  // is plainly neither of. Without an entry here it would render with no icon and vanish from
+  // every filter except All/Unread.
+  route_digest:           { icon:'🧭', cls:'ni-offer',     group:'offer'    },
 };
 
 const GROUP_COLORS: Record<string, string> = {
@@ -57,6 +62,10 @@ function getNavUrl(n: Notif): string {
   if (n.type === 'dispute_update'     && n.orderId) return '/dispute?id=' + encodeURIComponent(n.orderId);
   if (n.type === 'delivery_confirmed' && n.orderId) return '/track?id=' + encodeURIComponent(n.orderId) + '&role=receiver';
   if (n.type === 'offer_accepted'     && n.offerId) return '/traveler-deposit?offerId=' + encodeURIComponent(n.offerId);
+  // S3 digests carry no orderId (notify.js pushes them with orderTitle:null), so without this
+  // case they fell to the '/' catch-all below and dumped the traveler on the landing page. The
+  // For-You tab itself is selected via the cp_td_tab flag openNotif() sets before navigating.
+  if (n.type === 'route_digest') return '/traveler-dashboard';
   if (n.orderId) return '/track?id=' + encodeURIComponent(n.orderId);
   return '/';
 }
@@ -64,7 +73,10 @@ function getNavUrl(n: Notif): string {
 // Buyer-facing events open the buyer's order card; traveler-facing events open the traveler
 // dashboard on the "پیشنهاد برای شما" tab. These are the in-site deep links the spec asks for.
 const BUYER_TYPES    = new Set(['counter_offer_ready', 'traveler_accepted', 'counter_offer']);
-const TRAVELER_TYPES = new Set(['offer_received', 'order_returned_to_pool', 'offer_expired', 'buyer_accepted', 'new_order']);
+const TRAVELER_TYPES = new Set(['offer_received', 'order_returned_to_pool', 'offer_expired', 'buyer_accepted', 'new_order',
+  // S3 route digest — the whole point of the push is "open the For You tab", which is exactly
+  // what this set does.
+  'route_digest']);
 
 interface Props {
   onBack: () => void; onHome: () => void; t: Record<string, string>;
