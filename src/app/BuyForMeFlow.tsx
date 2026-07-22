@@ -69,8 +69,8 @@ const CURRENCIES = [
   { code: 'INR', flag: '🇮🇳', rate: 0.012 },
   { code: 'AMD', flag: '🇦🇲', rate: 0.0026 },
   { code: 'AZN', flag: '🇦🇿', rate: 0.588 },
-  { code: 'USDT', flag: '💵', rate: 1 },
-  { code: 'USDC', flag: '🔵', rate: 1 },
+  { code: 'USDT', flag: '', rate: 1 },
+  { code: 'USDC', flag: '', rate: 1 },
   { code: 'IRR', flag: '🇮🇷', rate: null },
 ];
 

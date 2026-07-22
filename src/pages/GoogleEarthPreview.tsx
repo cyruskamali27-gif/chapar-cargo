@@ -607,7 +607,7 @@ export default function GoogleEarthPreview() {
                 ['Carrier',       extra?.carrier      ?? '—'],
                 ['Last update',   extra?.lastUpdated  ?? '—'],
                 ['ETA',           selectedRoute.eta   ?? '—'],
-                ['Escrow',        selectedRoute.escrowStatus === 'locked' ? '🔒 Secured' : selectedRoute.escrowStatus === 'released' ? '✅ Released' : selectedRoute.escrowStatus],
+                ['Escrow',        selectedRoute.escrowStatus === 'locked' ? 'Secured' : selectedRoute.escrowStatus === 'released' ? 'Released' : selectedRoute.escrowStatus],
               ].map(([label, value]) => (
                 <div key={label} className="flex justify-between items-center">
                   <span className="text-xs text-gray-500">{label}</span>

@@ -1,14 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'motion/react';
-import { ArrowLeft, Home, Search } from 'lucide-react';
+import { ArrowLeft, Home, Search, Inbox, Briefcase, Plane } from 'lucide-react';
+import { cargoIcon } from './flowIcons';
 import { Store } from '../lib/store';
 import { useSession } from '../lib/SessionContext';
 import { useLang } from '../lib/LangContext';
 
 // ── Constants (exact from myorders.html) ─────────────────────────────────────
-const CARGO_ICONS: Record<string, string> = {
-  clothing:'👗', electronics:'💻', documents:'📄', medicine:'💊', food:'🍱', other:'📦',
-};
+// CMD-49: cargo categories come from the shared Lucide map in flowIcons.tsx.
 const STATUS_COLORS: Record<string, string> = {
   pending:    'bg-yellow-50 text-yellow-700 border-yellow-200',
   matched:    'bg-blue-50   text-blue-700   border-blue-200',
@@ -265,7 +264,7 @@ export default function MyOrdersPage({ onHome, onOpenReceipt }: Props) {
         {/* Orders list */}
         {filtered.length === 0 ? (
           <div className="ds-card p-10 text-center">
-            <div className="text-5xl mb-3">📭</div>
+            <Inbox className="w-12 h-12 mx-auto mb-3 text-gray-300" aria-hidden />
             <div className="text-base font-extrabold text-gray-800 mb-1">
               {orders.length === 0 ? t.mordEmptyNone : t.mordEmptyNoResult}
             </div>
@@ -279,7 +278,7 @@ export default function MyOrdersPage({ onHome, onOpenReceipt }: Props) {
         ) : (
           <div className="space-y-3">
             {filtered.map(o => {
-              const icon     = CARGO_ICONS[o.cargoType ?? ''] ?? '📦';
+              const OrdIcon  = cargoIcon(o.cargoType);
               const st       = o.adminStatus ?? 'pending';
               const stLabel  = STATUS_LABELS[st] ?? t.mordStatusPending;
               const stColor  = STATUS_COLORS[st] ?? STATUS_COLORS.pending;
@@ -289,8 +288,8 @@ export default function MyOrdersPage({ onHome, onOpenReceipt }: Props) {
                   className="ds-card p-4">
                   <a href={`/track?id=${o.trackId}`}
                     className="flex items-center gap-3 no-underline text-inherit mb-3" style={{ textDecoration:'none', color:'inherit' }}>
-                    <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-lg flex-shrink-0">
-                      {icon}
+                    <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center flex-shrink-0">
+                      <OrdIcon className="w-5 h-5 text-blue-600" aria-hidden />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="text-[11px] font-extrabold text-cyan-600 tracking-wider mb-0.5 font-mono">{o.trackId}</div>
@@ -299,7 +298,7 @@ export default function MyOrdersPage({ onHome, onOpenReceipt }: Props) {
                       </div>
                       <div className="text-[11px] text-gray-500 mt-0.5">
                         {o.firstName ? o.firstName + ' ' + (o.lastName || '') + ' · ' : ''}
-                        {o.cargoType ? (CARGO_ICONS[o.cargoType] || '') + ' ' + o.cargoType : ''}
+                        {o.cargoType ? o.cargoType : ''}
                         {o.weight ? ' · ' + o.weight + ' kg' : ''}
                       </div>
                     </div>
@@ -366,7 +365,7 @@ export default function MyOrdersPage({ onHome, onOpenReceipt }: Props) {
                     {st === 'pending' && offerCnt > 0 && (
                       <button onClick={() => openOffersModal(o)}
                         className="text-[10px] font-bold px-2.5 py-1 rounded-lg bg-cyan-50 border border-cyan-300 text-cyan-700 hover:bg-cyan-100 transition-colors">
-                        💼 {offerCnt} {t.mordOffers}
+                        <Briefcase className="w-3.5 h-3.5 inline-block align-middle me-1" aria-hidden />{offerCnt} {t.mordOffers}
                       </button>
                     )}
                   </div>
@@ -444,7 +443,7 @@ export default function MyOrdersPage({ onHome, onOpenReceipt }: Props) {
             <div className="overflow-y-auto p-5 space-y-4 pb-8">
               {offers.length === 0 ? (
                 <div className="text-center py-8 text-gray-500">
-                  <div className="text-4xl mb-3">📭</div>
+                  <Inbox className="w-10 h-10 mx-auto mb-3 text-gray-300" aria-hidden />
                   <div className="text-sm font-bold">{t.mordNoOffers}</div>
                 </div>
               ) : offers.map((offer, i) => {
@@ -469,7 +468,7 @@ export default function MyOrdersPage({ onHome, onOpenReceipt }: Props) {
                     </div>
                     {trip && (
                       <div className="text-xs text-gray-500 bg-white border border-gray-100 rounded-lg px-3 py-2 mb-3">
-                        ✈️ {trip.originCity || trip.origin || '—'} → {trip.destCity || trip.destination || '—'}
+                        <Plane className="w-3.5 h-3.5 inline-block align-middle me-1" aria-hidden />{trip.originCity || trip.origin || '—'} → {trip.destCity || trip.destination || '—'}
                         {trip.date ? ' · ' + trip.date : ''}{trip.capacity ? ' · ' + trip.capacity + ' kg' : ''}
                       </div>
                     )}

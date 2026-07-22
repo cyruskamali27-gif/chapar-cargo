@@ -5,6 +5,7 @@
  * Session: pre-fills name/email if logged in (no auth required)
  */
 import { useState, useEffect } from 'react';
+import { Send, Mail, Bot, CheckCircle2 } from 'lucide-react';
 import { Store, getSession } from '../lib/store';
 import { useLang } from '../lib/LangContext';
 
@@ -100,19 +101,19 @@ export default function SupportPage() {
         <div className="grid grid-cols-3 gap-3 mb-6">
           <a href="https://t.me/ChaparSupport"
              className="flex flex-col items-center gap-2 bg-white border border-gray-100 rounded-2xl p-4 text-center no-underline hover:border-blue-200 hover:bg-blue-50 transition-all group">
-            <span className="text-2xl">✈️</span>
+            <Send className="w-6 h-6" aria-hidden />
             <span className="text-xs font-bold text-gray-700 group-hover:text-blue-600">{t.supTelegram}</span>
             <span className="text-[11px] text-gray-500">@ChaparSupport</span>
           </a>
           <a href="mailto:support@chapar.app"
              className="flex flex-col items-center gap-2 bg-white border border-gray-100 rounded-2xl p-4 text-center no-underline hover:border-blue-200 hover:bg-blue-50 transition-all group">
-            <span className="text-2xl">✉️</span>
+            <Mail className="w-6 h-6" aria-hidden />
             <span className="text-xs font-bold text-gray-700 group-hover:text-blue-600">{t.supEmail}</span>
             <span className="text-[11px] text-gray-500">support@chapar.app</span>
           </a>
           <a href="https://t.me/ChaparTrackBot"
              className="flex flex-col items-center gap-2 bg-white border border-gray-100 rounded-2xl p-4 text-center no-underline hover:border-blue-200 hover:bg-blue-50 transition-all group">
-            <span className="text-2xl">🤖</span>
+            <Bot className="w-6 h-6" aria-hidden />
             <span className="text-xs font-bold text-gray-700 group-hover:text-blue-600">{t.supBot}</span>
             <span className="text-[11px] text-gray-500">@ChaparTrackBot</span>
           </a>
@@ -125,7 +126,7 @@ export default function SupportPage() {
           {/* Success state */}
           {success && (
             <div className="text-center py-6">
-              <span className="text-5xl block mb-4">✅</span>
+              <CheckCircle2 className="w-12 h-12 block mx-auto mb-4 text-green-500" aria-hidden />
               <div className="text-lg font-bold text-gray-900 mb-2">{t.supSuccessTitle}</div>
               <div className="text-sm text-gray-500 leading-relaxed mb-5">
                 {t.supSuccessDesc}

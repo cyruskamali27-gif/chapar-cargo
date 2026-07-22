@@ -438,34 +438,34 @@ const TEST_GROUPS: TestGroup[] = [
     label: 'Dream Scenarios',
     desc: 'Smoke checks + 3 converted gaps (see groups 11 & 12 for autopilot/escrow)',
     cases: [
-      { name: '✅ undervalue: phone $1 flagged',            run: () => valueCheck('گوشی', 1) },
-      { name: '✅ undervalue: function exists',             run: () => typeof valueCheck === 'function' },
-      { name: '✅ off-platform phrase caught',              run: () => detectBypass('خارج از چاپار') },
-      { name: '✅ phone-as-words (صفر نه یک دو) caught',   run: () => detectBypass('صفر نه یک دو') },
-      { name: '✅ high-value low-trust gate triggers',      run: () => (5000 > 500 && 1 < 3) },
-      { name: '✅ escrow never auto-releases (HR-1)',        run: () => !({ senderConfirmed: false, adminApproved: false }.senderConfirmed) },
-      { name: '✅ OTP tracked (otpUsed field)',             run: () => {
+      { name: 'undervalue: phone $1 flagged',            run: () => valueCheck('گوشی', 1) },
+      { name: 'undervalue: function exists',             run: () => typeof valueCheck === 'function' },
+      { name: 'off-platform phrase caught',              run: () => detectBypass('خارج از چاپار') },
+      { name: 'phone-as-words (صفر نه یک دو) caught',   run: () => detectBypass('صفر نه یک دو') },
+      { name: 'high-value low-trust gate triggers',      run: () => (5000 > 500 && 1 < 3) },
+      { name: 'escrow never auto-releases (HR-1)',        run: () => !({ senderConfirmed: false, adminApproved: false }.senderConfirmed) },
+      { name: 'OTP tracked (otpUsed field)',             run: () => {
         Store.set('_test_tracking', [{ trackId: T_CARGO, otpCode: '482917', otpUsed: false }]);
         try {
           const t = (Store.get<Array<Record<string, unknown>>>('_test_tracking') ?? [])[0];
           return t?.otpUsed === false;
         } finally { Store.set('_test_tracking', []); }
       }},
-      { name: '✅ medicine check: prescription flagged',    run: () => medicineCheck('prescription drugs') },
-      { name: '✅ placeholder photo (5 KB) flagged',        run: () => placeholderCheck(5_120) },
-      { name: '✅ overvaluation > $10 000 flagged',         run: () => valueCheck('item', 15_000) },
-      { name: '✅ user draft persists on close',            run: () => {
+      { name: 'medicine check: prescription flagged',    run: () => medicineCheck('prescription drugs') },
+      { name: 'placeholder photo (5 KB) flagged',        run: () => placeholderCheck(5_120) },
+      { name: 'overvaluation > $10 000 flagged',         run: () => valueCheck('item', 15_000) },
+      { name: 'user draft persists on close',            run: () => {
         localStorage.setItem('cp_cargo_draft', JSON.stringify({ step: 3 }));
         try {
           return JSON.parse(localStorage.getItem('cp_cargo_draft') ?? 'null')?.step === 3;
         } finally { localStorage.removeItem('cp_cargo_draft'); }
       }},
-      { name: '✅ seal mismatch detectable',                run: () => 'SEAL-A' !== 'SEAL-B' },
-      { name: '✅ STANDARD keyword list correct (مدارک)',  run: () => defaultSecurityLevel('مدارک') === 'STANDARD' },
-      { name: '✅ approval gate: pending-only (see group 9)',       run: () => true },
-      { name: '✅ 412 guard: backend live (see group 10)',          run: () => true },
-      { name: '✅ autopilot guardrails active (see group 11)',      run: () => true },
-      { name: '✅ escrow admin-only release (see group 12)',        run: () => true },
+      { name: 'seal mismatch detectable',                run: () => 'SEAL-A' !== 'SEAL-B' },
+      { name: 'STANDARD keyword list correct (مدارک)',  run: () => defaultSecurityLevel('مدارک') === 'STANDARD' },
+      { name: 'approval gate: pending-only (see group 9)',       run: () => true },
+      { name: '412 guard: backend live (see group 10)',          run: () => true },
+      { name: 'autopilot guardrails active (see group 11)',      run: () => true },
+      { name: 'escrow admin-only release (see group 12)',        run: () => true },
       // ── formerly bugs, now fixed: whole-word tokenisation + singular EN forms ──
       { name: '"document" (singular EN) → STANDARD ✓',
         run: () => defaultSecurityLevel('document') === 'STANDARD' },
@@ -1114,7 +1114,7 @@ export default function SmartTester({ onClose, onHome }: { onClose?: () => void;
                       <>
                         <span className="text-xs text-green-400 font-semibold">{groupPassed}✓</span>
                         {groupFailed > 0 && <span className="text-xs text-red-400 font-semibold">{groupFailed}✗</span>}
-                        {groupGaps  > 0 && <span className="text-xs text-amber-400 font-semibold">{groupGaps}⚠</span>}
+                        {groupGaps  > 0 && <span className="text-xs text-amber-400 font-semibold">{groupGaps}</span>}
                         <span className={`w-2 h-2 rounded-full ${
                           groupFailed > 0 ? 'bg-red-500' :
                           (groupPassed === 0 && groupGaps > 0) ? 'bg-amber-500' :

@@ -4,6 +4,7 @@
  * URL params: ?order= | ?id=, ?peer=, ?name=, ?role=
  */
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { Package, AlertTriangle, MessageSquare, Ban, Send, Bot } from 'lucide-react';
 import { Store, getSession, genId } from '../lib/store';
 import { useLang } from '../lib/LangContext';
 import type { translations } from '../app/i18n';
@@ -282,7 +283,7 @@ export default function ChatPage() {
       if (m.type === 'ai') {
         nodes.push(
           <div key={m.id} className="flex items-end gap-2 max-w-[86%] self-end">
-            <div className="w-7 h-7 rounded-full bg-gradient-to-br from-purple-600 to-indigo-700 flex items-center justify-center text-xs shrink-0 shadow">🤖</div>
+            <div className="w-7 h-7 rounded-full bg-gradient-to-br from-purple-600 to-indigo-700 flex items-center justify-center shrink-0 shadow"><Bot className="w-4 h-4 text-white" aria-hidden /></div>
             <div>
               <div className="bg-purple-50 border border-purple-200 rounded-2xl rounded-br-sm px-3 py-2.5 text-sm text-gray-800 leading-relaxed">{m.text}</div>
               <div className="text-[10px] text-gray-500 mt-1 pr-1">{ts} · {t.chatAiLabel}</div>
@@ -298,7 +299,7 @@ export default function ChatPage() {
             <div className="w-7 h-7 rounded-full bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center text-xs font-bold text-white shrink-0 shadow">{avatarLetter()}</div>
             <div>
               <div className="bg-red-50 border border-red-200 rounded-2xl rounded-bl-sm px-3 py-2.5 text-sm text-red-600 italic leading-relaxed">
-                ⛔ {m.blockedPreview || t.chatBlockedMsg}
+                <Ban className="w-4 h-4 inline-block align-middle me-1" aria-hidden />{m.blockedPreview || t.chatBlockedMsg}
                 <div className="inline-block bg-red-100 rounded-md px-2 py-0.5 text-[10px] text-red-500 font-bold mr-2 mt-1">{t.chatBlockedByAi}</div>
               </div>
               <div className="text-[10px] text-gray-500 mt-1 pl-1 text-left">{ts}</div>
@@ -358,7 +359,7 @@ export default function ChatPage() {
       {/* Order chip */}
       {order && (
         <div className="flex-shrink-0 flex items-center gap-3 px-4 py-2 bg-blue-50 border-b border-blue-100">
-          <span className="text-lg">📦</span>
+          <Package className="w-5 h-5" aria-hidden />
           <div>
             <div className="text-xs font-bold text-blue-600 tracking-wide">{orderId}</div>
             <div className="text-xs text-gray-500">
@@ -372,7 +373,7 @@ export default function ChatPage() {
 
       {/* Warning banner */}
       <div className="flex-shrink-0 flex gap-2 px-4 py-2 bg-amber-50 border-b border-amber-100 text-xs text-amber-700 leading-relaxed">
-        <span className="shrink-0">⚠️</span>
+        <AlertTriangle className="w-4 h-4 shrink-0" aria-hidden />
         <span>{t.chatWarnBanner}</span>
       </div>
 
@@ -380,7 +381,7 @@ export default function ChatPage() {
       <div ref={messagesEl} className="flex-1 overflow-y-auto px-4 py-3 flex flex-col gap-2">
         {msgs.length === 0 && (
           <div className="flex-1 flex flex-col items-center justify-center text-center py-16">
-            <div className="text-5xl mb-3">💬</div>
+            <MessageSquare className="w-12 h-12 mx-auto mb-3 text-gray-300" aria-hidden />
             <div className="text-base font-bold text-gray-800 mb-2">{t.chatEmptyTitle}</div>
             <div className="text-sm text-gray-500 leading-relaxed">{t.chatEmptyDesc}</div>
           </div>
@@ -424,7 +425,7 @@ export default function ChatPage() {
             onClick={sendMessage}
             disabled={!canSend}
             className="w-11 h-11 rounded-full bg-blue-600 text-white flex items-center justify-center text-lg shadow-sm transition-all disabled:opacity-40 disabled:scale-90 shrink-0"
-          >➤</button>
+          ><Send className="w-5 h-5" aria-hidden /></button>
         </div>
         <div className="text-center text-[10px] text-gray-500 mt-1.5 opacity-70">
           {t.chatAiFooter}

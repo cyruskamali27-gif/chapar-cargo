@@ -1,4 +1,5 @@
 import { Component, type ReactNode, type ErrorInfo } from 'react';
+import { AlertTriangle } from 'lucide-react';
 
 /**
  * App-wide error boundary.
@@ -83,7 +84,7 @@ export default class AppErrorBoundary extends Component<
           fontFamily: "'Vazirmatn', Tahoma, Arial, sans-serif", textAlign: 'center',
         }}
       >
-        <div style={{ fontSize: '2.5rem' }} aria-hidden="true">⚠️</div>
+        <div aria-hidden="true"><AlertTriangle style={{ width: '2.5rem', height: '2.5rem', margin: '0 auto' }} /></div>
         <h1 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0 }}>
           مشکلی پیش آمد
         </h1>

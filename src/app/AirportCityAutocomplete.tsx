@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import type { AirportOption } from './airports';
 import { searchAirports, POPULAR_AIRPORTS } from './airports';
+import { Plane } from 'lucide-react';
 
 interface Props {
   value: AirportOption | null;
@@ -151,7 +152,7 @@ export default function AirportCityAutocomplete({ value, onChange, placeholder =
                   : 'hover:bg-gray-50 border-s-2 border-transparent'
               }`}
             >
-              <span className="text-cyan-600 mt-0.5 flex-shrink-0 text-base leading-none">✈</span>
+              <Plane className="text-cyan-600 mt-0.5 flex-shrink-0 w-4 h-4" style={{ transform: 'rotate(-90deg)' }} aria-hidden />
               <span className="flex-1 min-w-0">
                 <span className="block text-gray-900 text-sm font-medium truncate">
                   {apt.airport}{' '}

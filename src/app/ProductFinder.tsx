@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Search, RefreshCw, ExternalLink, CheckCircle } from 'lucide-react';
+import { Search, RefreshCw, ExternalLink, CheckCircle, Package } from 'lucide-react';
 
 interface AIResult {
   title?: string;
@@ -250,7 +250,7 @@ export default function ProductFinder({ onSelect }: Props) {
                 {/* Thumbnail */}
                 <div className="w-16 h-16 flex-shrink-0 rounded-xl overflow-hidden bg-gray-100 border border-gray-100 flex items-center justify-center">
                   {isDataUri || !card.image
-                    ? <span className="text-2xl">📦</span>
+                    ? <Package className="w-6 h-6 text-gray-400" aria-hidden />
                     : <img
                         src={card.image}
                         alt=""

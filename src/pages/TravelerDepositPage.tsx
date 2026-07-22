@@ -7,6 +7,8 @@
  * localStorage keys written: cp_offers, cp_admin_statuses, cp_status_history, cp_notifications, cp_wallets
  */
 import { useState, useEffect, useRef } from 'react';
+import { CreditCard, Landmark, Coins, Wallet, Search, CheckCircle2, Clock, PartyPopper,
+         Plane, Package, Lock, ShieldCheck, AlertTriangle, Hexagon } from 'lucide-react';
 import { Store, getLiveRate, getSession, genId } from '../lib/store';
 import { useLang } from '../lib/LangContext';
 import { useVerifyGate } from '../lib/useVerifyGate';
@@ -344,7 +346,7 @@ export default function TravelerDepositPage() {
       const notifs = Store.get<unknown[]>('notifications') ?? [];
       notifs.unshift({
         id: genId('N'), type: 'deposit_secured',
-        title: 'مسافر ودیعه را تودیع کرد — ارسال شروع شد ✅',
+        title: 'مسافر ودیعه را تودیع کرد — ارسال شروع شد',
         body:  'ودیعه امنیتی مسافر دریافت شد. کالا در مسیر است.',
         orderId, at: Date.now(), read: false,
       });
@@ -354,7 +356,7 @@ export default function TravelerDepositPage() {
     setDepositAmt(Math.round(totalTomanRef.current).toLocaleString('fa-IR') + ' تومان');
     setSuccessTxnId(tid || '');
     setViewState('success');
-    showToast('✅ ودیعه تودیع شد — سفارش در مسیر است');
+    showToast('ودیعه تودیع شد — سفارش در مسیر است');
   }
 
   // ── Deposit button ─────────────────────────────────────────────────────────
@@ -491,7 +493,7 @@ export default function TravelerDepositPage() {
       const usdcRo = new eth.Contract(POLY_USDC_ADDR, POLY_USDC_ABI, provider);
       const bal = await (usdcRo.balanceOf as unknown as (a: string) => Promise<bigint>)(addr);
       setPolyUsdcBal((Number(bal) / 1e6).toFixed(2) + ' USDC');
-      showToast('✅ MetaMask متصل شد');
+      showToast('MetaMask متصل شد');
     } catch (e: unknown) { setErr('خطا در اتصال کیف پول: ' + ((e as Error).message || String(e))); }
   }
 
@@ -519,13 +521,13 @@ export default function TravelerDepositPage() {
       const eth  = window.ethers;
       const usdc = new eth.Contract(POLY_USDC_ADDR, POLY_USDC_ABI, ethersSignRef.current);
       const amountRaw = BigInt(Math.round(totalUSDRef.current * 1_000_000));
-      showToast('🦊 تأیید USDC در MetaMask...');
+      showToast('تأیید USDC در MetaMask...');
       const approveTx = (usdc.approve as unknown as (a: string, v: bigint) => Promise<{ wait: (n: number) => Promise<unknown> }>)(POLY_ESCROW_ADDR, amountRaw);
       await (await approveTx).wait(1);
 
       const escrow = new eth.Contract(POLY_ESCROW_ADDR, POLY_ESCROW_ABI, ethersSignRef.current);
       const txnKey = eth.keccak256(eth.toUtf8Bytes(txnIdRef.current));
-      showToast('🦊 تودیع ودیعه در MetaMask...');
+      showToast('تودیع ودیعه در MetaMask...');
       const depositTx = (escrow.travelerDeposit as unknown as (k: string) => Promise<{ wait: (n: number) => Promise<{ hash: string }> }>)(txnKey);
       const receipt   = await (await depositTx).wait(1);
 
@@ -564,7 +566,7 @@ export default function TravelerDepositPage() {
         const bal = await tw.contract(TRON_USDT_ABI, TRON_USDT_ADDR).balanceOf(addr).call();
         setTronUsdtBal((Number(bal) / 1e6).toFixed(2) + ' USDT');
       } catch { setTronUsdtBal('—'); }
-      showToast('✅ Trust Wallet متصل شد');
+      showToast('Trust Wallet متصل شد');
     } catch (e: unknown) { setErr('خطا در اتصال: ' + ((e as Error).message || String(e))); }
   }
 
@@ -582,7 +584,7 @@ export default function TravelerDepositPage() {
       }).then(r => r.json()) as { ok?: boolean; adminWallet?: string; expectedRaw?: unknown; expectedHuman?: string; error?: string };
       if (!intentRes.ok) throw new Error(intentRes.error || 'خطا در ایجاد قصد تودیع');
 
-      showToast('🔴 انتقال ' + intentRes.expectedHuman + ' USDT در Trust Wallet...');
+      showToast('انتقال ' + intentRes.expectedHuman + ' USDT در Trust Wallet...');
       const contract = tw.contract(TRON_USDT_ABI, TRON_USDT_ADDR);
       const txId = await contract.transfer(intentRes.adminWallet!, intentRes.expectedRaw).send({
         feeLimit: 40_000_000, callValue: 0, shouldPollResponse: false,
@@ -622,11 +624,11 @@ export default function TravelerDepositPage() {
     const v = successTxnId;
     if (!v || v === '—') return;
     if (navigator.clipboard) {
-      navigator.clipboard.writeText(v).then(() => showToast('📋 شناسه کپی شد'));
+      navigator.clipboard.writeText(v).then(() => showToast('شناسه کپی شد'));
     } else {
       const ta = document.createElement('textarea'); ta.value = v;
       document.body.appendChild(ta); ta.select(); document.execCommand('copy');
-      document.body.removeChild(ta); showToast('📋 شناسه کپی شد');
+      document.body.removeChild(ta); showToast('شناسه کپی شد');
     }
   }
 
@@ -658,7 +660,7 @@ export default function TravelerDepositPage() {
         {/* ── Not Found ──────────────────────────────────────────────── */}
         {viewState === 'notfound' && (
           <div className="text-center py-16">
-            <div className="text-6xl mb-4">🔍</div>
+            <Search className="w-14 h-14 mx-auto mb-4 text-gray-300" aria-hidden />
             <div className="text-xl font-bold text-gray-900 mb-2">لینک نامعتبر</div>
             <div className="text-sm text-gray-500 leading-relaxed">لینک ودیعه معتبر نیست یا منقضی شده است.<br />با سفارش‌دهنده تماس بگیرید.</div>
           </div>
@@ -667,17 +669,17 @@ export default function TravelerDepositPage() {
         {/* ── Already ───────────────────────────────────────────────── */}
         {viewState === 'already' && (
           <div className="text-center py-16">
-            <div className="text-6xl mb-4">✅</div>
+            <CheckCircle2 className="w-14 h-14 mx-auto mb-4 text-green-500" aria-hidden />
             <div className="text-xl font-bold text-gray-900 mb-2">ودیعه قبلاً تودیع شد</div>
             <div className="text-sm text-gray-500 mb-6 leading-relaxed">ودیعه این سفارش قبلاً در پرداخت امن چاپار ثبت شده است.</div>
-            <a href={alreadyLink || '/track?role=traveler'} className="inline-flex items-center justify-center h-12 px-6 bg-blue-600 text-white rounded-xl font-bold text-sm">🔍 پیگیری سفارش</a>
+            <a href={alreadyLink || '/track?role=traveler'} className="inline-flex items-center justify-center h-12 px-6 bg-blue-600 text-white rounded-xl font-bold text-sm gap-2"><Search className="w-4 h-4" aria-hidden />پیگیری سفارش</a>
           </div>
         )}
 
         {/* ── Waiting for owner ──────────────────────────────────────── */}
         {viewState === 'waiting' && (
           <div className="text-center py-16">
-            <div className="text-6xl mb-4">⏳</div>
+            <Clock className="w-14 h-14 mx-auto mb-4 text-amber-500" aria-hidden />
             <div className="text-xl font-bold text-gray-900 mb-2">در انتظار پرداخت سفارش‌دهنده</div>
             <div className="text-sm text-gray-500 leading-relaxed">ابتدا سفارش‌دهنده باید هزینه حمل را پرداخت کند.<br />پس از پرداخت، لینک ودیعه برای شما فعال می‌شود.</div>
           </div>
@@ -695,7 +697,7 @@ export default function TravelerDepositPage() {
         {/* ── Polygon Waiting ───────────────────────────────────────── */}
         {viewState === 'polywaiting' && (
           <div className="text-center py-8 space-y-4">
-            <div className="text-5xl">⬡</div>
+            <Hexagon className="w-12 h-12 mx-auto text-indigo-500" aria-hidden />
             <div className="text-base font-bold text-gray-900">ودیعه USDC — Polygon</div>
             <div className="bg-green-50 border border-green-200 rounded-xl p-3 text-right">
               <div className="text-xs text-gray-500 mb-1">کیف پول متصل</div>
@@ -708,7 +710,7 @@ export default function TravelerDepositPage() {
             </div>
             {polyDepReady && (
               <button onClick={() => gate(doTravelerDeposit)} className="w-full h-12 rounded-xl font-bold text-sm text-white" style={{ background: 'linear-gradient(135deg,#818cf8,#6366f1)' }}>
-                ⬡ واریز ودیعه به قرارداد ←
+                واریز ودیعه به قرارداد ←
               </button>
             )}
             {polyErr && <div className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg p-2">{polyErr}</div>}
@@ -718,12 +720,12 @@ export default function TravelerDepositPage() {
         {/* ── Tron Waiting ─────────────────────────────────────────── */}
         {viewState === 'tronwaiting' && (
           <div className="text-center py-8 space-y-4">
-            <div className="text-5xl">🔴</div>
+            <Coins className="w-12 h-12 mx-auto text-red-500" aria-hidden />
             <div className="text-base font-bold text-gray-900">ودیعه USDT Tron — در انتظار تأیید</div>
             <div className="bg-green-50 border border-green-200 rounded-xl p-3 text-right">
               <div className="text-xs text-gray-500 mb-1">کیف پول شما</div>
               <div className="text-xs font-bold text-green-700 font-mono break-all mb-1">{tronWallet}</div>
-              <div className="text-xs text-green-600">✅ تراکنش USDT ارسال شد</div>
+              <div className="text-xs text-green-600">تراکنش USDT ارسال شد</div>
             </div>
             {tdtwTxId && (
               <div className="bg-gray-50 border border-gray-200 rounded-lg p-2 text-xs text-gray-500 text-left font-mono break-all" style={{ direction: 'ltr' }}>TX: {tdtwTxId}</div>
@@ -746,13 +748,13 @@ export default function TravelerDepositPage() {
 
             {/* Chip */}
             <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex items-center gap-3">
-              <span className="text-2xl flex-shrink-0">✈️</span>
+              <Plane className="w-6 h-6 flex-shrink-0 text-cyan-600" aria-hidden />
               <div className="flex-1 min-w-0">
                 <div className="text-xs font-extrabold text-blue-600 tracking-wider" style={{ direction: 'ltr' }}>{off.orderId || (txnIdRef.current ? txnIdRef.current.slice(0,12) : '—')}</div>
                 <div className="text-xs text-gray-500 mt-0.5">
                   {(order.originFlag || '') + ' ' + (order.originLabel || order.origin || '—') + ' ← ' + (order.destFlag || '') + ' ' + (order.destLabel || order.dest || '—')}
                 </div>
-                {order.detectedItem && <div className="text-xs text-gray-500 mt-0.5">📦 {order.detectedItem}</div>}
+                {order.detectedItem && <div className="text-xs text-gray-500 mt-0.5">{order.detectedItem}</div>}
               </div>
               <div className="text-right flex-shrink-0">
                 <div className="text-[10px] text-gray-500">هزینه حمل شما</div>
@@ -762,7 +764,7 @@ export default function TravelerDepositPage() {
 
             {/* Security notice */}
             <div className="bg-amber-50 border border-amber-200 rounded-xl p-3.5 flex items-start gap-2.5">
-              <span className="text-lg flex-shrink-0 mt-0.5">🛡️</span>
+              <ShieldCheck className="w-5 h-5 flex-shrink-0 mt-0.5 text-gray-500" aria-hidden />
               <div className="text-xs text-gray-600 leading-relaxed">
                 ودیعه معادل <strong className="text-amber-700">ارزش کالا</strong> است. در صورت آسیب یا مفقودی، از آن برای جبران خسارت استفاده می‌شود. اصل ودیعه پس از تحویل موفق به گیرنده بازگردانده می‌شود.
               </div>
@@ -770,7 +772,7 @@ export default function TravelerDepositPage() {
 
             {/* Admin notice */}
             <div className="bg-orange-50 border border-orange-200 rounded-xl p-3.5 flex items-start gap-2.5">
-              <span className="text-lg flex-shrink-0 mt-0.5">⚠️</span>
+              <AlertTriangle className="w-5 h-5 flex-shrink-0 mt-0.5 text-amber-600" aria-hidden />
               <div className="text-xs text-gray-600 leading-relaxed">
                 <strong className="text-orange-700 block mb-1">بازگشت ودیعه نیاز به تأیید ادمین دارد</strong>
                 ودیعه شما در <strong className="text-amber-700">پرداخت امن چاپار</strong> نگهداری می‌شود و <strong className="text-orange-700">تنها پس از تأیید ادمین چاپار</strong> بازگردانده می‌شود.
@@ -782,11 +784,11 @@ export default function TravelerDepositPage() {
               <div className="text-[10px] font-bold text-gray-500 uppercase tracking-wide mb-3">خلاصه ودیعه</div>
               <div className="space-y-2.5">
                 <div className="flex justify-between items-center">
-                  <span className="text-xs text-gray-500">ارزش کالا <span className="text-green-600 text-[10px]">✅ برگشت‌پذیر</span></span>
+                  <span className="text-xs text-gray-500">ارزش کالا <span className="text-green-600 text-[10px]"> برگشت‌پذیر</span></span>
                   <span className="text-sm font-extrabold text-gray-900">{Math.round(cargoT).toLocaleString('fa-IR')} ت</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-xs text-gray-500">کارمزد چاپار (۱۵٪) <span className="text-red-500 text-[10px]">✗ غیرقابل بازگشت</span></span>
+                  <span className="text-xs text-gray-500">کارمزد چاپار (۱۵٪) <span className="text-red-500 text-[10px]">غیرقابل بازگشت</span></span>
                   <span className="text-sm font-extrabold text-gray-900">{Math.round(feeT).toLocaleString('fa-IR')} ت</span>
                 </div>
                 <div className="border-t border-gray-100 pt-2.5">
@@ -804,12 +806,12 @@ export default function TravelerDepositPage() {
               <div className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">{t.tdepMethodLabel}</div>
               <div className="grid grid-cols-3 gap-2">
                 {[
-                  { key: 'card',    icon: '💳', label: 'کارت بانکی' },
-                  { key: 'toman',   icon: '🏦', label: 'واریز تومانی' },
+                  { key: 'card',    Icon: CreditCard, label: 'کارت بانکی' },
+                  { key: 'toman',   Icon: Landmark,   label: 'واریز تومانی' },
                   { key: 'usdt',    icon: '₮',  label: 'USDT' },
-                  { key: 'paypal',  icon: '🅿️', label: 'PayPal' },
-                  { key: 'polygon', icon: '⬡',  label: 'USDC Polygon' },
-                  { key: 'tron',    icon: '🔴', label: 'USDT Tron' },
+                  { key: 'paypal',  Icon: Landmark,   label: 'PayPal' },
+                  { key: 'polygon', Icon: Hexagon, label: 'USDC Polygon' },
+                  { key: 'tron',    Icon: Coins,      label: 'USDT Tron' },
                 ].map(m => (
                   <button
                     key={m.key}
@@ -818,7 +820,7 @@ export default function TravelerDepositPage() {
                       method === m.key ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
                     }`}
                   >
-                    <span className="text-xl">{m.icon}</span>
+                    <m.Icon className="w-5 h-5 flex-shrink-0" aria-hidden />
                     <span className="text-[10px] font-bold text-center leading-tight">{m.label}</span>
                   </button>
                 ))}
@@ -829,7 +831,7 @@ export default function TravelerDepositPage() {
                     method === 'wallet' ? 'border-blue-500 bg-blue-50' : 'border-gray-200 bg-white hover:border-gray-300'
                   } ${walletDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
                 >
-                  <span className="text-xl">👛</span>
+                  <Wallet className="w-5 h-5" aria-hidden />
                   <div className="flex-1 text-right">
                     <div className="text-sm font-bold text-gray-900">کیف پول چاپار</div>
                     <div className="text-xs text-gray-500">{walletBal}</div>
@@ -845,7 +847,7 @@ export default function TravelerDepositPage() {
               <div id="travCardEl" className="bg-white border border-gray-300 rounded-xl p-3.5 transition-all" style={{ direction: 'ltr' }} />
               {simMode && (
                 <div className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-2.5 leading-relaxed">
-                  ⚠️ حالت شبیه‌سازی — کلیدهای Stripe تنظیم نشده. برای پرداخت کارت واقعی کلیدهای Stripe را در <code className="bg-black/10 px-1 rounded">payment/.env</code> تنظیم کنید.
+                  حالت شبیه‌سازی — کلیدهای Stripe تنظیم نشده. برای پرداخت کارت واقعی کلیدهای Stripe را در <code className="bg-black/10 px-1 rounded">payment/.env</code> تنظیم کنید.
                 </div>
               )}
             </div>
@@ -853,11 +855,11 @@ export default function TravelerDepositPage() {
             {/* Polygon notice */}
             {method === 'polygon' && (
               <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-4 text-sm text-gray-600">
-                <div className="font-bold text-indigo-700 mb-2">⬡ اسکرو هوشمند USDC — Polygon</div>
+                <div className="font-bold text-indigo-700 mb-2">اسکرو هوشمند USDC — Polygon</div>
                 <div className="text-xs leading-relaxed mb-3">ودیعه شما در قرارداد هوشمند چاپار روی شبکه <strong className="text-indigo-700">Polygon</strong> قفل می‌شود.</div>
                 {polyStep === 'connect' ? (
                   <button onClick={connectTravelerWallet} className="w-full h-11 rounded-xl text-sm font-bold text-white flex items-center justify-center gap-2" style={{ background: 'linear-gradient(135deg,#818cf8,#6366f1)' }}>
-                    🦊 اتصال MetaMask / کیف پول Web3
+                    اتصال MetaMask / کیف پول Web3
                   </button>
                 ) : (
                   <div className="bg-green-50 border border-green-200 rounded-lg p-2.5">
@@ -872,13 +874,13 @@ export default function TravelerDepositPage() {
             {/* Tron notice */}
             {method === 'tron' && (
               <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-gray-600">
-                <div className="font-bold text-red-600 mb-2">🔴 USDT TRC-20 — Tron (Trust Wallet)</div>
+                <div className="font-bold text-red-600 mb-2">USDT TRC-20 — Tron (Trust Wallet)</div>
                 <div className="text-xs leading-relaxed mb-3">ودیعه در کیف پول امن چاپار روی شبکه <strong className="text-red-600">Tron</strong> نگه‌داری می‌شود.</div>
                 {tronStep === 'detect' ? (
                   <div>
                     <div className="text-xs text-gray-500 bg-amber-50 border border-amber-200 rounded-lg p-2 mb-2">{tronDetectMsg}</div>
                     <button onClick={connectTravelerTronWallet} className="w-full h-11 rounded-xl text-sm font-bold text-white" style={{ background: 'linear-gradient(135deg,#ef4444,#dc2626)' }}>
-                      🔴 اتصال Trust Wallet
+                      اتصال Trust Wallet
                     </button>
                   </div>
                 ) : (
@@ -894,11 +896,11 @@ export default function TravelerDepositPage() {
             {/* Toman / USDT / PayPal notices */}
             {method === 'toman' && (
               <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-xs text-gray-600 leading-relaxed space-y-1">
-                <div className="font-bold text-blue-700">🏦 واریز تومانی</div>
+                <div className="font-bold text-blue-700">واریز تومانی</div>
                 <div><strong>شماره شبا:</strong> IR12 0560 0000 0000 1234 5678 90</div>
                 <div><strong>بانک:</strong> ملت — به نام چاپار</div>
                 <div><strong>شناسه واریز:</strong> {refToman}</div>
-                <div className="text-orange-700">⚠️ پس از واریز، رسید را برای ادمین ارسال کنید تا ودیعه تأیید شود.</div>
+                <div className="text-orange-700">پس از واریز، رسید را برای ادمین ارسال کنید تا ودیعه تأیید شود.</div>
               </div>
             )}
             {method === 'usdt' && (
@@ -907,21 +909,21 @@ export default function TravelerDepositPage() {
                 <div><strong>آدرس کیف پول:</strong></div>
                 <div className="font-mono text-blue-600 break-all" style={{ direction: 'ltr' }}>TRx9abcCHAPAR1234567890USDT</div>
                 <div><strong>مقدار:</strong> {refUsdt} USDT</div>
-                <div className="text-orange-700">⚠️ پس از ارسال، TXID تراکنش را به ادمین اطلاع دهید.</div>
+                <div className="text-orange-700">پس از ارسال، TXID تراکنش را به ادمین اطلاع دهید.</div>
               </div>
             )}
             {method === 'paypal' && (
               <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-xs text-gray-600 leading-relaxed space-y-1">
-                <div className="font-bold text-blue-700">🅿️ PayPal</div>
+                <div className="font-bold text-blue-700">PayPal</div>
                 <div><strong>ایمیل:</strong> deposit@chapar.app</div>
                 <div><strong>مقدار:</strong> {refPaypal} USD</div>
                 <div><strong>یادداشت:</strong> {refPaypalNote}</div>
-                <div className="text-orange-700">⚠️ پس از ارسال، اسکرین‌شات را برای ادمین ارسال کنید.</div>
+                <div className="text-orange-700">پس از ارسال، اسکرین‌شات را برای ادمین ارسال کنید.</div>
               </div>
             )}
             {method === 'wallet' && !walletDisabled && (
               <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-xs text-gray-600">
-                <div className="font-bold text-blue-700 mb-1">👛 کیف پول چاپار</div>
+                <div className="font-bold text-blue-700 mb-1">کیف پول چاپار</div>
                 مبلغ <strong>{Math.round(totalToman).toLocaleString('fa-IR')}</strong> تومان از موجودی کیف پول شما کسر خواهد شد.
               </div>
             )}
@@ -937,7 +939,7 @@ export default function TravelerDepositPage() {
               onClick={() => gate(doDeposit)}
               className="w-full h-13 py-4 rounded-xl bg-gradient-to-r from-blue-500 to-blue-700 text-white font-extrabold text-sm shadow-lg hover:opacity-90 transition-all"
             >
-              🛡️ تودیع ودیعه و شروع مسیر ←
+              تودیع ودیعه و شروع مسیر ←
             </button>
           </div>
         )}
@@ -946,7 +948,7 @@ export default function TravelerDepositPage() {
         {viewState === 'success' && (
           <div className="space-y-4">
             <div className="text-center py-6">
-              <div className="text-6xl mb-3">🎉</div>
+              <PartyPopper className="w-14 h-14 mx-auto mb-3 text-cyan-500" aria-hidden />
               <div className="text-2xl font-extrabold text-gray-900 mb-2">{t.tdepSuccessTitle}</div>
               <div className="text-sm text-gray-500 leading-relaxed">{t.tdepSuccessDesc}</div>
             </div>
@@ -956,7 +958,7 @@ export default function TravelerDepositPage() {
               <button onClick={copyTxn} className="w-full text-right bg-blue-50 border border-blue-200 rounded-xl p-4 hover:bg-blue-100 transition-colors">
                 <div className="text-[10px] text-gray-500 font-bold uppercase tracking-wide mb-1">شناسه تراکنش</div>
                 <div className="text-sm font-extrabold text-blue-700 font-mono tracking-wider" style={{ direction: 'ltr' }}>{successTxnId}</div>
-                <div className="text-[10px] text-gray-500 mt-1">👆 لمس کنید تا کپی شود</div>
+                <div className="text-[10px] text-gray-500 mt-1">لمس کنید تا کپی شود</div>
               </button>
             )}
 
@@ -967,7 +969,7 @@ export default function TravelerDepositPage() {
                 <span className="text-xl font-extrabold text-green-600">{depositAmt}</span>
               </div>
               <div className="text-xs text-gray-500 leading-relaxed">
-                ⚠️ بازگشت ودیعه پس از تأیید تحویل توسط گیرنده و <strong className="text-orange-700">تأیید ادمین چاپار</strong> انجام می‌شود.
+                بازگشت ودیعه پس از تأیید تحویل توسط گیرنده و <strong className="text-orange-700">تأیید ادمین چاپار</strong> انجام می‌شود.
               </div>
             </div>
 
@@ -975,12 +977,12 @@ export default function TravelerDepositPage() {
             <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
               <div className="text-sm font-bold text-gray-900 mb-2">مراحل بعدی:</div>
               <div className="text-xs text-gray-500 leading-loose">
-                ۱. 📦 کالا را از سفارش‌دهنده تحویل بگیرید<br />
-                ۲. ✈️ به مقصد برسانید<br />
-                ۳. 🔑 کد OTP را از گیرنده دریافت کنید<br />
-                ۴. ✅ تحویل را در صفحه پیگیری تأیید کنید<br />
-                ۵. 🔍 ادمین چاپار بازگشت ودیعه را تأیید می‌کند<br />
-                ۶. 💰 ودیعه + هزینه حمل آزاد می‌شود
+                ۱. کالا را از سفارش‌دهنده تحویل بگیرید<br />
+                ۲. به مقصد برسانید<br />
+                ۳. کد OTP را از گیرنده دریافت کنید<br />
+                ۴. تحویل را در صفحه پیگیری تأیید کنید<br />
+                ۵. ادمین چاپار بازگشت ودیعه را تأیید می‌کند<br />
+                ۶. ودیعه + هزینه حمل آزاد می‌شود
               </div>
             </div>
 
@@ -994,7 +996,7 @@ export default function TravelerDepositPage() {
               {t.tdepSuccessTrackBtn}
             </a>
             <a href="/?page=traveler-dashboard" className="flex items-center justify-center gap-2 h-11 rounded-xl bg-gray-100 border border-gray-200 text-gray-600 font-bold text-sm hover:bg-gray-200 transition-colors">
-              ✈️ {t.tdepHome}
+              {t.tdepHome}
             </a>
           </div>
         )}

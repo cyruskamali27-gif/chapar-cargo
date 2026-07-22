@@ -12,7 +12,7 @@
  *   "خرید شخصی/تجاری"      → saveOrder({type:'chapar',sub}) → renders SendPackagePage(cargoType='chapar')
  */
 import { useState } from 'react';
-import { ArrowLeft, Home } from 'lucide-react';
+import { ArrowLeft, Home, Info, User, ShoppingCart, UserCheck, Building2 } from 'lucide-react';
 import { saveOrder } from '../lib/store';
 import { useSession } from '../lib/SessionContext';
 import { useLang } from '../lib/LangContext';
@@ -116,7 +116,7 @@ export default function OrderPage() {
           </div>
         ) : (
           <div className="flex items-center gap-3 bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3.5">
-            <span className="text-base flex-shrink-0">ℹ️</span>
+            <Info className="w-4 h-4 flex-shrink-0" aria-hidden />
             <div className="flex-1 text-xs text-gray-500 font-semibold leading-relaxed">{t.ordLoginPrompt}</div>
             <a
               href="/?page=auth&return=/order"
@@ -140,7 +140,7 @@ export default function OrderPage() {
                 <div className="text-base font-bold text-gray-900 mb-0.5 group-hover:text-blue-700 transition-colors">{t.ordPersonalTitle}</div>
                 <div className="text-sm text-gray-500">{t.ordPersonalDesc}</div>
               </div>
-              <span className="text-3xl flex-shrink-0">👤</span>
+              <User className="w-8 h-8 flex-shrink-0" aria-hidden />
             </button>
 
             {/* Card: خرید توسط چاپار */}
@@ -153,7 +153,7 @@ export default function OrderPage() {
                 <div className="text-base font-bold text-gray-900 mb-0.5 group-hover:text-blue-700 transition-colors">{t.ordChaparTitle}</div>
                 <div className="text-sm text-gray-500">{t.ordChaparDesc}</div>
               </div>
-              <span className="text-3xl flex-shrink-0">🛒</span>
+              <ShoppingCart className="w-8 h-8 flex-shrink-0" aria-hidden />
             </button>
 
             {/* Browse travelers link — mirrors order.html /travelers.html link */}
@@ -181,7 +181,7 @@ export default function OrderPage() {
                 <div className="text-base font-bold text-gray-900 mb-0.5 group-hover:text-blue-700 transition-colors">{t.ordBuyPersonalTitle}</div>
                 <div className="text-sm text-gray-500">{t.ordBuyPersonalDesc}</div>
               </div>
-              <span className="text-3xl flex-shrink-0">🧍</span>
+              <UserCheck className="w-8 h-8 flex-shrink-0" aria-hidden />
             </button>
 
             {/* Card: درخواست خرید تجاری */}
@@ -194,7 +194,7 @@ export default function OrderPage() {
                 <div className="text-base font-bold text-gray-900 mb-0.5 group-hover:text-blue-700 transition-colors">{t.ordBuyBusinessTitle}</div>
                 <div className="text-sm text-gray-500">{t.ordBuyBusinessDesc}</div>
               </div>
-              <span className="text-3xl flex-shrink-0">🏢</span>
+              <Building2 className="w-8 h-8 flex-shrink-0" aria-hidden />
             </button>
           </>
         )}

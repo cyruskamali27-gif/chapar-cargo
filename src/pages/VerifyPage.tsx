@@ -12,7 +12,7 @@
  * No API endpoints — 100% client-side/localStorage, same as verify.html.
  */
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { ArrowLeft, Home, CheckCircle } from 'lucide-react';
+import { ArrowLeft, Home, CheckCircle, CheckCircle2, BookUser, CreditCard, IdCard } from 'lucide-react';
 import { Store, getSession, getOrder, saveOrder } from '../lib/store';
 import { StatusBadge } from '../app/VerificationModules';
 import { useLang } from '../lib/LangContext';
@@ -581,9 +581,9 @@ export default function VerifyPage() {
           <div className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">{t.vfyDocTypeLabel}</div>
           <div className="grid grid-cols-3 gap-3">
             {([
-              { dtype: 'passport'    as DocType, icon: '🛂', label: t.vfyDocPassport  },
-              { dtype: 'license'     as DocType, icon: '🚗', label: t.vfyDocLicense   },
-              { dtype: 'national_id' as DocType, icon: '🪪', label: t.vfyDocNational  },
+              { dtype: 'passport'    as DocType, Icon: BookUser,   label: t.vfyDocPassport  },
+              { dtype: 'license'     as DocType, Icon: CreditCard, label: t.vfyDocLicense   },
+              { dtype: 'national_id' as DocType, Icon: IdCard,     label: t.vfyDocNational  },
             ]).map(({ dtype, icon, label }) => (
               <button
                 key={dtype}
@@ -694,7 +694,7 @@ export default function VerifyPage() {
                           : 'opacity-0 translate-y-2 border-transparent'
                       }`}
                     >
-                      <span className="text-base flex-shrink-0">✅</span>
+                      <CheckCircle2 className="w-4 h-4 flex-shrink-0 text-green-600" aria-hidden />
                       <span className="font-semibold text-gray-700">{chk}</span>
                     </div>
                   ))}
@@ -718,7 +718,7 @@ export default function VerifyPage() {
                 {/* Pass banner */}
                 {aiDone && (
                   <div className="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-xl p-4 text-center">
-                    <div className="text-xl mb-1.5">✅</div>
+                    <CheckCircle2 className="w-5 h-5 mx-auto mb-1.5 text-green-600" aria-hidden />
                     <div className="text-sm font-extrabold text-green-700">{t.vfyAiPassTitle}</div>
                     <div className="text-xs text-gray-500 mt-1">{t.vfyAiPassDesc}</div>
                   </div>

@@ -8,6 +8,7 @@
 // order flow is untouched — this component alone shows an honest Persian error and offers a retry.
 // It never throws upward and never blocks accept/edit/confirm-delivery.
 import { useEffect, useRef, useState } from 'react';
+import { Lock } from 'lucide-react';
 
 const STRIPE_JS = 'https://js.stripe.com/v3/';
 
@@ -188,7 +189,7 @@ export function EscrowPaymentStep({
     return (
       <div dir="rtl" className="mb-3 rounded-xl border border-emerald-200 bg-emerald-50 p-3">
         <div className="flex items-center gap-2">
-          <span className="text-base leading-none">🔒</span>
+          <Lock className="w-4 h-4 flex-shrink-0" aria-hidden />
           <div className="text-xs font-bold text-emerald-800">پرداخت شد — وجه در اسکرو قفل شد</div>
         </div>
         <p className="mt-1 text-[11px] text-emerald-700 leading-relaxed">

@@ -4,6 +4,7 @@
  * Static content: trust badges, 4 steps, 6 FAQ items with accordion, CTA.
  */
 import { useState } from 'react';
+import { Package, Plane, Lock, PartyPopper, Zap, ShieldCheck } from 'lucide-react';
 import { useLang } from '../lib/LangContext';
 
 export default function HowtoPage() {
@@ -11,10 +12,10 @@ export default function HowtoPage() {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
 
   const STEPS = [
-    { num: '۱', icon: '📦', title: t.howStep1Title, desc: t.howStep1Desc },
-    { num: '۲', icon: '✈️', title: t.howStep2Title, desc: t.howStep2Desc },
-    { num: '۳', icon: '🔒', title: t.howStep3Title, desc: t.howStep3Desc },
-    { num: '۴', icon: '🎉', title: t.howStep4Title, desc: t.howStep4Desc },
+    { num: '۱', Icon: Package,  title: t.howStep1Title, desc: t.howStep1Desc },
+    { num: '۲', Icon: Plane,    title: t.howStep2Title, desc: t.howStep2Desc },
+    { num: '۳', Icon: Lock,     title: t.howStep3Title, desc: t.howStep3Desc },
+    { num: '۴', Icon: PartyPopper, title: t.howStep4Title, desc: t.howStep4Desc },
   ];
 
   const FAQS = [
@@ -48,12 +49,12 @@ export default function HowtoPage() {
         {/* Trust badges */}
         <div className="grid grid-cols-3 gap-3 mb-6">
           {[
-            { icon: '🔒', label: t.howBadgeEscrow },
-            { icon: '⚡', label: t.howBadgeFast },
-            { icon: '🛡️', label: t.howBadgeVerified },
+            { Icon: Lock,        label: t.howBadgeEscrow },
+            { Icon: Zap,         label: t.howBadgeFast },
+            { Icon: ShieldCheck, label: t.howBadgeVerified },
           ].map(b => (
             <div key={b.label} className="bg-white border border-gray-100 rounded-2xl p-4 text-center shadow-sm">
-              <div className="text-2xl mb-1.5">{b.icon}</div>
+              <b.Icon className="w-6 h-6 mx-auto mb-1.5" aria-hidden />
               <div className="text-xs font-bold text-gray-500 leading-relaxed">{b.label}</div>
             </div>
           ))}
@@ -71,7 +72,7 @@ export default function HowtoPage() {
                 {idx < STEPS.length - 1 && <div className="w-0.5 bg-blue-100 flex-1 min-h-7 mt-1.5" />}
               </div>
               <div className={`flex-1 ${idx < STEPS.length - 1 ? 'pb-7' : 'pb-0'}`}>
-                <div className="text-lg mb-1.5">{step.icon}</div>
+                <step.Icon className="w-5 h-5 mx-auto mb-1.5" aria-hidden />
                 <div className="text-base font-bold text-gray-900 mb-1.5">{step.title}</div>
                 <div className="text-sm text-gray-500 leading-relaxed">{step.desc}</div>
               </div>
@@ -100,7 +101,7 @@ export default function HowtoPage() {
         {/* CTA */}
         <a href="/order"
            className="flex items-center justify-center gap-2 w-full h-12 rounded-2xl bg-blue-600 text-white font-bold text-sm no-underline mb-3 shadow-sm hover:bg-blue-700 transition-colors">
-          <span className="text-lg">📦</span>
+          <Package className="w-5 h-5" aria-hidden />
           {t.howCta}
         </a>
         <div className="text-center mb-5">

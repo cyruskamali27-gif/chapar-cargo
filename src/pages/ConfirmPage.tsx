@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Package } from 'lucide-react';
+import { Package, Ban, CheckCircle2 } from 'lucide-react';
 import { useLang } from '../lib/LangContext';
 
 type State = 'loading' | 'ready' | 'confirmed' | 'already_done' | 'expired' | 'invalid' | 'error';
@@ -92,14 +92,14 @@ export default function ConfirmPage() {
 
           {(state === 'expired' || state === 'invalid' || state === 'error') && (
             <>
-              <div className="text-5xl mb-4">⛔</div>
+              <Ban className="w-12 h-12 mx-auto mb-4 text-red-500" aria-hidden />
               <p className="text-gray-700 font-semibold">{msgMap[state]}</p>
             </>
           )}
 
           {(state === 'confirmed' || state === 'already_done') && (
             <>
-              <div className="text-5xl mb-4">✅</div>
+              <CheckCircle2 className="w-12 h-12 mx-auto mb-4 text-green-500" aria-hidden />
               <h2 className="text-xl font-extrabold text-gray-900 mb-2">{t.confirmDone}</h2>
               {info && (
                 <p className="text-sm text-gray-500">

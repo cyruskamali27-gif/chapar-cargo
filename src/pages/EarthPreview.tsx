@@ -340,9 +340,9 @@ export default function EarthPreview() {
       {globeReady && (
         <div className="absolute bottom-8 right-4 z-20 hidden lg:block pointer-events-none">
           <div className="text-xs text-gray-700 space-y-0.5 text-right">
-            <div>🖱 کشیدن: چرخش کره</div>
-            <div>🖱 اسکرول: زوم</div>
-            <div>📍 کلیک: نمایش مسیر</div>
+            <div>کشیدن: چرخش کره</div>
+            <div>اسکرول: زوم</div>
+            <div>کلیک: نمایش مسیر</div>
           </div>
         </div>
       )}

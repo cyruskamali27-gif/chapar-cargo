@@ -7,6 +7,8 @@
  * localStorage keys written: cp_offers, cp_admin_statuses, cp_status_history, cp_notifications
  */
 import { useState, useEffect, useRef } from 'react';
+import { CreditCard, Landmark, Coins, Wallet, Search, CheckCircle2, Clock, PartyPopper,
+         Plane, Package, Lock, ShieldCheck, AlertTriangle, Hexagon } from 'lucide-react';
 import { Store, getLiveRate, getSession, genId } from '../lib/store';
 import { useLang } from '../lib/LangContext';
 import { useVerifyGate } from '../lib/useVerifyGate';
@@ -351,7 +353,7 @@ export default function OwnerPaymentPage() {
     const notifs = Store.get<unknown[]>('notifications') ?? [];
     notifs.unshift({
       id: genId('N'), type: 'offer_accepted',
-      title: 'پیشنهاد شما پذیرفته شد ✅',
+      title: 'پیشنهاد شما پذیرفته شد',
       body: 'سفارش‌دهنده هزینه حمل را پرداخت کرد. لطفاً ودیعه امنیتی را واریز کنید.',
       orderId: orderId ?? null, offerId: offId, txnId: tid ?? null, at: Date.now(), read: false,
     });
@@ -371,7 +373,7 @@ export default function OwnerPaymentPage() {
 
     setTxnId(tid || offr.orderId || 'در انتظار');
     setState('success');
-    showToast('✅ پرداخت با موفقیت انجام شد');
+    showToast('پرداخت با موفقیت انجام شد');
   }
 
   // ── Pay button click ───────────────────────────────────────────────────────
@@ -459,7 +461,7 @@ export default function OwnerPaymentPage() {
         const eth = window.ethers;
         const usdcSigned = new eth.Contract(POLY_USDC_ADDR, POLY_USDC_ABI, ethersSignRef.current);
         const amountRaw  = BigInt(Math.round(totalUSDRef.current * 1_000_000));
-        showToast('🦊 تأیید USDC در MetaMask...');
+        showToast('تأیید USDC در MetaMask...');
         const approveTx = usdcSigned.approve(POLY_ESCROW_ADDR, amountRaw) as unknown as Promise<{ wait: (n: number) => Promise<unknown> }>;
         await (await approveTx).wait(1);
 
@@ -528,12 +530,12 @@ export default function OwnerPaymentPage() {
       const usdcRo = new eth.Contract(POLY_USDC_ADDR, POLY_USDC_ABI, provider);
       const bal = await (usdcRo.balanceOf as unknown as (a: string) => Promise<bigint>)(addr);
       setPolyUsdcBal((Number(bal) / 1e6).toFixed(2) + ' USDC');
-      showToast('✅ MetaMask متصل شد');
+      showToast('MetaMask متصل شد');
     } catch (e: unknown) { setErr('خطا در اتصال کیف پول: ' + ((e as Error).message || String(e))); }
   }
 
   function setOwnerPolyReady() {
-    setPolyWaiting('✅ قرارداد آماده است — ودیعه خود را واریز کنید');
+    setPolyWaiting('قرارداد آماده است — ودیعه خود را واریز کنید');
     setPolyDepReady(true);
   }
 
@@ -555,7 +557,7 @@ export default function OwnerPaymentPage() {
       const eth  = window.ethers;
       const escrow = new eth.Contract(POLY_ESCROW_ADDR, POLY_ESCROW_ABI, ethersSignRef.current);
       const txnKey = eth.keccak256(eth.toUtf8Bytes(txnIdRef.current));
-      showToast('🦊 واریز USDC به قرارداد در MetaMask...');
+      showToast('واریز USDC به قرارداد در MetaMask...');
       const depositTx = (escrow.ownerDeposit as unknown as (k: string) => Promise<{ wait: (n: number) => Promise<{ hash: string }> }>)(txnKey);
       const receipt   = await (await depositTx).wait(1);
       const conf = await fetchJson<{ receiverOTP?: string }>('/api/polygon/owner-deposit-confirm', {
@@ -596,7 +598,7 @@ export default function OwnerPaymentPage() {
         const bal = await tw.contract(TRON_USDT_ABI, TRON_USDT_ADDR).balanceOf(addr).call();
         setTronUsdtBal((Number(bal) / 1e6).toFixed(2) + ' USDT');
       } catch { setTronUsdtBal('—'); }
-      showToast('✅ Trust Wallet متصل شد');
+      showToast('Trust Wallet متصل شد');
     } catch (e: unknown) { setErr('خطا در اتصال: ' + ((e as Error).message || String(e))); }
   }
 
@@ -620,7 +622,7 @@ export default function OwnerPaymentPage() {
       );
       if (!intentRes.ok) throw new Error(intentRes.error || 'خطا در ایجاد قصد پرداخت');
 
-      showToast('🔴 انتقال ' + intentRes.expectedHuman + ' USDT در Trust Wallet...');
+      showToast('انتقال ' + intentRes.expectedHuman + ' USDT در Trust Wallet...');
       const contract = tw.contract(TRON_USDT_ABI, TRON_USDT_ADDR);
       const txId = await contract.transfer(intentRes.adminWallet!, intentRes.expectedRaw).send({
         feeLimit: 40_000_000, callValue: 0, shouldPollResponse: false,
@@ -661,7 +663,7 @@ export default function OwnerPaymentPage() {
       : (location.origin + '/traveler-deposit?offerId=' + encodeURIComponent(offerIdRef.current));
     if (navigator.share) {
       navigator.share({ title: 'چاپار — ودیعه مسافر', text: 'لطفاً ودیعه امنیتی را واریز کنید:', url: link }).catch(() => copyText(link));
-    } else { copyText(link); showToast('🔗 لینک کپی شد — آن را برای مسافر ارسال کنید'); }
+    } else { copyText(link); showToast('لینک کپی شد — آن را برای مسافر ارسال کنید'); }
   }
 
   function copyText(t: string) {
@@ -692,7 +694,7 @@ export default function OwnerPaymentPage() {
         {/* ── Not Found ─────────────────────────────────────────────── */}
         {state === 'notfound' && (
           <div className="text-center py-16">
-            <div className="text-6xl mb-4">🔍</div>
+            <Search className="w-14 h-14 mx-auto mb-4 text-gray-300" aria-hidden />
             <div className="text-xl font-bold text-gray-900 mb-2">پیشنهاد یافت نشد</div>
             <div className="text-sm text-gray-500 mb-6">لینک پرداخت معتبر نیست یا منقضی شده</div>
             <a href="/marketplace/" className="inline-flex items-center justify-center h-12 px-6 bg-blue-600 text-white rounded-xl font-bold text-sm">بازگشت به بازارچه ←</a>
@@ -702,10 +704,10 @@ export default function OwnerPaymentPage() {
         {/* ── Already Paid ───────────────────────────────────────────── */}
         {state === 'already' && (
           <div className="text-center py-16">
-            <div className="text-6xl mb-4">✅</div>
+            <CheckCircle2 className="w-14 h-14 mx-auto mb-4 text-green-500" aria-hidden />
             <div className="text-xl font-bold text-gray-900 mb-2">پرداخت قبلاً انجام شد</div>
             <div className="text-sm text-gray-500 mb-6">این سفارش پرداخت شده است</div>
-            <a href={alreadyLink || '/track?role=owner'} className="inline-flex items-center justify-center h-12 px-6 bg-blue-600 text-white rounded-xl font-bold text-sm">🔍 پیگیری سفارش</a>
+            <a href={alreadyLink || '/track?role=owner'} className="inline-flex items-center justify-center h-12 px-6 bg-blue-600 text-white rounded-xl font-bold text-sm gap-2"><Search className="w-4 h-4" aria-hidden />پیگیری سفارش</a>
           </div>
         )}
 
@@ -721,12 +723,12 @@ export default function OwnerPaymentPage() {
         {/* ── Polygon Waiting ───────────────────────────────────────── */}
         {state === 'polywaiting' && (
           <div className="text-center py-8">
-            <div className="text-5xl mb-3">⬡</div>
+            <Hexagon className="w-12 h-12 mx-auto mb-3 text-indigo-500" aria-hidden />
             <div className="text-base font-bold text-gray-900 mb-4">پرداخت USDC — Polygon</div>
             <div className="bg-green-50 border border-green-200 rounded-xl p-3 mb-4 text-right">
               <div className="text-xs text-gray-500 mb-1">کیف پول متصل</div>
               <div className="text-xs font-bold text-green-700 font-mono break-all mb-1">{polyWallet}</div>
-              <div className="text-xs text-green-600">✅ USDC تأیید شد — آماده واریز به قرارداد</div>
+              <div className="text-xs text-green-600">USDC تأیید شد — آماده واریز به قرارداد</div>
             </div>
             <div className="text-xs text-gray-500 mb-4 leading-relaxed">
               {polyWaiting || 'در حال آماده‌سازی...'}
@@ -734,7 +736,7 @@ export default function OwnerPaymentPage() {
             </div>
             {polyDepReady && (
               <button onClick={doOwnerDeposit} className="w-full h-12 rounded-xl font-bold text-sm text-white" style={{ background: 'linear-gradient(135deg,#818cf8,#6366f1)' }}>
-                ⬡ واریز USDC به قرارداد ←
+                واریز USDC به قرارداد ←
               </button>
             )}
             {polyErr && <div className="mt-3 text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg p-2">{polyErr}</div>}
@@ -744,12 +746,12 @@ export default function OwnerPaymentPage() {
         {/* ── Tron Waiting ─────────────────────────────────────────── */}
         {state === 'tronwaiting' && (
           <div className="text-center py-8">
-            <div className="text-5xl mb-3">🔴</div>
+            <Coins className="w-12 h-12 mx-auto mb-3 text-red-500" aria-hidden />
             <div className="text-base font-bold text-gray-900 mb-4">پرداخت USDT Tron — در انتظار تأیید</div>
             <div className="bg-green-50 border border-green-200 rounded-xl p-3 mb-4 text-right">
               <div className="text-xs text-gray-500 mb-1">کیف پول شما</div>
               <div className="text-xs font-bold text-green-700 font-mono break-all mb-1">{tronWallet}</div>
-              <div className="text-xs text-green-600">✅ تراکنش USDT ارسال شد</div>
+              <div className="text-xs text-green-600">تراکنش USDT ارسال شد</div>
             </div>
             {twTxId && (
               <div className="bg-gray-50 border border-gray-200 rounded-lg p-2 mb-4 text-xs text-gray-500 text-left font-mono break-all" style={{ direction: 'ltr' }}>TX: {twTxId}</div>
@@ -773,13 +775,13 @@ export default function OwnerPaymentPage() {
 
             {/* Order chip */}
             <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex items-center gap-3">
-              <span className="text-2xl flex-shrink-0">📦</span>
+              <Package className="w-6 h-6 flex-shrink-0 text-cyan-600" aria-hidden />
               <div className="flex-1 min-w-0">
                 <div className="text-xs font-extrabold text-blue-600 tracking-wider" style={{ direction: 'ltr' }}>{offr.orderId || offerIdRef.current}</div>
                 <div className="text-xs text-gray-500 mt-0.5">
                   {(order.originFlag || '') + ' ' + (order.originLabel || order.origin || '—') + ' ← ' + (order.destFlag || '') + ' ' + (order.destLabel || order.dest || '—')}
                 </div>
-                {order.detectedItem && <div className="text-xs text-gray-500 mt-0.5">📦 {order.detectedItem}</div>}
+                {order.detectedItem && <div className="text-xs text-gray-500 mt-0.5">{order.detectedItem}</div>}
               </div>
               <div className="text-right flex-shrink-0">
                 <div className="text-[10px] text-gray-500">مسافر</div>
@@ -789,7 +791,7 @@ export default function OwnerPaymentPage() {
 
             {/* Secure hold notice */}
             <div className="bg-green-50 border border-green-200 rounded-xl p-3.5 flex items-start gap-2.5">
-              <span className="text-xl flex-shrink-0 mt-0.5">🔒</span>
+              <Lock className="w-5 h-5 flex-shrink-0 mt-0.5 text-gray-500" aria-hidden />
               <div className="text-xs text-gray-600 leading-relaxed">
                 مبلغ پرداختی در <strong className="text-green-700">پرداخت امن چاپار</strong> نگه‌داری می‌شود.
                 پس از تأیید تحویل توسط گیرنده و <strong className="text-green-700">تأیید ادمین چاپار</strong>، هزینه حمل به مسافر منتقل می‌شود.
@@ -823,12 +825,12 @@ export default function OwnerPaymentPage() {
               <div className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">{t.opayMethodLabel}</div>
               <div className="grid grid-cols-3 gap-2">
                 {[
-                  { key: 'card',    icon: '💳', label: 'کارت بانکی' },
-                  { key: 'toman',   icon: '🏦', label: 'واریز تومانی' },
+                  { key: 'card',    Icon: CreditCard, label: 'کارت بانکی' },
+                  { key: 'toman',   Icon: Landmark,   label: 'واریز تومانی' },
                   { key: 'usdt',    icon: '₮',  label: 'USDT' },
-                  { key: 'paypal',  icon: '🅿️', label: 'PayPal' },
-                  { key: 'polygon', icon: '⬡',  label: 'USDC Polygon' },
-                  { key: 'tron',    icon: '🔴', label: 'USDT Tron' },
+                  { key: 'paypal',  Icon: Landmark,   label: 'PayPal' },
+                  { key: 'polygon', Icon: Hexagon, label: 'USDC Polygon' },
+                  { key: 'tron',    Icon: Coins,      label: 'USDT Tron' },
                 ].map(m => (
                   <button
                     key={m.key}
@@ -837,7 +839,7 @@ export default function OwnerPaymentPage() {
                       method === m.key ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
                     }`}
                   >
-                    <span className="text-xl">{m.icon}</span>
+                    <m.Icon className="w-5 h-5 flex-shrink-0" aria-hidden />
                     <span className="text-[10px] font-bold text-center leading-tight">{m.label}</span>
                   </button>
                 ))}
@@ -848,7 +850,7 @@ export default function OwnerPaymentPage() {
                     method === 'wallet' ? 'border-blue-500 bg-blue-50' : 'border-gray-200 bg-white hover:border-gray-300'
                   } ${walletDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
                 >
-                  <span className="text-xl">👛</span>
+                  <Wallet className="w-5 h-5" aria-hidden />
                   <div className="flex-1 text-right">
                     <div className="text-sm font-bold text-gray-900">کیف پول چاپار</div>
                     <div className="text-xs text-gray-500">{walletBal}</div>
@@ -864,7 +866,7 @@ export default function OwnerPaymentPage() {
               <div id="ownerCardEl" className="bg-white border border-gray-300 rounded-xl p-3.5" style={{ direction: 'ltr' }} />
               {simMode && (
                 <div className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-2.5 leading-relaxed">
-                  ⚠️ حالت شبیه‌سازی — Stripe تنظیم نشده. برای پرداخت واقعی، <code className="bg-black/10 px-1 rounded">STRIPE_SECRET_KEY</code> را در <code className="bg-black/10 px-1 rounded">payment/.env</code> تنظیم کنید.
+                  حالت شبیه‌سازی — Stripe تنظیم نشده. برای پرداخت واقعی، <code className="bg-black/10 px-1 rounded">STRIPE_SECRET_KEY</code> را در <code className="bg-black/10 px-1 rounded">payment/.env</code> تنظیم کنید.
                 </div>
               )}
               {/* stripeLoaded is read to suppress unused warning */}
@@ -874,11 +876,11 @@ export default function OwnerPaymentPage() {
             {/* Polygon notice */}
             {method === 'polygon' && (
               <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-4 text-sm text-gray-600">
-                <div className="font-bold text-indigo-700 mb-2">⬡ اسکرو هوشمند USDC — Polygon</div>
+                <div className="font-bold text-indigo-700 mb-2">اسکرو هوشمند USDC — Polygon</div>
                 <div className="text-xs leading-relaxed mb-3">مبلغ در قرارداد هوشمند چاپار روی شبکه <strong className="text-indigo-700">Polygon</strong> قفل می‌شود.</div>
                 {polyStep === 'connect' ? (
                   <button onClick={connectPolygonWallet} className="w-full h-11 rounded-xl text-sm font-bold text-white flex items-center justify-center gap-2" style={{ background: 'linear-gradient(135deg,#818cf8,#6366f1)' }}>
-                    🦊 اتصال MetaMask / کیف پول Web3
+                    اتصال MetaMask / کیف پول Web3
                   </button>
                 ) : (
                   <div className="bg-green-50 border border-green-200 rounded-lg p-2.5">
@@ -893,13 +895,13 @@ export default function OwnerPaymentPage() {
             {/* Tron notice */}
             {method === 'tron' && (
               <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-gray-600">
-                <div className="font-bold text-red-600 mb-2">🔴 USDT TRC-20 — Tron (Trust Wallet)</div>
+                <div className="font-bold text-red-600 mb-2">USDT TRC-20 — Tron (Trust Wallet)</div>
                 <div className="text-xs leading-relaxed mb-3">مبلغ در کیف پول امن چاپار روی شبکه <strong className="text-red-600">Tron</strong> نگه‌داری می‌شود.</div>
                 {tronStep === 'detect' ? (
                   <div>
                     <div className="text-xs text-gray-500 bg-amber-50 border border-amber-200 rounded-lg p-2 mb-2">{tronDetectMsg}</div>
                     <button onClick={connectTronWallet} className="w-full h-11 rounded-xl text-sm font-bold text-white" style={{ background: 'linear-gradient(135deg,#ef4444,#dc2626)' }}>
-                      🔴 اتصال Trust Wallet
+                      اتصال Trust Wallet
                     </button>
                   </div>
                 ) : (
@@ -915,7 +917,7 @@ export default function OwnerPaymentPage() {
             {/* Toman/USDT/PayPal/Wallet notices */}
             {method === 'toman' && (
               <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-xs text-gray-600 leading-relaxed">
-                <div className="font-bold text-amber-700 mb-1.5">🏦 واریز تومانی</div>
+                <div className="font-bold text-amber-700 mb-1.5">واریز تومانی</div>
                 لطفاً مبلغ <strong>{Math.round(totalUSD * rate).toLocaleString('fa-IR')}</strong> تومان را به شماره کارت زیر واریز کنید:<br />
                 <code className="text-cyan-700 bg-cyan-50 px-1 rounded text-[11px]">6037-9975-1234-5678 — علی چاپاری</code><br />
                 پس از واریز، شماره پیگیری را از طریق پشتیبانی ارسال کنید. تأیید توسط ادمین انجام می‌شود.
@@ -931,13 +933,13 @@ export default function OwnerPaymentPage() {
             )}
             {method === 'paypal' && (
               <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-xs text-gray-600">
-                <div className="font-bold text-amber-700 mb-1.5">🅿️ پرداخت PayPal</div>
+                <div className="font-bold text-amber-700 mb-1.5">پرداخت PayPal</div>
                 PayPal در این مرحله فعال نیست. لطفاً از روش کارت بانکی یا تومان استفاده کنید.
               </div>
             )}
             {method === 'wallet' && !walletDisabled && (
               <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-xs text-gray-600">
-                <div className="font-bold text-blue-700 mb-1.5">👛 کیف پول چاپار</div>
+                <div className="font-bold text-blue-700 mb-1.5">کیف پول چاپار</div>
                 مبلغ <strong>{Math.round(totalUSD * rate).toLocaleString('fa-IR')}</strong> تومان از موجودی کیف پول شما کسر خواهد شد.
               </div>
             )}
@@ -950,7 +952,7 @@ export default function OwnerPaymentPage() {
               onClick={() => gate(doPayment)}
               className="w-full h-13 py-4 rounded-xl bg-gradient-to-r from-blue-500 to-blue-700 text-white font-extrabold text-sm shadow-lg hover:opacity-90 transition-all"
             >
-              🔒 پرداخت و رزرو مسافر ←
+              پرداخت و رزرو مسافر ←
             </button>
           </div>
         )}
@@ -959,19 +961,19 @@ export default function OwnerPaymentPage() {
         {state === 'success' && (
           <div className="space-y-4">
             <div className="text-center py-6">
-              <div className="text-6xl mb-3 animate-bounce" style={{ animationDuration: '0.4s', animationIterationCount: 1 }}>✅</div>
+              <div className="text-6xl mb-3 animate-bounce" style={{ animationDuration: '0.4s', animationIterationCount: 1 }}><CheckCircle2 className="w-14 h-14 mx-auto text-green-500" aria-hidden /></div>
               <div className="text-2xl font-extrabold text-gray-900 mb-2">{t.opaySuccessTitle}</div>
               <div className="text-sm text-gray-500 leading-relaxed">{t.opaySuccessDesc}</div>
             </div>
 
             {/* TXN ID */}
             <button
-              onClick={() => { copyText(txnId); showToast('📋 شناسه تراکنش کپی شد'); }}
+              onClick={() => { copyText(txnId); showToast('شناسه تراکنش کپی شد'); }}
               className="w-full text-right bg-blue-50 border border-blue-200 rounded-xl p-4 hover:bg-blue-100 transition-colors"
             >
               <div className="text-[10px] text-gray-500 font-bold uppercase tracking-wide mb-1">شناسه تراکنش</div>
               <div className="text-base font-extrabold text-blue-700 font-mono tracking-wider" style={{ direction: 'ltr' }}>{txnId}</div>
-              <div className="text-[10px] text-gray-500 mt-1">📋 برای کپی کلیک کنید</div>
+              <div className="text-[10px] text-gray-500 mt-1">برای کپی کلیک کنید</div>
             </button>
 
             {/* Amount locked */}
@@ -997,7 +999,7 @@ export default function OwnerPaymentPage() {
 
             {/* Actions */}
             <button onClick={sendDepositLink} className="w-full flex items-center justify-center gap-2 h-12 rounded-xl bg-green-50 border border-green-300 text-green-700 font-bold text-sm hover:bg-green-100 transition-colors">
-              📩 ارسال لینک ودیعه به مسافر
+              ارسال لینک ودیعه به مسافر
             </button>
             <a href={txnId ? '/track?id=' + txnId + '&role=owner' : '/track?id=' + (offr?.orderId || '')}
               className="flex items-center justify-center gap-2 h-12 rounded-xl bg-gradient-to-r from-blue-500 to-blue-700 text-white font-bold text-sm hover:opacity-90 transition-all">

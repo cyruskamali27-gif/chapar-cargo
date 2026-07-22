@@ -4,6 +4,8 @@
  * URL params: ?id= (orderId, optional)
  */
 import { useState, useEffect } from 'react';
+import { HeartCrack, HelpCircle, RefreshCw, Siren, CreditCard, PenLine, Camera, IdCard,
+         Plane, Package, AlertTriangle, CheckCircle2, Clock, Search, Timer, Bot } from 'lucide-react';
 import { Store, genId } from '../lib/store';
 import { useLang } from '../lib/LangContext';
 import type { translations } from '../app/i18n';
@@ -52,20 +54,20 @@ export default function DisputePage() {
     traveler: t.dispPartyTraveler, sender: t.dispPartySender, unknown: t.dispPartyUnknown, system: t.dispPartySystem,
   };
   const DTYPE_CARDS = [
-    { key: 'damage',   icon: '💔', label: t.dispDamageLabel },
-    { key: 'lost',     icon: '❓', label: t.dispLostLabel },
-    { key: 'mismatch', icon: '🔄', label: t.dispMismatchLabel },
-    { key: 'fraud',    icon: '🚨', label: t.dispFraudLabel },
-    { key: 'payment',  icon: '💳', label: t.dispPaymentLabel },
-    { key: 'other',    icon: '📝', label: t.dispOtherLabel },
+    { key: 'damage',   Icon: HeartCrack,   label: t.dispDamageLabel },
+    { key: 'lost',     Icon: HelpCircle,   label: t.dispLostLabel },
+    { key: 'mismatch', Icon: RefreshCw,    label: t.dispMismatchLabel },
+    { key: 'fraud',    Icon: Siren,        label: t.dispFraudLabel },
+    { key: 'payment',  Icon: CreditCard,   label: t.dispPaymentLabel },
+    { key: 'other',    Icon: PenLine,      label: t.dispOtherLabel },
   ];
   const TIMELINE = [
-    { icon: '📷', status: 'pass', title: t.dispTl1Title, desc: t.dispTl1Desc, time: t.dispTl1Time },
-    { icon: '🪪', status: 'pass', title: t.dispTl2Title, desc: t.dispTl2Desc, time: t.dispTl2Time },
-    { icon: '💳', status: 'pass', title: t.dispTl3Title, desc: t.dispTl3Desc, time: t.dispTl3Time },
-    { icon: '✈️', status: 'pass', title: t.dispTl4Title, desc: t.dispTl4Desc, time: t.dispTl4Time },
-    { icon: '📦', status: 'pend', title: t.dispTl5Title, desc: t.dispTl5Desc, time: t.dispTl5Time },
-    { icon: '⚠️', status: 'warn', title: t.dispTl6Title, desc: t.dispTl6Desc, time: t.dispTl6Time },
+    { Icon: Camera,        status: 'pass', title: t.dispTl1Title, desc: t.dispTl1Desc, time: t.dispTl1Time },
+    { Icon: IdCard,        status: 'pass', title: t.dispTl2Title, desc: t.dispTl2Desc, time: t.dispTl2Time },
+    { Icon: CreditCard,    status: 'pass', title: t.dispTl3Title, desc: t.dispTl3Desc, time: t.dispTl3Time },
+    { Icon: Plane,         status: 'pass', title: t.dispTl4Title, desc: t.dispTl4Desc, time: t.dispTl4Time },
+    { Icon: Package,       status: 'pend', title: t.dispTl5Title, desc: t.dispTl5Desc, time: t.dispTl5Time },
+    { Icon: AlertTriangle, status: 'warn', title: t.dispTl6Title, desc: t.dispTl6Desc, time: t.dispTl6Time },
   ];
   const SCAN_STEPS = [t.dispScan1, t.dispScan2, t.dispScan3, t.dispScan4, t.dispScan5];
 
@@ -155,7 +157,7 @@ export default function DisputePage() {
 
         {/* AI monitoring banner */}
         <div className="flex items-center gap-3 bg-blue-50 border border-blue-100 rounded-2xl px-4 py-3 mb-5">
-          <div className="w-11 h-11 rounded-full bg-blue-100 border-2 border-blue-300 flex items-center justify-center text-xl shrink-0" style={{ animation: 'pulse 1.8s ease infinite' }}>🤖</div>
+          <div className="w-11 h-11 rounded-full bg-blue-100 border-2 border-blue-300 flex items-center justify-center shrink-0" style={{ animation: 'pulse 1.8s ease infinite' }}><Bot className="w-5 h-5 text-blue-600" aria-hidden /></div>
           <div>
             <div className="text-sm font-bold text-gray-900">{t.dispAiBanner}</div>
             <div className="text-xs text-gray-500 mt-0.5">{t.dispAiBannerDesc}</div>
@@ -165,7 +167,7 @@ export default function DisputePage() {
         {/* Order chip */}
         {order ? (
           <div className="flex items-center gap-3 bg-blue-50 border border-blue-100 rounded-2xl px-4 py-3 mb-5">
-            <span className="text-2xl">📦</span>
+            <Package className="w-6 h-6 text-gray-500" aria-hidden />
             <div className="flex-1">
               <div className="text-sm font-bold text-blue-600 tracking-wider">{orderId}</div>
               <div className="text-xs text-gray-500">{(order.originLabel || order.origin || '—') + ' ← ' + (order.destLabel || order.dest || '—')}</div>
@@ -194,7 +196,7 @@ export default function DisputePage() {
               {idx < TIMELINE.length - 1 && (
                 <div className="absolute right-[17px] top-9 bottom-0 w-0.5 bg-gray-100" />
               )}
-              <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm shrink-0 z-10 ${TL_STYLE[item.status]?.dot}`}>{item.icon}</div>
+              <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm shrink-0 z-10 ${TL_STYLE[item.status]?.dot}`}><item.Icon className="w-4 h-4" aria-hidden /></div>
               <div className="flex-1 pt-1">
                 <div className={`text-sm font-bold mb-0.5 ${TL_STYLE[item.status]?.title}`}>{item.title}</div>
                 <div className="text-xs text-gray-500 leading-relaxed">{item.desc}</div>
@@ -217,7 +219,7 @@ export default function DisputePage() {
                             ? 'border-red-300 bg-red-50'
                             : 'border-gray-100 bg-white hover:bg-gray-50'
                         }`}>
-                  <span className="text-xl shrink-0">{c.icon}</span>
+                  <c.Icon className="w-5 h-5 shrink-0" aria-hidden />
                   <span className={`text-xs font-bold ${dtype === c.key ? 'text-red-600' : 'text-gray-700'}`}>{c.label}</span>
                 </button>
               ))}
@@ -250,7 +252,7 @@ export default function DisputePage() {
             <div className="mb-5 space-y-2">
               {SCAN_STEPS.map((step, i) => (
                 <div key={i} className={`flex items-center gap-3 px-4 py-3 bg-gray-50 rounded-xl text-sm transition-all duration-300 ${scanVisible[i] ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}`}>
-                  <span>{scanVisible[i] ? '✅' : '⏳'}</span>
+                  <span>{scanVisible[i] ? <CheckCircle2 className="w-4 h-4 text-green-600" aria-hidden /> : <Clock className="w-4 h-4 text-gray-400" aria-hidden />}</span>
                   <span className="text-gray-700">{step}</span>
                 </div>
               ))}
@@ -260,7 +262,7 @@ export default function DisputePage() {
             {phase === 'decision' && (
               <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
                 <div className="flex items-center gap-3 mb-5">
-                  <span className="text-3xl">🔎</span>
+                  <Search className="w-8 h-8 text-gray-400" aria-hidden />
                   <div>
                     <div className="text-sm font-bold text-gray-900 mb-1">{t.dispResultTitle}</div>
                     <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${
@@ -275,7 +277,7 @@ export default function DisputePage() {
 
                 <div className="text-xs font-bold text-gray-500 mb-2">{t.dispLikelyParty}</div>
                 <div className="flex items-center gap-2 text-sm font-bold text-gray-900 bg-gray-50 rounded-xl px-4 py-3 mb-4">
-                  <span>{info.partyKey === 'traveler' ? '✈️' : info.partyKey === 'sender' ? '📦' : '❓'}</span>
+                  <span>{info.partyKey === 'traveler' ? <Plane className="w-4 h-4" aria-hidden /> : info.partyKey === 'sender' ? <Package className="w-4 h-4" aria-hidden /> : <HelpCircle className="w-4 h-4" aria-hidden />}</span>
                   {partyLabel[info.partyKey]}
                 </div>
 
@@ -293,7 +295,7 @@ export default function DisputePage() {
                 <div className="bg-blue-50 border border-blue-100 rounded-xl px-4 py-3 text-sm text-gray-700 leading-relaxed mb-4">{info.action}</div>
 
                 <div className="bg-amber-50 border border-amber-100 rounded-xl px-4 py-3 text-xs text-gray-600 leading-relaxed mb-4">
-                  ⏱ {t.disp48h}{' '}
+                  <Timer className="w-4 h-4 inline-block align-middle me-1" aria-hidden />{t.disp48h}{' '}
                   {t.dispCaseNumber} <strong className="text-blue-600 tracking-wide">{ticket}</strong>
                 </div>
 

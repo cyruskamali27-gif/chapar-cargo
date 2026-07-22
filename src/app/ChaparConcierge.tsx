@@ -873,17 +873,17 @@ export default function ChaparConcierge({ language = "fa", userName = "", userId
               <div className="grid grid-cols-1 gap-3">
                 <button onClick={() => { setPriority("fast"); setStage("publish"); }}
                   className="rounded-2xl border border-white/10 bg-white/[0.04] p-4 text-right hover:bg-white/[0.08]">
-                  <div className="text-sm font-bold text-white">سریع می‌خواهم ⚡</div>
+                  <div className="text-sm font-bold text-white">سریع می‌خواهم</div>
                   <div className="mt-1 text-xs text-white/50">از کشورهایی که مسافر فعال دارند</div>
                 </button>
                 <button onClick={() => { setPriority("cheapest"); setStage("cheapest"); if (!compare.loading && !compare.data) runCompare(); }}
                   className="rounded-2xl border border-white/10 bg-white/[0.04] p-4 text-right hover:bg-white/[0.08]">
-                  <div className="text-sm font-bold text-white">ارزان‌ترین 💰</div>
+                  <div className="text-sm font-bold text-white">ارزان‌ترین</div>
                   <div className="mt-1 text-xs text-white/50">قیمت را در ۵ کشور مقایسه می‌کنیم و خودتان انتخاب می‌کنید</div>
                 </button>
                 <button onClick={() => { setPriority("any"); setStage("publish"); }}
                   className="rounded-2xl border border-white/10 bg-white/[0.04] p-4 text-right hover:bg-white/[0.08]">
-                  <div className="text-sm font-bold text-white">فرقی نمی‌کند 🌍</div>
+                  <div className="text-sm font-bold text-white">فرقی نمی‌کند</div>
                   <div className="mt-1 text-xs text-white/50">ارزان‌ترین مسیر، بر اساس پیشنهاد مسافرها</div>
                 </button>
               </div>
@@ -963,7 +963,7 @@ export default function ChaparConcierge({ language = "fa", userName = "", userId
                     {ranked.length > 0 && (
                       <div className="space-y-2">
                         {ranked.map((r, i) => {
-                          const m = MARKET_META[r.country] || { flag: "🏳️", name: r.country };
+                          const m = MARKET_META[r.country] || { flag: "", name: r.country };
                           return (
                             <button key={r.country} onClick={() => pickCountry(r)}
                               className={"flex w-full items-center gap-3 rounded-2xl border p-3 text-right transition-colors " +
@@ -1002,7 +1002,7 @@ export default function ChaparConcierge({ language = "fa", userName = "", userId
                     {unavailable.length > 0 && (
                       <div className="mt-2 space-y-2">
                         {unavailable.map((u) => {
-                          const m = MARKET_META[u.country] || { flag: "🏳️", name: u.country };
+                          const m = MARKET_META[u.country] || { flag: "", name: u.country };
                           return (
                             <div key={u.country}
                               className={"flex items-center gap-3 rounded-2xl border p-3 " +
@@ -1037,7 +1037,7 @@ export default function ChaparConcierge({ language = "fa", userName = "", userId
                     {travelerOnly.length > 0 && (
                       <div className="mt-2 space-y-2">
                         {travelerOnly.map((c) => {
-                          const m = MARKET_META[c.country] || { flag: "🏳️", name: c.country };
+                          const m = MARKET_META[c.country] || { flag: "", name: c.country };
                           return (
                             <button key={c.country}
                               onClick={() => pickCountry({ country: c.country, currency: null, priceLocal: null, priceUSD: null, shop: null, title: null, link: null })}
@@ -1092,7 +1092,7 @@ export default function ChaparConcierge({ language = "fa", userName = "", userId
               <div className="mb-4 rounded-2xl border border-white/10 bg-white/[0.04] p-3 text-sm">
                 <div className="font-medium text-white">{orderProduct?.title}</div>
                 {variant && <div className="mt-1 text-xs text-white/50">{[variant.color, variant.size].filter(Boolean).join(" · ")}</div>}
-                <div className="mt-1 text-xs text-white/50">{priority === "fast" ? "اولویت: سریع ⚡" : priority === "cheapest" ? "اولویت: ارزان‌ترین 💰" : "اولویت: فرقی نمی‌کند 🌍"}</div>
+                <div className="mt-1 text-xs text-white/50">{priority === "fast" ? "اولویت: سریع" : priority === "cheapest" ? "اولویت: ارزان‌ترین" : "اولویت: فرقی نمی‌کند"}</div>
                 {quote && (
                   <div className="mt-2 flex items-center gap-2 rounded-xl border border-emerald-400/20 bg-emerald-400/[0.07] px-2.5 py-2 text-xs">
                     <span>{MARKET_META[quote.country]?.flag}</span>

@@ -1,4 +1,5 @@
-import { Shield, MapPin, Scan, Globe, Users, TrendingUp, CheckCircle, Package, ArrowRight, ChevronDown, Star, Lock, Zap, Clock, CreditCard, Award, BadgeCheck, Sparkles, Activity, Plane, DollarSign, Eye, FileCheck, Building2, Verified, Trophy, Target, BarChart3, Rocket, ArrowLeft, Home, AlertCircle } from 'lucide-react';
+import { Shield, MapPin, Scan, Globe, Users, TrendingUp, CheckCircle, Package, ArrowRight, ChevronDown, Star, Lock, Zap, Clock, CreditCard, Award, BadgeCheck, Sparkles, Activity, Plane, DollarSign, Eye, FileCheck, Building2, Verified, Trophy, Target, BarChart3, Rocket, ArrowLeft, Home, AlertCircle, CalendarDays, Phone, Banknote, ShoppingBag, type LucideIcon } from 'lucide-react';
+import { Stars } from './flowIcons';
 import CargoScanPage from './CargoScanPage';
 import type { AngleEntry } from './CargoScanPage';
 // CMD-25: old TravelerPage registration RETIRED — replaced by TravelerRegisterShell.
@@ -416,7 +417,7 @@ function TravelerAcceptancePreview({ securityLevel }: { securityLevel: SecurityL
 // ONE card implementation used by BOTH the travelers tab and the buyers tab.
 // The two tabs differ ONLY in the text/content passed in via props — the card
 // shell, spacing, borders, hover, progress bar and CTA are byte-for-byte identical.
-type MktCardMeta = { icon: string; text: React.ReactNode; ltr?: boolean };
+type MktCardMeta = { Icon: LucideIcon; text: React.ReactNode; ltr?: boolean };
 function MarketplaceListingCard({
   title, id, meta, barLabel, barValue, barColor = '#f59e0b', barPct,
   note, extra, buttonLabel, onButtonClick,
@@ -443,7 +444,7 @@ function MarketplaceListingCard({
         <div className="flex flex-wrap gap-4 mb-3">
           {meta.map((m, i) => (
             <div key={i} className="flex items-center gap-1.5 text-xs text-gray-500">
-              <span>{m.icon}</span><span style={m.ltr ? { direction: 'ltr' } : undefined}>{m.text}</span>
+              <m.Icon className="w-3.5 h-3.5 flex-shrink-0 text-gray-400" aria-hidden /><span style={m.ltr ? { direction: 'ltr' } : undefined}>{m.text}</span>
             </div>
           ))}
         </div>
@@ -688,11 +689,11 @@ function MarketplacePage({ onBack, onHome, t, onBook, myOrderId, onClearMyOrder,
               <div className="flex flex-wrap gap-4 mb-3">
                 {myOrder?.country && (
                   <div className="flex items-center gap-1.5 text-xs text-gray-500">
-                    <span>🌍</span><span>{myOrder.country}</span>
+                    <Globe className="w-3.5 h-3.5" aria-hidden /><span>{myOrder.country}</span>
                   </div>
                 )}
                 <div className="flex items-center gap-1.5 text-xs text-gray-500">
-                  <span>{myOrder?.priority === 'fast' ? '⚡' : myOrder?.priority === 'cheapest' ? '💰' : '🌐'}</span>
+                  {myOrder?.priority === 'fast' ? <Zap className="w-3.5 h-3.5" aria-hidden /> : myOrder?.priority === 'cheapest' ? <Banknote className="w-3.5 h-3.5" aria-hidden /> : <Globe className="w-3.5 h-3.5" aria-hidden />}
                   <span>اولویت {myOrder?.priority === 'fast' ? 'سریع' : myOrder?.priority === 'cheapest' ? 'ارزان‌ترین' : 'عادی'}</span>
                 </div>
               </div>
@@ -702,7 +703,7 @@ function MarketplacePage({ onBack, onHome, t, onBook, myOrderId, onClearMyOrder,
               {myOrder?.priceQuote?.priceUSD && (
                 <div className="mb-3 flex items-center gap-2 rounded-xl border border-emerald-100 bg-emerald-50/60 px-3 py-2">
                   <span className="text-base leading-none">
-                    {{ AE: '🇦🇪', CA: '🇨🇦', US: '🇺🇸', GB: '🇬🇧', TR: '🇹🇷', DE: '🇩🇪', FR: '🇫🇷' }[myOrder.priceQuote.country] || '🌍'}
+                    {{ AE: '🇦🇪', CA: '🇨🇦', US: '🇺🇸', GB: '🇬🇧', TR: '🇹🇷', DE: '🇩🇪', FR: '🇫🇷' }[myOrder.priceQuote.country] || <Globe className="w-4 h-4 inline-block text-emerald-700" aria-hidden />}
                   </span>
                   <div className="min-w-0 flex-1">
                     <div className="truncate text-xs font-bold text-emerald-800">
@@ -796,7 +797,7 @@ function MarketplacePage({ onBack, onHome, t, onBook, myOrderId, onClearMyOrder,
                 return (
                   <div className="mb-3 rounded-2xl border-2 border-cyan-300 bg-cyan-50 p-3.5">
                     <div className="text-sm font-extrabold text-cyan-900 mb-1">
-                      پیشنهاد مسافر {FLAG[from] || '🌍'}
+                      پیشنهاد مسافر {FLAG[from] || ''}
                     </div>
                     <div className="text-[11px] text-cyan-800 leading-relaxed mb-3">
                       مسافری از {NAME[from] || from} این سفارش را می‌آورد
@@ -897,7 +898,7 @@ function MarketplacePage({ onBack, onHome, t, onBook, myOrderId, onClearMyOrder,
                 <div className="flex gap-2">
                   <button onClick={e => { e.stopPropagation(); setEditMode(true); setIsHighlighted(false); }}
                     className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-sm font-bold rounded-xl hover:opacity-90 transition-opacity">
-                    ✏️ ویرایش آگهی
+                    ویرایش آگهی
                   </button>
                   {onClearMyOrder && (
                     <button onClick={e => { e.stopPropagation(); setMyOrder(null); onClearMyOrder(); }}
@@ -920,11 +921,11 @@ function MarketplacePage({ onBack, onHome, t, onBook, myOrderId, onClearMyOrder,
         <div className="flex gap-2 mb-5">
           <button onClick={() => setActiveTab('travelers')}
             className={`flex-1 py-2.5 rounded-xl text-sm font-bold border-2 transition-colors ${activeTab==='travelers' ? 'bg-cyan-700 border-cyan-700 text-white' : 'bg-white border-gray-200 text-gray-500 hover:border-cyan-200'}`}>
-            ✈️ سفرهای مسافران
+            سفرهای مسافران
           </button>
           <button onClick={() => setActiveTab('buyers')}
             className={`flex-1 py-2.5 rounded-xl text-sm font-bold border-2 transition-colors ${activeTab==='buyers' ? 'bg-emerald-500 border-emerald-500 text-white' : 'bg-white border-gray-200 text-gray-500 hover:border-emerald-200'}`}>
-            🛍️ درخواست‌های خرید{buyerOrders.length > 0 && <span className="mr-1.5 bg-emerald-100 text-emerald-700 text-[10px] font-bold px-1.5 py-0.5 rounded-full">{buyerOrders.length}</span>}
+            درخواست‌های خرید{buyerOrders.length > 0 && <span className="mr-1.5 bg-emerald-100 text-emerald-700 text-[10px] font-bold px-1.5 py-0.5 rounded-full">{buyerOrders.length}</span>}
           </button>
         </div>
 
@@ -959,7 +960,7 @@ function MarketplacePage({ onBack, onHome, t, onBook, myOrderId, onClearMyOrder,
         {/* Loading / error states */}
         {mktLoading && (
           <div className="text-center py-10 text-gray-500">
-            <div className="text-3xl mb-2 animate-pulse">✈️</div>
+            <Plane className="w-8 h-8 mx-auto mb-2 text-gray-300 animate-pulse" aria-hidden />
             <div className="text-sm">{t.mktLoading}</div>
           </div>
         )}
@@ -993,7 +994,7 @@ function MarketplacePage({ onBack, onHome, t, onBook, myOrderId, onClearMyOrder,
         {/* Cards */}
         {filtered.length === 0 ? (
           <div className="text-center py-16 text-gray-500">
-            <div className="text-5xl mb-3">✈️</div>
+            <Plane className="w-12 h-12 mx-auto mb-3 text-gray-300" aria-hidden />
             <div className="text-base font-bold text-gray-700 mb-1">{t.mktNoTraveler}</div>
             <p className="text-sm">{t.mktNoTravelerDesc}</p>
           </div>
@@ -1011,13 +1012,13 @@ function MarketplacePage({ onBack, onHome, t, onBook, myOrderId, onClearMyOrder,
                   key={trip.id}
                   title={<>
                     <span>{trip.originCity || trip.origin || '—'}</span>
-                    <span className="text-cyan-600 text-base">✈</span>
+                    <Plane className="w-3.5 h-3.5 text-cyan-600 flex-shrink-0" style={{ transform: 'rotate(-90deg)' }} aria-hidden />
                     <span>{trip.destCity || trip.destination || '—'}</span>
                   </>}
                   id={trip.id}
                   meta={[
-                    { icon: '📅', text: fmtDate(trip.date) },
-                    ...(trip.phone ? [{ icon: '📞', text: maskPhone(trip.phone), ltr: true }] : []),
+                    { Icon: CalendarDays, text: fmtDate(trip.date) },
+                    ...(trip.phone ? [{ Icon: Phone, text: maskPhone(trip.phone), ltr: true }] : []),
                   ]}
                   barLabel={t.mktCapacityLabel}
                   barValue={<>{trip.capacity} kg{meetsCap ? ' ✓' : ''}</>}
@@ -1026,7 +1027,7 @@ function MarketplacePage({ onBack, onHome, t, onBook, myOrderId, onClearMyOrder,
                   note={trip.description || undefined}
                   extra={avgRating > 0 ? (
                     <div className="text-sm text-amber-500 mb-3">
-                      {'⭐'.repeat(Math.round(avgRating))}{'☆'.repeat(5 - Math.round(avgRating))}
+                      <Stars value={avgRating} />
                       <span className="font-bold text-amber-600 mr-1">{avgRating.toFixed(1)}</span>
                       <span className="text-xs text-gray-500">({tripRatings.length} {t.mktReviewSuffix})</span>
                     </div>
@@ -1046,13 +1047,13 @@ function MarketplacePage({ onBack, onHome, t, onBook, myOrderId, onClearMyOrder,
           <div className="space-y-4">
             {buyerLoading && (
               <div className="text-center py-10 text-gray-400">
-                <div className="text-3xl mb-2 animate-pulse">🛍️</div>
+                <ShoppingBag className="w-8 h-8 mx-auto mb-2 text-gray-300 animate-pulse" aria-hidden />
                 <div className="text-sm">در حال بارگذاری...</div>
               </div>
             )}
             {!buyerLoading && buyerOrders.length === 0 && (
               <div className="text-center py-16 text-gray-400">
-                <div className="text-5xl mb-3">🛍️</div>
+                <ShoppingBag className="w-12 h-12 mx-auto mb-3 text-gray-300" aria-hidden />
                 <div className="text-base font-bold text-gray-700 mb-1">درخواستی ثبت نشده</div>
                 <p className="text-sm">اولین نفری باشید که از هوش مصنوعی درخواست خرید ثبت می‌کند</p>
               </div>
@@ -1077,8 +1078,8 @@ function MarketplacePage({ onBack, onHome, t, onBook, myOrderId, onClearMyOrder,
                 </>}
                 id={order.orderId}
                 meta={[
-                  ...(order.createdAt ? [{ icon: '📅', text: new Date(order.createdAt).toLocaleDateString('fa-IR') }] : []),
-                  ...(order.country ? [{ icon: '🌍', text: order.country }] : []),
+                  ...(order.createdAt ? [{ Icon: CalendarDays, text: new Date(order.createdAt).toLocaleDateString('fa-IR') }] : []),
+                  ...(order.country ? [{ Icon: Globe, text: order.country }] : []),
                 ]}
                 barLabel="قیمت تخمینی"
                 barValue={order.product?.priceUSD ? `$${order.product.priceUSD}` : 'در انتظار مسافر'}
@@ -1090,8 +1091,8 @@ function MarketplacePage({ onBack, onHome, t, onBook, myOrderId, onClearMyOrder,
                 // volunteering; on your own order it is managing the listing instead.
                 buttonLabel={
                   order.userId && session?.userId && order.userId === session.userId
-                    ? '⚙️ مدیریت آگهی من'
-                    : '🤝 پیشنهاد می‌دهم'
+                    ? 'مدیریت آگهی من'
+                    : 'پیشنهاد می‌دهم'
                 }
                 onButtonClick={() => onCardAction(order)}
               />
@@ -2267,7 +2268,7 @@ function NavTrackingPanel({ onClose }: { onClose: () => void }) {
                     result.escrowStatus === 'released' ? 'bg-green-500/10 text-green-400 border-green-500/30' :
                                                          'bg-gray-500/10 text-gray-400 border-gray-500/30'
                   }`}>
-                    🔒 {result.escrowStatus === 'locked' ? t.homeTrkEscrowLocked : result.escrowStatus === 'released' ? t.homeTrkEscrowReleased : t.homeTrkEscrowRefunded}
+                    <Lock className="w-3.5 h-3.5 inline-block align-middle me-1" aria-hidden />{result.escrowStatus === 'locked' ? t.homeTrkEscrowLocked : result.escrowStatus === 'released' ? t.homeTrkEscrowReleased : t.homeTrkEscrowRefunded}
                   </span>
                 )}
               </div>

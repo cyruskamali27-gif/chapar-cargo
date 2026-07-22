@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import { ArrowLeft, Home } from 'lucide-react';
+import { ArrowLeft, Home, CreditCard, Banknote, LockOpen, RotateCcw, Package, Landmark,
+         Lock, CircleDollarSign, Luggage, Inbox, CheckCircle2 } from 'lucide-react';
 import { Store, getLiveRate } from '../lib/store';
 import { useSession } from '../lib/SessionContext';
 import { useLang } from '../lib/LangContext';
@@ -10,13 +11,13 @@ interface Wallet { balance: number; held: number; transactions: Tx[]; }
 
 type TxDir = 'in' | 'out' | 'hold';
 const TX_META: Record<string, { dir: TxDir; icon: string; sign: string }> = {
-  charge:   { dir:'in',   icon:'💳', sign:'+' },
-  received: { dir:'in',   icon:'💰', sign:'+' },
-  release:  { dir:'in',   icon:'🔓', sign:'+' },
-  refund:   { dir:'in',   icon:'♻️', sign:'+' },
-  payment:  { dir:'out',  icon:'📦', sign:'-' },
-  withdraw: { dir:'out',  icon:'🏦', sign:'-' },
-  hold:     { dir:'hold', icon:'🔒', sign:'−' },
+  charge:   { dir:'in',   Icon:CreditCard, sign:'+' },
+  received: { dir:'in',   Icon:Banknote,   sign:'+' },
+  release:  { dir:'in',   Icon:LockOpen,   sign:'+' },
+  refund:   { dir:'in',   Icon:RotateCcw,  sign:'+' },
+  payment:  { dir:'out',  Icon:Package,    sign:'-' },
+  withdraw: { dir:'out',  Icon:Landmark,   sign:'-' },
+  hold:     { dir:'hold', Icon:Lock,       sign:'−' },
 };
 const DIR_COLORS: Record<TxDir, string> = {
   in:   'text-green-600 bg-green-50',
@@ -171,7 +172,7 @@ export default function WalletPage({ onHome }: Props) {
           <div className="text-sm opacity-70">≈ $ {(bal / rate).toFixed(2)}</div>
           {held > 0 && (
             <div className="mt-3 bg-white/10 rounded-xl px-4 py-2 text-xs font-bold">
-              🔒 {t.walHeld}: {fmtToman(held, t.walToman)}
+              <Lock className="w-3.5 h-3.5 inline-block align-middle me-1" aria-hidden />{t.walHeld}: {fmtToman(held, t.walToman)}
             </div>
           )}
           <div className="flex gap-3 mt-5">
@@ -219,7 +220,7 @@ export default function WalletPage({ onHome }: Props) {
                     <a key={i} href={`/track?id=${o.travelerDepositTxnId}&role=traveler`}
                       className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 border border-gray-200 no-underline text-inherit hover:bg-gray-100 transition-colors"
                       style={{ textDecoration:'none', color:'inherit' }}>
-                      <span className="text-xl">🧳</span>
+                      <Luggage className="w-5 h-5" aria-hidden />
                       <div className="flex-1"><div className="text-sm font-bold">{t.walCarry}: {desc}</div><div className="text-xs text-gray-500">{t.walTraveler}</div></div>
                       <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-green-100 text-green-700">{t.walInProgress}</span>
                     </a>
@@ -229,7 +230,7 @@ export default function WalletPage({ onHome }: Props) {
                     <a key={i} href={`/track?id=${o.ownerTxnId}&role=owner`}
                       className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 border border-gray-200 no-underline text-inherit hover:bg-gray-100 transition-colors"
                       style={{ textDecoration:'none', color:'inherit' }}>
-                      <span className="text-xl">📦</span>
+                      <Package className="w-5 h-5" aria-hidden />
                       <div className="flex-1"><div className="text-sm font-bold">{t.walSend}: {desc}</div><div className="text-xs text-gray-500">{o.travelerName || t.walTraveler}</div></div>
                       <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-green-100 text-green-700">{t.walInProgress}</span>
                     </a>
@@ -257,18 +258,18 @@ export default function WalletPage({ onHome }: Props) {
           </div>
           {filteredTxs.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
-              <div className="text-4xl mb-2">📭</div>
+              <Inbox className="w-10 h-10 mx-auto mb-2 text-gray-300" aria-hidden />
               <div className="text-sm">{txFilter === 'all' ? t.walNoTx : t.walNoTxFilter}</div>
             </div>
           ) : (
             <div className="space-y-2">
               {filteredTxs.map((tx, i) => {
-                const m = TX_META[tx.type] ?? { dir:'in' as TxDir, icon:'💲', sign:'+' };
+                const m = TX_META[tx.type] ?? { dir:'in' as TxDir, Icon:CircleDollarSign, sign:'+' };
                 const dc = DIR_COLORS[m.dir];
                 return (
                   <div key={i} className="flex items-center gap-3 py-2.5 border-b border-gray-100 last:border-0">
                     <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm flex-shrink-0 ${dc}`}>
-                      {m.icon}
+                      <m.Icon className="w-4 h-4" aria-hidden />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="text-sm font-bold text-gray-800 truncate">{tx.desc || '—'}</div>
@@ -316,11 +317,11 @@ export default function WalletPage({ onHome }: Props) {
                 <div className="mb-4">
                   <label className="ds-label">{t.walPayMethod}</label>
                   <div className="grid grid-cols-2 gap-2">
-                    {[['card','💳',t.walPayCardBank],['toman','🏦',t.walPayTomanDeposit],['usdt','₮','USDT'],['paypal','🅿️','PayPal']].map(([id, icon, lbl]) => (
+                    {[['card',CreditCard,t.walPayCardBank],['toman',Landmark,t.walPayTomanDeposit],['usdt',CircleDollarSign,'USDT'],['paypal',Landmark,'PayPal']].map(([id, Icon, lbl]) => (
                       <button key={id} onClick={() => setChargePay(id as string)}
                         className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 text-sm font-bold transition-colors
                           ${chargePay === id ? 'border-cyan-500 bg-cyan-50 text-cyan-700' : 'border-gray-200 text-gray-700 hover:border-gray-300'}`}>
-                        <span>{icon}</span><span>{lbl}</span>
+                        <Icon className="w-4 h-4 flex-shrink-0" aria-hidden /><span>{lbl}</span>
                       </button>
                     ))}
                   </div>
@@ -337,7 +338,7 @@ export default function WalletPage({ onHome }: Props) {
             )}
             {chargeState === 'success' && (
               <div className="text-center py-8">
-                <div className="text-5xl mb-3">✅</div>
+                <CheckCircle2 className="w-12 h-12 mx-auto mb-3 text-green-500" aria-hidden />
                 <div className="text-base font-extrabold text-gray-900 mb-1">
                   {t.walChargeSuccessAmt.replace('{n}', Number(parseInt(chargeAmt)).toLocaleString('fa-IR'))}
                 </div>
@@ -386,7 +387,7 @@ export default function WalletPage({ onHome }: Props) {
             )}
             {withdrawState === 'success' && (
               <div className="text-center py-8">
-                <div className="text-5xl mb-3">✅</div>
+                <CheckCircle2 className="w-12 h-12 mx-auto mb-3 text-green-500" aria-hidden />
                 <div className="text-base font-extrabold text-gray-900 mb-1">{t.walWithdrawSuccess}</div>
                 <div className="text-sm text-gray-500 mb-5">
                   {t.walWithdrawSuccessDesc.replace('{n}', Number(parseInt(withdrawAmt)).toLocaleString('fa-IR'))}

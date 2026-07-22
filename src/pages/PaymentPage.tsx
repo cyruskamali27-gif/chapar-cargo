@@ -8,7 +8,8 @@
  * No API calls — 100% localStorage simulation, same as payment.html.
  */
 import { useState, useEffect, useCallback } from 'react';
-import { ArrowLeft, Home } from 'lucide-react';
+import { ArrowLeft, Home, CreditCard, Landmark, Banknote, Wallet, CheckCircle2,
+         Smartphone, XCircle } from 'lucide-react';
 import { Store, genId, getOrder, saveOrder, clearOrder, getSession, getLiveRate } from '../lib/store';
 import { useLang } from '../lib/LangContext';
 import { useVerifyGate } from '../lib/useVerifyGate';
@@ -53,10 +54,10 @@ export default function PaymentPage() {
   };
 
   const METHODS = [
-    { method: 'card',   icon: '💳', label: t.payMethodCard   },
-    { method: 'toman',  icon: '🏦', label: t.payMethodWallet },
-    { method: 'usd',    icon: '💵', label: 'USD'             },
-    { method: 'paypal', icon: '🅿️',  label: 'PayPal'         },
+    { method: 'card',   Icon: CreditCard, label: t.payMethodCard   },
+    { method: 'toman',  Icon: Landmark,   label: t.payMethodWallet },
+    { method: 'usd',    Icon: Banknote,   label: 'USD'             },
+    { method: 'paypal', Icon: Landmark,   label: 'PayPal'         },
   ];
 
   const [viewState,   setViewState]   = useState<ViewState>('form');
@@ -229,7 +230,7 @@ export default function PaymentPage() {
                       ${payMethod === m.method
                         ? 'border-blue-500 bg-blue-50'
                         : 'border-gray-100 bg-white hover:border-gray-200'}`}>
-                    <span className="text-2xl">{m.icon}</span>
+                    <m.Icon className="w-6 h-6" aria-hidden />
                     <span className="text-xs font-bold text-gray-700">{m.label}</span>
                   </button>
                 ))}
@@ -242,7 +243,7 @@ export default function PaymentPage() {
                         ? 'border-blue-500 bg-blue-50'
                         : 'border-gray-100 bg-white hover:border-gray-200'}
                       ${!walletOk ? 'opacity-45 cursor-not-allowed' : ''}`}>
-                    <span className="text-2xl">👛</span>
+                    <Wallet className="w-6 h-6" aria-hidden />
                     <span className="text-xs font-bold text-gray-700">{t.payMethodWallet}</span>
                     <span className="text-[10px] font-bold text-green-600">{walletFmt}</span>
                   </button>
@@ -270,7 +271,7 @@ export default function PaymentPage() {
         {viewState === 'success' && (
           <>
             <div className="bg-white border border-gray-100 rounded-2xl p-8 text-center">
-              <div className="text-6xl mb-4">✅</div>
+              <CheckCircle2 className="w-14 h-14 mx-auto mb-4 text-green-500" aria-hidden />
               <div className="text-xl font-extrabold text-gray-900 mb-2">{t.paySuccessTitle}</div>
               <div className="text-sm text-gray-500 mb-6">{successName}</div>
 
@@ -299,7 +300,7 @@ export default function PaymentPage() {
 
               {/* Telegram bot */}
               <div className="bg-blue-50 border border-blue-100 rounded-xl px-4 py-3 text-sm text-gray-600 leading-relaxed text-right">
-                <span className="text-lg ml-1">📱</span>
+                <Smartphone className="w-5 h-5 ml-1" aria-hidden />
                 برای دریافت آپدیت‌های لحظه‌ای وضعیت کالا در تلگرام، به بات چاپار پیام دهید:<br />
                 <strong className="text-blue-700">@ChaparTrackBot</strong>
               </div>
@@ -308,7 +309,7 @@ export default function PaymentPage() {
             <div className="grid grid-cols-2 gap-3">
               <a href="/?page=my-orders"
                 className="flex items-center justify-center gap-1.5 h-12 rounded-xl bg-amber-50 border border-amber-200 text-amber-700 font-bold text-sm no-underline hover:bg-amber-100 transition-colors">
-                📄 مشاهده رسید
+                مشاهده رسید
               </a>
               <a href={'/track?id=' + trackId}
                 className="flex items-center justify-center gap-1.5 h-12 rounded-xl bg-blue-50 border border-blue-200 text-blue-700 font-bold text-sm no-underline hover:bg-blue-100 transition-colors">
@@ -317,7 +318,7 @@ export default function PaymentPage() {
             </div>
             <a href="/?page=my-orders"
               className="flex items-center justify-center h-11 rounded-xl bg-white border border-gray-200 text-gray-600 font-bold text-sm no-underline hover:bg-gray-50 transition-colors">
-              📋 سفارش‌های من
+              سفارش‌های من
             </a>
             <a href="/"
               className="flex items-center justify-center h-11 rounded-xl bg-gray-100 border border-gray-200 text-gray-500 font-bold text-sm no-underline hover:bg-gray-200 transition-colors">
@@ -329,7 +330,7 @@ export default function PaymentPage() {
         {/* ── Fail ── */}
         {viewState === 'fail' && (
           <div className="bg-white border border-gray-100 rounded-2xl p-8 text-center">
-            <div className="text-6xl mb-3">❌</div>
+            <XCircle className="w-14 h-14 mx-auto mb-3 text-red-500" aria-hidden />
             <div className="text-xl font-extrabold text-red-600 mb-2">پرداخت ناموفق</div>
             <div className="text-sm text-gray-500 mb-6 leading-relaxed">
               {failReason || t.payErrTimeout}
@@ -337,7 +338,7 @@ export default function PaymentPage() {
             <div className="grid grid-cols-2 gap-3">
               <button onClick={retryPayment}
                 className="h-11 rounded-xl bg-blue-600 text-white font-bold text-sm hover:opacity-90 transition-all">
-                🔄 تلاش مجدد
+                تلاش مجدد
               </button>
               <a href="/order"
                 className="flex items-center justify-center h-11 rounded-xl bg-gray-100 border border-gray-200 text-gray-600 font-bold text-sm no-underline hover:bg-gray-200 transition-colors">

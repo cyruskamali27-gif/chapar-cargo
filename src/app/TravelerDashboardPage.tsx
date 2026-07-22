@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { ArrowLeft, Home, Plane, Package as PackageIcon, Star, DollarSign, Globe, Target,
-         Compass, Inbox, ClipboardList, Camera, ShoppingBag, X } from 'lucide-react';
+         Compass, Inbox, ClipboardList, Camera, ShoppingBag, X, Globe, Clock } from 'lucide-react';
 import { CargoIcon, cargoIcon, RouteArrow, Meta, MetaIcons, Stars } from './flowIcons';
 import GuidedCapture from './GuidedCapture';
 import TravelerOfferSheet from './TravelerOfferSheet';
@@ -649,7 +649,7 @@ export default function TravelerDashboardPage({ onHome, onNewTrip, onNavigate }:
                 const q     = ord.priceQuote;
                 const cross = o.kind === 'cross_country';
                 const want  = o.buyerCountry ? MARKET_FA[o.buyerCountry] : null;
-                const mine  = MARKET_FA[o.fromCountry] || { flag: '🌍', name: o.fromCountry };
+                const mine  = MARKET_FA[o.fromCountry] || { flag: '', name: o.fromCountry };
                 const busy  = actingOffer === o.offerId;
                 return (
                   <div key={o.offerId} className={`bg-white border rounded-2xl p-4 shadow-sm ${cross ? 'border-emerald-200' : 'border-gray-100'}`}>
@@ -689,7 +689,7 @@ export default function TravelerDashboardPage({ onHome, onNewTrip, onNavigate }:
                     {/* The buyer's accepted quote — an ESTIMATE, never the final price. */}
                     {q && (
                       <div className="flex items-center gap-2 rounded-xl border border-gray-100 bg-white px-3 py-2 mb-2">
-                        <span className="text-base leading-none">{MARKET_FA[q.country]?.flag || '🌍'}</span>
+                        <span className="text-base leading-none">{MARKET_FA[q.country]?.flag || <Globe className="w-4 h-4 inline-block text-gray-400" aria-hidden />}</span>
                         <div className="min-w-0 flex-1">
                           <div className="text-xs font-bold text-gray-900">
                             ${q.priceUSD}
@@ -700,7 +700,7 @@ export default function TravelerDashboardPage({ onHome, onNewTrip, onNavigate }:
                       </div>
                     )}
 
-                    <div className="text-[11px] text-gray-500 mb-3">⏳ {expiryLabel(o.expiresAt)}</div>
+                    <div className="text-[11px] text-gray-500 mb-3 flex items-center gap-1"><Clock className="w-3 h-3" aria-hidden />{expiryLabel(o.expiresAt)}</div>
 
                     <div className="flex gap-2">
                       <button disabled={busy} onClick={() => respondOffer(o.offerId, 'accept')}
@@ -760,7 +760,7 @@ export default function TravelerDashboardPage({ onHome, onNewTrip, onNavigate }:
               <div className="space-y-3">
                 {sug.items.map((s: any) => {
                   const cross = s.kind === 'cross_country';
-                  const from  = MARKET_FA[s.fromCountry] || { flag: '🌍', name: s.fromCountry };
+                  const from  = MARKET_FA[s.fromCountry] || { flag: '', name: s.fromCountry };
                   return (
                     <div key={s.orderId} className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm">
                       <div className="flex items-start gap-3 mb-3">

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import { ArrowLeft, Home } from 'lucide-react';
+import { ArrowLeft, Home, Package, PackageOpen, PackageCheck, Plane, AlarmClock,
+         CheckCircle2, MessageSquare, Handshake, AlertTriangle, Compass, Bell } from 'lucide-react';
 import { Store } from '../lib/store';
 import { useLang } from '../lib/LangContext';
 import { useSession } from '../lib/SessionContext';
@@ -10,23 +11,23 @@ type T = typeof translations['en'];
 // ── Type metadata ─────────────────────────────────────────────────────────────
 // Legacy (localStorage) types + the P4/P4.5 server-feed event types.
 const TYPE_META: Record<string, { icon: string; cls: string; group: string }> = {
-  new_order:              { icon:'📦', cls:'ni-offer',    group:'offer'    },
-  offer_received:         { icon:'✈️', cls:'ni-offer',    group:'offer'    },
-  order_returned_to_pool: { icon:'📦', cls:'ni-offer',    group:'offer'    },
-  offer_expired:          { icon:'⏰', cls:'ni-rejected',  group:'offer'    },
-  offer_accepted:         { icon:'✅', cls:'ni-accepted',  group:'offer'    },
+  new_order:              { Icon:Package,      cls:'ni-offer',    group:'offer'    },
+  offer_received:         { Icon:Plane,        cls:'ni-offer',    group:'offer'    },
+  order_returned_to_pool: { Icon:PackageOpen,  cls:'ni-offer',    group:'offer'    },
+  offer_expired:          { Icon:AlarmClock,   cls:'ni-rejected',  group:'offer'    },
+  offer_accepted:         { Icon:CheckCircle2, cls:'ni-accepted',  group:'offer'    },
   offer_rejected:         { icon:'✕',  cls:'ni-rejected',  group:'offer'    },
-  traveler_accepted:      { icon:'✅', cls:'ni-accepted',  group:'offer'    },
-  counter_offer:          { icon:'💬', cls:'ni-counter',   group:'offer'    },
-  counter_offer_ready:    { icon:'💬', cls:'ni-counter',   group:'offer'    },
-  buyer_accepted:         { icon:'🤝', cls:'ni-accepted',  group:'offer'    },
-  delivery_confirmed:     { icon:'📦', cls:'ni-delivery',  group:'delivery' },
-  dispute_update:         { icon:'⚠️', cls:'ni-dispute',  group:'dispute'  },
+  traveler_accepted:      { Icon:CheckCircle2, cls:'ni-accepted',  group:'offer'    },
+  counter_offer:          { Icon:MessageSquare,cls:'ni-counter',   group:'offer'    },
+  counter_offer_ready:    { Icon:MessageSquare,cls:'ni-counter',   group:'offer'    },
+  buyer_accepted:         { Icon:Handshake,    cls:'ni-accepted',  group:'offer'    },
+  delivery_confirmed:     { Icon:PackageCheck, cls:'ni-delivery',  group:'delivery' },
+  dispute_update:         { Icon:AlertTriangle,cls:'ni-dispute',  group:'dispute'  },
   // S3 route digest. Grouped with 'offer' so it survives the Offer filter chip: a digest is a
   // batch of carry opportunities, and the only other groups are delivery and dispute, which it
   // is plainly neither of. Without an entry here it would render with no icon and vanish from
   // every filter except All/Unread.
-  route_digest:           { icon:'🧭', cls:'ni-offer',     group:'offer'    },
+  route_digest:           { Icon:Compass,      cls:'ni-offer',     group:'offer'    },
 };
 
 const GROUP_COLORS: Record<string, string> = {
@@ -234,21 +235,21 @@ export default function NotificationsPage({ onHome, onNavigate, onOpenOrder }: P
         {/* List */}
         {filtered.length === 0 ? (
           <div className="text-center py-16 text-gray-500">
-            <div className="text-5xl mb-3">🔔</div>
+            <Bell className="w-12 h-12 mx-auto mb-3 text-gray-300" aria-hidden />
             <div className="text-base font-bold text-gray-700 mb-1">{t.notifEmpty}</div>
             <div className="text-sm">{t.notifEmptyDesc}</div>
           </div>
         ) : (
           <div className="space-y-2">
             {filtered.map(n => {
-              const meta = TYPE_META[n.type] ?? { icon:'🔔', cls:'', group:'' };
+              const meta = TYPE_META[n.type] ?? { Icon:Bell, cls:'', group:'' };
               const gc   = GROUP_COLORS[meta.group] ?? 'bg-gray-50 text-gray-700';
               return (
                 <button key={n.id} onClick={() => openNotif(n)}
                   className={`w-full text-right flex items-start gap-3 p-4 rounded-xl border transition-all hover:shadow-sm
                     ${n.read ? 'bg-white border-gray-100 hover:border-gray-200' : 'bg-blue-50/60 border-blue-200 hover:border-blue-300'}`}>
                   <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-base flex-shrink-0 ${gc}`}>
-                    {meta.icon}
+                    <meta.Icon className="w-5 h-5" aria-hidden />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className={`text-sm font-bold mb-0.5 ${n.read ? 'text-gray-800' : 'text-gray-900'}`}>

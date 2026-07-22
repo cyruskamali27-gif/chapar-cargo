@@ -1,4 +1,4 @@
-import { ArrowLeft, Home } from 'lucide-react';
+import { ArrowLeft, Home, Inbox, Package } from 'lucide-react';
 import { Store } from '../lib/store';
 import { useLang } from '../lib/LangContext';
 
@@ -41,7 +41,7 @@ export default function ReceiptPage({ onBack, onHome, trackId }: Props) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center px-4" dir={isRTL ? 'rtl' : 'ltr'}>
         <div className="max-w-sm w-full text-center">
-          <div className="text-5xl mb-4">📭</div>
+          <Inbox className="w-12 h-12 mx-auto mb-4 text-gray-300" aria-hidden />
           <h2 className="text-lg font-extrabold text-gray-900 mb-2">{t.rcptNotFound}</h2>
           <p className="text-sm text-gray-500 mb-5">{t.rcptNotFoundDesc}</p>
           <div className="flex gap-3">
@@ -135,7 +135,7 @@ export default function ReceiptPage({ onBack, onHome, trackId }: Props) {
           {/* Card header */}
           <div className="bg-gradient-to-r from-cyan-600 to-blue-700 p-5 text-white">
             <div className="flex items-center gap-3 mb-3">
-              <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center text-xl">📦</div>
+              <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center"><Package className="w-5 h-5 text-white" aria-hidden /></div>
               <div>
                 <div className="text-xs font-bold opacity-70">{t.rcptTrackingCode}</div>
                 <div className="text-lg font-extrabold tracking-wider font-mono">{order.trackId}</div>

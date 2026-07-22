@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { ArrowLeft, Home } from 'lucide-react';
+import { ArrowLeft, Home, Mail, Phone, CheckCircle2 } from 'lucide-react';
 import { Store } from '../lib/store';
 import { useSession } from '../lib/SessionContext';
 import { useLang } from '../lib/LangContext';
@@ -105,7 +105,7 @@ export default function ProfilePage({ onHome, onOpenWallet, onOpenOrders }: Prop
       const allRatings = (Store.get<Array<{ tripId: string; score: number }>>('ratings') ?? []).filter(r => myTripIds.includes(r.tripId));
       if (allRatings.length) {
         const avg = allRatings.reduce((s, r) => s + r.score, 0) / allRatings.length;
-        ratingStr = avg.toFixed(1) + ' ⭐';
+        ratingStr = avg.toFixed(1);
       }
     }
 
@@ -243,8 +243,8 @@ export default function ProfilePage({ onHome, onOpenWallet, onOpenOrders }: Prop
                 <div className="flex-1 min-w-0">
                   <div className="text-lg font-extrabold text-gray-900">{displayName}</div>
                   <div className="text-xs text-gray-500 flex items-center gap-2 flex-wrap mt-0.5">
-                    {user?.email && <span>✉️ {user.email}</span>}
-                    {user?.phone && <span>📞 {user.phone}</span>}
+                    {user?.email && <span className="inline-flex items-center gap-1"><Mail className="w-3.5 h-3.5" aria-hidden />{user.email}</span>}
+                    {user?.phone && <span className="inline-flex items-center gap-1"><Phone className="w-3.5 h-3.5" aria-hidden />{user.phone}</span>}
                   </div>
                   <div className="text-[11px] text-gray-500 mt-0.5">{joinedDate}</div>
                 </div>
@@ -401,12 +401,12 @@ export default function ProfilePage({ onHome, onOpenWallet, onOpenOrders }: Prop
                   <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wide">{t.profVerification ?? 'Verification'}</h4>
                   <div className="flex items-center gap-2 text-sm">
                     <span className={user?.emailVerified ? 'text-green-600' : 'text-gray-500'}>
-                      {user?.emailVerified ? '✅' : '○'} {t.channelEmail}
+                      {user?.emailVerified ? <CheckCircle2 className="w-3.5 h-3.5 inline-block align-middle text-green-600" aria-hidden /> : '○'} {t.channelEmail}
                     </span>
                   </div>
                   <div className="flex items-center gap-2 text-sm">
                     <span className={user?.telegramLinked ? 'text-green-600' : 'text-gray-500'}>
-                      {user?.telegramLinked ? '✅' : '○'} {t.channelTelegram}
+                      {user?.telegramLinked ? <CheckCircle2 className="w-3.5 h-3.5 inline-block align-middle text-green-600" aria-hidden /> : '○'} {t.channelTelegram}
                     </span>
                   </div>
                 </div>

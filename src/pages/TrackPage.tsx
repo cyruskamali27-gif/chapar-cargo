@@ -1,4 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { ClipboardList, CreditCard, Plane, Truck, CheckCircle2, Check, Package, Gift,
+         Search, Clock, Timer, Smartphone, Star } from 'lucide-react';
+import { Stars } from '../app/flowIcons';
 import GoogleTrackingMap from '../components/GoogleTrackingMap';
 import { findDemoRoute, DEMO_ROUTES } from '../data/demoTrackingRoutes';
 import type { ShipmentRoute, RouteStatus } from '../types/tracking';
@@ -140,11 +143,11 @@ export default function TrackPage({ initialCode = '' }: TrackPageProps) {
     cancelled:  { label: t.trkStatusCancelled, cls: 'red'   },
   };
   const STEPS_DEF = [
-    { icon: '📋', label: t.trkStep1Label, note: t.trkStep1Note },
-    { icon: '💳', label: t.trkStep2Label, note: t.trkStep2Note },
-    { icon: '✈️', label: t.trkStep3Label, note: t.trkStep3Note },
-    { icon: '🚚', label: t.trkStep4Label, note: t.trkStep4Note },
-    { icon: '✅', label: t.trkStep5Label, note: t.trkStep5Note },
+    { Icon: ClipboardList, label: t.trkStep1Label, note: t.trkStep1Note },
+    { Icon: CreditCard,    label: t.trkStep2Label, note: t.trkStep2Note },
+    { Icon: Plane,         label: t.trkStep3Label, note: t.trkStep3Note },
+    { Icon: Truck,         label: t.trkStep4Label, note: t.trkStep4Note },
+    { Icon: CheckCircle2,  label: t.trkStep5Label, note: t.trkStep5Note },
   ];
 
   // Demo-map state (existing)
@@ -542,7 +545,7 @@ export default function TrackPage({ initialCode = '' }: TrackPageProps) {
   function renderNotFound() {
     return (
       <div className="p-6 text-center" dir={isRTL ? 'rtl' : 'ltr'}>
-        <div className="text-5xl mb-4">🔍</div>
+        <Search className="w-12 h-12 mx-auto mb-4 text-gray-500" aria-hidden />
         <div className="text-lg font-bold text-white mb-2">{t.trkNotFoundTitle}</div>
         <div className="text-sm text-gray-400 leading-relaxed mb-5">
           <strong className="text-white">{trackCode}</strong> {t.trkNotFoundDesc1}<br />
@@ -580,7 +583,7 @@ export default function TrackPage({ initialCode = '' }: TrackPageProps) {
             <div key={i} className="flex items-start gap-3.5">
               <div className="flex flex-col items-center flex-shrink-0 w-7">
                 <div className={`w-7 h-7 rounded-full border-2 flex items-center justify-center text-xs z-10 ${dotCls}`}>
-                  {state === 'done' ? '✓' : step.icon}
+                  {state === 'done' ? <Check className="w-4 h-4" aria-hidden /> : <step.Icon className="w-4 h-4" aria-hidden />}
                 </div>
                 {i < STEPS_DEF.length - 1 && (
                   <div className={`w-0.5 flex-1 min-h-4 mt-1 transition-colors ${state === 'done' ? 'bg-green-500/35' : 'bg-white/10'}`} />
@@ -632,9 +635,9 @@ export default function TrackPage({ initialCode = '' }: TrackPageProps) {
     if (s === 'pending') return null;
     const base = window.location.origin + window.location.pathname + '?id=' + (o.trackId || '');
     const links = [
-      { role: 'owner',    label: t.trkShareOwner,    icon: '📦' },
-      { role: 'traveler', label: t.trkShareTraveler,  icon: '✈️' },
-      { role: 'receiver', label: t.trkShareReceiver,  icon: '🎁' },
+      { role: 'owner',    label: t.trkShareOwner,    Icon: Package },
+      { role: 'traveler', label: t.trkShareTraveler,  Icon: Plane },
+      { role: 'receiver', label: t.trkShareReceiver,  Icon: Gift },
     ];
     return (
       <div className="bg-white/4 border border-white/8 rounded-xl p-3.5 mt-3">
@@ -647,7 +650,7 @@ export default function TrackPage({ initialCode = '' }: TrackPageProps) {
               onClick={() => copyLink(url)}
               className="w-full flex items-center gap-2.5 px-3 py-2 bg-white/4 border border-white/7 rounded-lg mb-1.5 last:mb-0 hover:bg-white/8 transition-all text-right"
             >
-              <span className="text-xs font-bold text-gray-300 min-w-16">{lnk.icon} {lnk.label}</span>
+              <span className="text-xs font-bold text-gray-300 min-w-16 inline-flex items-center gap-1"><lnk.Icon className="w-3.5 h-3.5" aria-hidden />{lnk.label}</span>
               <span className="flex-1 text-xs text-gray-600 truncate" style={{ direction: 'ltr', textAlign: 'left' }}>{url}</span>
               <span className="text-xs font-bold text-blue-400 flex-shrink-0">{t.trkShareCopy}</span>
             </button>
@@ -663,7 +666,7 @@ export default function TrackPage({ initialCode = '' }: TrackPageProps) {
     if (s === 'cancelled') return null;
     if (s === 'pending') return (
       <div className="flex items-center gap-3.5 bg-white/4 border border-white/9 rounded-xl p-4 mt-3">
-        <span className="text-2xl">🔍</span>
+        <Search className="w-6 h-6" aria-hidden />
         <div>
           <div className="text-sm font-bold text-white mb-0.5">{t.trkWaitingTitle}</div>
           <div className="text-xs text-gray-400">{t.trkWaitingDesc}</div>
@@ -678,7 +681,7 @@ export default function TrackPage({ initialCode = '' }: TrackPageProps) {
 
     if (!trip) return (
       <div className="flex items-center gap-3.5 bg-blue-500/7 border border-blue-500/18 rounded-xl p-4 mt-3">
-        <span className="text-2xl">✅</span>
+        <CheckCircle2 className="w-6 h-6" aria-hidden />
         <div>
           <div className="text-sm font-bold text-white mb-0.5">{t.trkConfirmedTitle}</div>
           <div className="text-xs text-gray-400">{t.trkConfirmedDesc}</div>
@@ -688,7 +691,7 @@ export default function TrackPage({ initialCode = '' }: TrackPageProps) {
 
     return (
       <div className="flex items-center gap-3.5 bg-blue-500/7 border border-blue-500/18 rounded-xl p-4 mt-3">
-        <span className="text-2xl">✈️</span>
+        <Plane className="w-6 h-6" aria-hidden />
         <div className="flex-1">
           <div className="text-sm font-bold text-white mb-0.5">{trip.userName || t.trkTravelerDefault}</div>
           <div className="text-xs text-gray-400">{t.trkVerifiedBadge} · {trip.originCity || trip.origin || ''} ← {trip.destCity || trip.destination || ''}</div>
@@ -712,7 +715,7 @@ export default function TrackPage({ initialCode = '' }: TrackPageProps) {
       return (
         <div className="bg-green-500/6 border border-green-500/20 rounded-xl p-4 mt-3 text-center">
           <div className="text-sm font-bold text-white mb-1">{t.trkRatingDone}</div>
-          <div className="text-2xl">{'⭐'.repeat(starRating)}</div>
+          <div className="flex justify-center"><Stars value={starRating} className="w-6 h-6" /></div>
         </div>
       );
     }
@@ -722,7 +725,7 @@ export default function TrackPage({ initialCode = '' }: TrackPageProps) {
         <div className="text-xs text-gray-400 mb-3">{t.trkRatingQ}</div>
         <div className="flex gap-2 flex-row-reverse justify-start mb-3">
           {[1, 2, 3, 4, 5].map(n => (
-            <button key={n} onClick={() => setStarRating(n)} className={`text-2xl transition-all ${n <= starRating ? 'opacity-100' : 'opacity-30 hover:opacity-70'}`}>⭐</button>
+            <button key={n} onClick={() => setStarRating(n)} className={`transition-all ${n <= starRating ? 'opacity-100' : 'opacity-30 hover:opacity-70'}`} aria-label={`${n}`}><Star className="w-6 h-6 text-amber-400" fill="currentColor" aria-hidden /></button>
           ))}
         </div>
         <button
@@ -797,7 +800,7 @@ export default function TrackPage({ initialCode = '' }: TrackPageProps) {
       return (
         <div className="mt-3 space-y-3">
           <div className="bg-green-500/8 border border-green-500/25 rounded-xl p-5 text-center">
-            <div className="text-4xl mb-3">✅</div>
+            <CheckCircle2 className="w-10 h-10 mx-auto mb-3 text-green-500" aria-hidden />
             <div className="text-base font-bold text-green-400 mb-1">{t.trkOtpOkTitle}</div>
             <div className="text-xs text-gray-400 leading-relaxed">
               {t.trkOtpOkDesc}
@@ -809,13 +812,13 @@ export default function TrackPage({ initialCode = '' }: TrackPageProps) {
               <div className="text-sm font-bold text-white mb-3">{t.trkRateTitle}</div>
               <div className="flex justify-center gap-3 mb-3">
                 {[1, 2, 3, 4, 5].map(n => (
-                  <button key={n} onClick={() => setStarRating(n)} className={`text-3xl transition-all ${n <= starRating ? 'opacity-100' : 'opacity-30 hover:opacity-60'}`}>⭐</button>
+                  <button key={n} onClick={() => setStarRating(n)} className={`transition-all ${n <= starRating ? 'opacity-100' : 'opacity-30 hover:opacity-60'}`} aria-label={`${n}`}><Star className="w-8 h-8 text-amber-400" fill="currentColor" aria-hidden /></button>
                 ))}
               </div>
               <button onClick={submitRating} disabled={!starRating} className="w-full py-2 rounded-xl bg-blue-500/15 border border-blue-500/30 text-blue-400 font-bold text-sm disabled:opacity-40 hover:bg-blue-500/25 transition-all">{t.trkRateSubmit}</button>
             </div>
           ) : (
-            <div className="text-center text-sm text-green-400 font-bold">{'⭐'.repeat(starRating)}<br />{t.trkRateDone}</div>
+            <div className="text-center text-sm text-green-400 font-bold"><span className="flex justify-center mb-1"><Stars value={starRating} /></span>{t.trkRateDone}</div>
           )}
         </div>
       );
@@ -824,7 +827,7 @@ export default function TrackPage({ initialCode = '' }: TrackPageProps) {
     if (!OTP_ELIGIBLE.has(s)) {
       return (
         <div className="bg-white/4 border border-white/8 rounded-xl p-4 mt-3 text-center">
-          <div className="text-2xl mb-2">⏳</div>
+          <Clock className="w-6 h-6 mx-auto mb-2 text-amber-500" aria-hidden />
           <div className="text-sm text-gray-300">{t.trkOtpWaiting}</div>
           <div className="text-xs text-gray-500 mt-1">{STATUS_META[s]?.label || s}</div>
         </div>
@@ -914,7 +917,7 @@ export default function TrackPage({ initialCode = '' }: TrackPageProps) {
             <span className="text-base font-extrabold text-white whitespace-nowrap">{o.originLabel || o.origin || '—'}</span>
             <div className="flex-1 relative h-1 bg-white/12 rounded-full overflow-visible">
               <div className="h-full bg-gradient-to-r from-blue-500 to-blue-300 rounded-full transition-all duration-1000" style={{ width: `${pct}%` }} />
-              <div className="absolute top-1/2 -translate-y-1/2 text-sm transition-all duration-1000" style={{ left: `${pct}%`, transform: 'translateY(-50%) translateX(-50%)' }}>✈️</div>
+              <div className="absolute top-1/2 -translate-y-1/2 text-sm transition-all duration-1000" style={{ left: `${pct}%`, transform: 'translateY(-50%) translateX(-50%)' }}><Plane className="w-4 h-4 text-blue-300" style={{ transform: 'rotate(90deg)' }} aria-hidden /></div>
             </div>
             <div className="w-2.5 h-2.5 rounded-full bg-green-400 flex-shrink-0 shadow-[0_0_0_3px_rgba(0,214,143,.2),0_0_12px_rgba(0,214,143,.5)]" />
             <span className="text-base font-extrabold text-white whitespace-nowrap">{o.destLabel || o.dest || '—'}</span>
@@ -923,7 +926,7 @@ export default function TrackPage({ initialCode = '' }: TrackPageProps) {
           {/* ETA */}
           {eta && (
             <div className="flex items-center gap-3 bg-blue-500/7 border border-blue-500/20 rounded-xl px-3 py-2.5 mb-3">
-              <span className="text-lg">⏱️</span>
+              <Timer className="w-5 h-5" aria-hidden />
               <div>
                 <div className="text-xs font-bold text-blue-400 uppercase tracking-wide" style={{ fontSize: '9px' }}>{t.trkEtaLabel}</div>
                 <div className="text-sm font-extrabold text-white">{eta}</div>
@@ -934,7 +937,7 @@ export default function TrackPage({ initialCode = '' }: TrackPageProps) {
           {/* Detected item (owner/traveler only) */}
           {o.detectedItem && !isReceiver && (
             <div className="flex items-center gap-2.5 bg-blue-500/8 border border-blue-500/20 rounded-xl px-3 py-2.5 mb-3">
-              <span className="text-lg">🔍</span>
+              <Search className="w-5 h-5" aria-hidden />
               <div>
                 <div className="text-xs font-bold text-blue-400 uppercase tracking-wide mb-0.5" style={{ fontSize: '9px' }}>{t.trkDetectedLabel}</div>
                 <div className="text-sm font-bold text-white">{o.detectedItem}</div>
@@ -980,7 +983,7 @@ export default function TrackPage({ initialCode = '' }: TrackPageProps) {
 
         {/* Telegram card */}
         <div className="flex items-start gap-3 bg-blue-500/6 border border-blue-500/15 rounded-2xl px-4 py-3.5 mt-2">
-          <span className="text-2xl flex-shrink-0">📱</span>
+          <Smartphone className="w-6 h-6 flex-shrink-0" aria-hidden />
           <div className="text-xs text-gray-400 leading-relaxed">
             {t.trkTelegramCard.replace('{code}', o.trackId)}<br />
             <strong className="text-blue-400">@ChaparTrackBot</strong>
