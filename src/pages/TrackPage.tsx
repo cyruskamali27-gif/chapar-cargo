@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { ClipboardList, CreditCard, Plane, Truck, CheckCircle2, Check, Package, Gift,
          Search, Clock, Timer, Smartphone, Star } from 'lucide-react';
 import { Stars } from '../app/flowIcons';
+import StageTimeline from '../app/StageTimeline';
 import GoogleTrackingMap from '../components/GoogleTrackingMap';
 import { findDemoRoute, DEMO_ROUTES } from '../data/demoTrackingRoutes';
 import type { ShipmentRoute, RouteStatus } from '../types/tracking';
@@ -163,6 +164,10 @@ export default function TrackPage({ initialCode = '' }: TrackPageProps) {
   const [notFound, setNotFound] = useState(false);
   const [recentOrders, setRecentOrders] = useState<Order[]>([]);
   const [animPct, setAnimPct] = useState(0);
+  // CMD-54 — real deal-loop tracking. The URL id is a case-sensitive marketplace orderId; if the
+  // events endpoint accepts us (a party), we render the REAL live timeline and suppress demo data.
+  const [liveOrderId, setLiveOrderId] = useState('');
+  const [hasLiveEvents, setHasLiveEvents] = useState(false);
 
   // Handover (traveler)
   const [handoverModal, setHandoverModal] = useState(false);
@@ -209,6 +214,18 @@ export default function TrackPage({ initialCode = '' }: TrackPageProps) {
   useEffect(() => {
     const hist = Store.get<Order[]>('history') ?? [];
     setRecentOrders(hist.slice(0, 4));
+
+    // CMD-54: probe real deal-loop events with the RAW id (case-sensitive orderId).
+    const rawId = new URLSearchParams(window.location.search).get('id') || '';
+    if (rawId) {
+      const token = (() => { try { return localStorage.getItem('cp_token') || ''; } catch { return ''; } })();
+      if (token) {
+        fetch(`/api/marketplace/events/${encodeURIComponent(rawId)}`, { headers: { Authorization: `Bearer ${token}` } })
+          .then(r => (r.ok ? r.json() : null))
+          .then(d => { if (d?.ok) { setLiveOrderId(rawId); setHasLiveEvents(true); } })
+          .catch(() => {});
+      }
+    }
 
     const p = new URLSearchParams(window.location.search);
     const urlId = (p.get('id') || '').toUpperCase();
@@ -996,6 +1013,21 @@ export default function TrackPage({ initialCode = '' }: TrackPageProps) {
   // ── Main render ───────────────────────────────────────────────────────────
   const showRealOrder = order !== null;
   const showNotFound  = notFound && !showRealOrder;
+
+  // CMD-54 — real order timeline takes over the whole view (kills the demo map/route for real deals).
+  if (hasLiveEvents && liveOrderId) {
+    return (
+      <div className="min-h-screen bg-gray-50 pt-16 sm:pt-18" dir={isRTL ? 'rtl' : 'ltr'}>
+        <div className="max-w-2xl mx-auto px-4 py-8 pb-24">
+          <div className="flex items-center gap-3 mb-4">
+            <button onClick={() => history.back()} className="w-9 h-9 rounded-xl bg-white border border-gray-200 flex items-center justify-center text-gray-500">←</button>
+            <div className="text-xs font-mono font-bold text-cyan-700 tracking-wide">{liveOrderId}</div>
+          </div>
+          <StageTimeline orderId={liveOrderId} control={false} />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#04070f] flex flex-col relative">

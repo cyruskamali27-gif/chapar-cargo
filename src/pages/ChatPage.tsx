@@ -14,6 +14,7 @@ import { Package, AlertTriangle, MessageSquare, Ban, Send, Lock, CheckCircle2, L
 import { Store, getSession } from '../lib/store';
 import { useLang } from '../lib/LangContext';
 import type { translations } from '../app/i18n';
+import StageTimeline from '../app/StageTimeline';
 
 type T = typeof translations['en'];
 
@@ -333,6 +334,13 @@ export default function ChatPage() {
               )}
             </div>
           )}
+        </div>
+      )}
+
+      {/* CMD-54 — live tracking. Shown once the deal is active; traveler gets the stage control. */}
+      {(status === 'escrow_pending' || status === 'escrow_locked') && (
+        <div className="flex-shrink-0 px-4 py-3 border-b border-gray-100 bg-white max-h-[46vh] overflow-y-auto">
+          <StageTimeline orderId={orderId} control={role === 'traveler'} />
         </div>
       )}
 

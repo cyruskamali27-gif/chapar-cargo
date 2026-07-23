@@ -82,7 +82,7 @@ if (path.startsWith('/google-earth-preview')) {
   element = <EarthPreview />;
 } else if (path.startsWith('/tracking-preview')) {
   element = <TrackingPreview />;
-} else if (path.startsWith('/track')) {
+} else if (path.startsWith('/track') || pageParam === 'track') {
   // Extract code from /track/CHP-... or empty for /track
   const code = path.replace(/^\/track\/?/, '');
   element = <TrackPage initialCode={code} />;

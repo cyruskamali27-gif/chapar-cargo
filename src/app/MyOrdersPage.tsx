@@ -286,7 +286,7 @@ export default function MyOrdersPage({ onHome, onOpenReceipt }: Props) {
               return (
                 <motion.div key={o.trackId} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
                   className="ds-card p-4">
-                  <a href={`/track?id=${o.trackId}`}
+                  <a href={`/film-preview.html?page=track&id=${o.trackId}`}
                     className="flex items-center gap-3 no-underline text-inherit mb-3" style={{ textDecoration:'none', color:'inherit' }}>
                     <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center flex-shrink-0">
                       <OrdIcon className="w-5 h-5 text-blue-600" aria-hidden />
