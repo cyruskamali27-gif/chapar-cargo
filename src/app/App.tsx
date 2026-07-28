@@ -147,6 +147,7 @@ function EscrowTimeline() {
 
 // ─── MarketplaceRouteBoard ────────────────────────────────────────────────────
 function MarketplaceRouteBoard() {
+  const { t } = useLang();
   const routes: { from: string; to: string; flag1: string; flag2: string; travelers: number; avgPrice: number; trend: string; securityLevel: SecurityLevel }[] = [
     { from: 'Toronto',   to: 'Tehran',    flag1: '🇨🇦', flag2: '🇮🇷', travelers: 12, avgPrice: 85,  trend: 'up',     securityLevel: 'GUARANTEED' },
     { from: 'Dubai',     to: 'Vancouver', flag1: '🇦🇪', flag2: '🇨🇦', travelers: 8,  avgPrice: 120, trend: 'up',     securityLevel: 'GUARANTEED' },
@@ -171,7 +172,7 @@ function MarketplaceRouteBoard() {
                 <span className="text-2xl">{route.flag1}</span>
                 <div>
                   <div className="font-semibold text-gray-900 text-sm">{route.from}</div>
-                  <div className="text-[11px] text-gray-500">Origin</div>
+                  <div className="text-[11px] text-gray-500">{t.rbOrigin}</div>
                 </div>
               </div>
               <ArrowRight className="w-4 h-4 text-gray-300 group-hover:text-cyan-600 transition-colors flex-shrink-0" />
@@ -179,21 +180,26 @@ function MarketplaceRouteBoard() {
                 <span className="text-2xl">{route.flag2}</span>
                 <div>
                   <div className="font-semibold text-gray-900 text-sm">{route.to}</div>
-                  <div className="text-[11px] text-gray-500">Destination</div>
+                  <div className="text-[11px] text-gray-500">{t.rbDestination}</div>
                 </div>
               </div>
             </div>
 
             {/* Stats + badge */}
-            <div className="flex items-center gap-3 flex-shrink-0 flex-wrap justify-end">
+            {/* min-w-0, not flex-shrink-0: at 375px this block's content is ~385px wide, so
+                flex-shrink-0 pinned it wider than the viewport and pushed 47px of horizontal
+                scroll onto the whole document (RTL, so it ran off the left edge). It already
+                has flex-wrap — it just was never allowed to shrink enough to use it. No
+                overflow:hidden, so nothing gets clipped; the row wraps instead. */}
+            <div className="flex items-center gap-3 min-w-0 flex-wrap justify-end">
               <SecurityBadge level={route.securityLevel} />
               <div className="text-center">
                 <div className="text-xl font-bold text-gray-900">{route.travelers}</div>
-                <div className="text-[11px] text-gray-500">Travelers</div>
+                <div className="text-[11px] text-gray-500">{t.rbTravelers}</div>
               </div>
               <div className="text-center">
                 <div className="text-xl font-bold text-green-600">${route.avgPrice}</div>
-                <div className="text-[11px] text-gray-500">Avg/kg</div>
+                <div className="text-[11px] text-gray-500">{t.rbAvgPerKg}</div>
               </div>
               <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
                 route.trend === 'up'   ? 'bg-green-100 text-green-700' :
@@ -206,7 +212,7 @@ function MarketplaceRouteBoard() {
                 className="px-4 py-2 bg-gradient-to-r from-cyan-700 to-blue-700 text-white rounded-lg text-xs font-semibold hover:opacity-90 transition-opacity"
                 whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}
               >
-                View Route
+                {t.rbViewRoute}
               </motion.button>
             </div>
 
@@ -2616,10 +2622,10 @@ export default function App() {
                 // area — buyer, sender AND traveler. These were never role-BLOCKED; they simply
                 // had no nav entry, which hid the traveler dashboard just as effectively.
                 ...(session ? [
-                  { label: 'سفارش‌های من',        page: 'my-orders' as Page },
-                  { label: 'سفرها و پیشنهادها',   page: 'traveler-dashboard' as Page },
-                  { label: 'کیف پول',             page: 'wallet' as Page },
-                  { label: 'اعلان‌ها',            page: 'notifications' as Page },
+                  { label: t.navMyOrders,        page: 'my-orders' as Page },
+                  { label: t.navTripsOffers,   page: 'traveler-dashboard' as Page },
+                  { label: t.navWallet,             page: 'wallet' as Page },
+                  { label: t.navNotifications,            page: 'notifications' as Page },
                 ] : []),
                 { label: t.trustSafety, page: 'trust-safety' as Page },
                 { label: t.investors, page: 'investors' as Page },
@@ -2722,10 +2728,10 @@ export default function App() {
                     { label: t.marketplace, page: 'marketplace' as Page },
                     // Same principle as the desktop nav — every area, every logged-in user.
                     ...(session ? [
-                      { label: 'سفارش‌های من',      page: 'my-orders' as Page },
-                      { label: 'سفرها و پیشنهادها', page: 'traveler-dashboard' as Page },
-                      { label: 'کیف پول',           page: 'wallet' as Page },
-                      { label: 'اعلان‌ها',          page: 'notifications' as Page },
+                      { label: t.navMyOrders,      page: 'my-orders' as Page },
+                      { label: t.navTripsOffers, page: 'traveler-dashboard' as Page },
+                      { label: t.navWallet,           page: 'wallet' as Page },
+                      { label: t.navNotifications,          page: 'notifications' as Page },
                     ] : []),
                     { label: t.trustSafety, page: 'trust-safety' as Page },
                     { label: t.investors, page: 'investors' as Page },

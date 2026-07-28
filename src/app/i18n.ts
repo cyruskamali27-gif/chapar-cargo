@@ -22,6 +22,15 @@ export interface Translations {
   globalNetwork: string;
   countries190: string;
   marketplace: string;
+  navMyOrders: string;
+  navTripsOffers: string;
+  navWallet: string;
+  navNotifications: string;
+  rbOrigin: string;
+  rbDestination: string;
+  rbTravelers: string;
+  rbAvgPerKg: string;
+  rbViewRoute: string;
   security: string;
   investors: string;
   faq: string;
@@ -899,6 +908,15 @@ export const translations: Record<LangCode, Translations> = {
     globalNetwork: 'شبکه جهانی',
     countries190: 'بیش از ۱۹۰ کشور',
     marketplace: 'بازارگاه',
+    navMyOrders: 'سفارش‌های من',
+    navTripsOffers: 'سفرها و پیشنهادها',
+    navWallet: 'کیف پول',
+    navNotifications: 'اعلان‌ها',
+    rbOrigin: 'Origin',
+    rbDestination: 'Destination',
+    rbTravelers: 'Travelers',
+    rbAvgPerKg: 'Avg/kg',
+    rbViewRoute: 'View Route',
     security: 'امنیت',
     investors: 'سرمایه‌گذاران',
     faq: 'سوالات متداول',
@@ -1767,6 +1785,15 @@ export const translations: Record<LangCode, Translations> = {
     globalNetwork: 'Global Network',
     countries190: '190+ Countries',
     marketplace: 'Marketplace',
+    navMyOrders: 'سفارش‌های من',
+    navTripsOffers: 'سفرها و پیشنهادها',
+    navWallet: 'کیف پول',
+    navNotifications: 'اعلان‌ها',
+    rbOrigin: 'Origin',
+    rbDestination: 'Destination',
+    rbTravelers: 'Travelers',
+    rbAvgPerKg: 'Avg/kg',
+    rbViewRoute: 'View Route',
     security: 'Security',
     investors: 'Investors',
     faq: 'FAQ',
@@ -2629,6 +2656,15 @@ export const translations: Record<LangCode, Translations> = {
     globalNetwork: 'Küresel Ağ',
     countries190: '190+ Ülke',
     marketplace: 'Pazar Yeri',
+    navMyOrders: 'سفارش‌های من',
+    navTripsOffers: 'سفرها و پیشنهادها',
+    navWallet: 'کیف پول',
+    navNotifications: 'اعلان‌ها',
+    rbOrigin: 'Origin',
+    rbDestination: 'Destination',
+    rbTravelers: 'Travelers',
+    rbAvgPerKg: 'Avg/kg',
+    rbViewRoute: 'View Route',
     security: 'Güvenlik',
     investors: 'Yatırımcılar',
     faq: 'SSS',
@@ -3491,6 +3527,15 @@ export const translations: Record<LangCode, Translations> = {
     globalNetwork: 'شبكة عالمية',
     countries190: 'أكثر من ١٩٠ دولة',
     marketplace: 'السوق',
+    navMyOrders: 'سفارش‌های من',
+    navTripsOffers: 'سفرها و پیشنهادها',
+    navWallet: 'کیف پول',
+    navNotifications: 'اعلان‌ها',
+    rbOrigin: 'Origin',
+    rbDestination: 'Destination',
+    rbTravelers: 'Travelers',
+    rbAvgPerKg: 'Avg/kg',
+    rbViewRoute: 'View Route',
     security: 'الأمان',
     investors: 'المستثمرون',
     faq: 'الأسئلة الشائعة',
@@ -4352,6 +4397,15 @@ export const translations: Record<LangCode, Translations> = {
     globalNetwork: 'Réseau mondial',
     countries190: 'Plus de 190 pays',
     marketplace: 'Marché',
+    navMyOrders: 'سفارش‌های من',
+    navTripsOffers: 'سفرها و پیشنهادها',
+    navWallet: 'کیف پول',
+    navNotifications: 'اعلان‌ها',
+    rbOrigin: 'Origin',
+    rbDestination: 'Destination',
+    rbTravelers: 'Travelers',
+    rbAvgPerKg: 'Avg/kg',
+    rbViewRoute: 'View Route',
     security: 'Sécurité',
     investors: 'Investisseurs',
     faq: 'FAQ',
@@ -5214,6 +5268,15 @@ export const translations: Record<LangCode, Translations> = {
     globalNetwork: '全球网络',
     countries190: '190+ 个国家',
     marketplace: '市场',
+    navMyOrders: 'سفارش‌های من',
+    navTripsOffers: 'سفرها و پیشنهادها',
+    navWallet: 'کیف پول',
+    navNotifications: 'اعلان‌ها',
+    rbOrigin: 'Origin',
+    rbDestination: 'Destination',
+    rbTravelers: 'Travelers',
+    rbAvgPerKg: 'Avg/kg',
+    rbViewRoute: 'View Route',
     security: '安全',
     investors: '投资者',
     faq: '常见问题',
