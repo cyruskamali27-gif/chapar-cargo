@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { ArrowLeft, Home, Plane, Package as PackageIcon, Star, DollarSign, Globe, Target,
-         Compass, Inbox, ClipboardList, Camera, ShoppingBag, X, Globe, Clock } from 'lucide-react';
+         Compass, Inbox, ClipboardList, Camera, ShoppingBag, X, Clock } from 'lucide-react';
 import { CargoIcon, cargoIcon, RouteArrow, Meta, MetaIcons, Stars } from './flowIcons';
 import GuidedCapture from './GuidedCapture';
 import TravelerOfferSheet from './TravelerOfferSheet';
