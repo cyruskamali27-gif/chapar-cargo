@@ -302,12 +302,12 @@ export default function ProfilePage({ onHome, onOpenWallet, onOpenOrders }: Prop
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="ds-label">{t.profFirstName}</label>
-                    <input className={`ds-input ${infoErr.first ? 'border-red-400' : ''}`} value={eFirst} onChange={e => { setEFirst(e.target.value); setInfoErr(p => ({ ...p, first: '' })); }} />
+                    <input className={`ds-input ${infoErr.first ? 'border-red-400' : ''}`} maxLength={120} value={eFirst} onChange={e => { setEFirst(e.target.value); setInfoErr(p => ({ ...p, first: '' })); }} />
                     {infoErr.first && <div className="text-xs text-red-500 mt-1">{infoErr.first}</div>}
                   </div>
                   <div>
                     <label className="ds-label">{t.profLastName}</label>
-                    <input className={`ds-input ${infoErr.last ? 'border-red-400' : ''}`} value={eLast} onChange={e => { setELast(e.target.value); setInfoErr(p => ({ ...p, last: '' })); }} />
+                    <input className={`ds-input ${infoErr.last ? 'border-red-400' : ''}`} maxLength={120} value={eLast} onChange={e => { setELast(e.target.value); setInfoErr(p => ({ ...p, last: '' })); }} />
                     {infoErr.last && <div className="text-xs text-red-500 mt-1">{infoErr.last}</div>}
                   </div>
                 </div>

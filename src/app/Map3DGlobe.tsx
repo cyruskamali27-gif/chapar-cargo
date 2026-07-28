@@ -173,7 +173,8 @@ const RING_MAXKM = 70;
 const FRAME_MS   = 1000 / 15;   // ~15 fps
 
 /* ── Component ────────────────────────────────────────────────────────────── */
-export default function Map3DGlobe({ className, onReady }: { className?: string; onReady?: () => void }) {
+export default function Map3DGlobe({ className, onReady, onFailed }:
+  { className?: string; onReady?: () => void; onFailed?: () => void }) {
   const { t } = useLang();
   const containerRef    = useRef<HTMLDivElement>(null);
   const mapRef          = useRef<any>(null);
@@ -188,6 +189,9 @@ export default function Map3DGlobe({ className, onReady }: { className?: string;
   const selDirtyRef      = useRef(false);
   const isInteractingRef = useRef(false);
   const resumeRef        = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Latches the first failure. Several paths can fail in the same load (5s watchdog +
+  // the import's own 4.8s reject), and without this each one logged its own line.
+  const failedRef        = useRef(false);
 
   const [routes,     setRoutes]     = useState<GlobeRoute[]>([]);
   const [selected,   setSelected]   = useState<GlobeRoute | null>(null);
@@ -212,23 +216,46 @@ export default function Map3DGlobe({ className, onReady }: { className?: string;
   /* ── Initialise Map3DElement (once) ──────────────────────────────────────── */
   useEffect(() => {
     deadRef.current = false;
-    const key = (import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string) || '';
+
+    // Single degrade path. Warns ONCE (quietly — warn, not error), hides the map panel,
+    // and tells the parent the map has settled so it can drop its loading overlay.
+    // Before this, a failure returned null without ever calling onReady, so the hero's
+    // "loading" dots pulsed forever over a map that was never coming — a spinner that
+    // lied about the state and, incidentally, kept the page animating while idle.
+    const fail = (reason: string) => {
+      if (failedRef.current) return;
+      failedRef.current = true;
+      console.warn(`[Map3DGlobe] 3D map unavailable (${reason}) — hiding map panel`);
+      if (!deadRef.current) setMapFailed(true);
+      onFailed?.();
+    };
+
+    const key   = (import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string) || '';
+    const mapId = (import.meta.env.VITE_GOOGLE_MAPS_MAP_ID as string) || '';
+
+    // Google's Map3DElement requires a Cloud-configured Map ID with the 3D/vector
+    // renderer enabled. With none, `new Map3DElement()` still CONSTRUCTS fine — so the
+    // component believed it had a working map — and then the API refuses to render,
+    // logs "Attempted to load a 3D Map, but failed", and paints its own error card over
+    // the hero. That failure is undetectable from here: no gmp-error event, no
+    // gm_authFailure, closed shadow root. So gate on the one thing we CAN check up
+    // front. No Map ID => never attempt the 3D map, degrade immediately and quietly.
+    // Set VITE_GOOGLE_MAPS_MAP_ID to turn it back on; no other change needed.
+    if (!mapId) {
+      fail('no VITE_GOOGLE_MAPS_MAP_ID configured — 3D Maps needs one');
+      return;
+    }
     if (!key || !containerRef.current) {
-      if (!key) console.warn('[Map3DGlobe] VITE_GOOGLE_MAPS_API_KEY not set');
-      setMapFailed(true);
+      fail(key ? 'no container' : 'VITE_GOOGLE_MAPS_API_KEY not set');
       return;
     }
     try { bootstrapGoogleMaps(key); } catch (e) {
-      console.warn('[Map3DGlobe] bootstrap:', e);
-      setMapFailed(true);
+      fail('bootstrap: ' + (e as Error)?.message);
       return;
     }
 
     const failTimeout = setTimeout(() => {
-      if (!mapRef.current && !deadRef.current) {
-        console.warn('[Map3DGlobe] 5s timeout — falling back to canvas globe');
-        setMapFailed(true);
-      }
+      if (!mapRef.current && !deadRef.current) fail('5s timeout');
     }, 5000);
 
     (async () => {
@@ -246,6 +273,7 @@ export default function Map3DGlobe({ className, onReady }: { className?: string;
         if (deadRef.current || !containerRef.current) return;
 
         const map = new Map3DElement() as any;
+        map.mapId           = mapId;
         map.center          = { lat: 25, lng: 50, altitude: 0 };
         map.range           = 12_000_000;
         map.tilt            = 0;
@@ -295,8 +323,7 @@ export default function Map3DGlobe({ className, onReady }: { className?: string;
 
       } catch (e) {
         clearTimeout(failTimeout);
-        console.warn('[Map3DGlobe] init:', e);
-        if (!deadRef.current) setMapFailed(true);
+        fail('init: ' + ((e as Error)?.message ?? e));
       }
     })();
 
@@ -642,7 +669,10 @@ export default function Map3DGlobe({ className, onReady }: { className?: string;
 
   /* ── Render ──────────────────────────────────────────────────────────────── */
   if (mapFailed) {
-    return null; // dark hero background remains; onReady never fires so loader stays
+    // Map panel hidden entirely; the hero keeps its own dark background and all hero
+    // content (headline, CTAs, ticker) renders normally. onFailed() has already told the
+    // parent to drop the loading overlay, so there is no spinner left running.
+    return null;
   }
 
   return (
@@ -661,7 +691,12 @@ export default function Map3DGlobe({ className, onReady }: { className?: string;
       />
 
       {/* ── Tracking panel — top-left (only shown once map is ready) ───────── */}
-      {mapReady && <div className="absolute top-4 left-4 z-30 pointer-events-auto">
+      {/* top-20 (80px), not top-4: this overlay is positioned from the top of the hero
+          section, which starts at y=0 *underneath* the site header — header.fixed is 73px
+          on desktop / 65px on mobile and sits at z-50, so at top-4 the input and its →
+          submit button were painted behind it and never received clicks. 80px clears both
+          heights. The header keeps position:fixed and z-50; only this overlay moves. */}
+      {mapReady && <div className="absolute top-20 left-4 z-30 pointer-events-auto">
         <form
           onSubmit={handleTrack}
           className="flex flex-col gap-1.5 bg-black/65 backdrop-blur-2xl rounded-2xl border border-white/12 px-3 py-2.5 shadow-2xl"
@@ -694,9 +729,16 @@ export default function Map3DGlobe({ className, onReady }: { className?: string;
         </form>
       </div>}
 
-      {/* ── Filter chips + color legend ─────────────────────────────────── */}
+      {/* ── Filter chips + color legend ─────────────────────────────────────
+           11.5rem = 7.5rem + the same 4rem the tracking panel above moved down, so the
+           gap between the two clusters is unchanged. */}
+      {/* hidden below lg: on mobile the hero copy panel is w-full and pointer-events-auto,
+          so it sits on top of these chips (they render at the same y as the "CHAPAR GLOBAL
+          NETWORK" badge). They were visible but untappable — the worst combination. The map
+          itself is dimmed to 70% black on mobile, so these are decoration there, not
+          controls. Desktop is unaffected: the copy panel is lg:w-[40%] and never overlaps. */}
       {mapReady && (
-        <div className="absolute top-[7.5rem] left-4 z-30 pointer-events-auto">
+        <div className="hidden lg:block absolute top-[11.5rem] left-4 z-30 pointer-events-auto">
           <div className="flex flex-wrap gap-1" style={{ maxWidth: '13rem' }}>
             {([null, 'pending', 'escrow_locked', 'assigned', 'in_transit', 'delivered', 'disputed'] as const).map(s => (
               <button

@@ -571,7 +571,7 @@ export default function SendPackagePage({ onHome, cargoType = 'personal', onNavi
 
             <div className="mb-4">
               <label className="ds-label">{t.spConfirmItemName}</label>
-              <input type="text" className="ds-input" placeholder={t.spItemSearch}
+              <input type="text" className="ds-input" placeholder={t.spItemSearch} maxLength={200}
                 value={title} onChange={e => { setTitle(e.target.value); setErr(''); }} />
               {/* NOTE: contact info a sender might put in the title/description is sanitized SERVER-SIDE. */}
             </div>

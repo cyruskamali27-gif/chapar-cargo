@@ -1407,7 +1407,9 @@ function HeroSection({ t, setPage, isRTL }: { t: typeof translations['en']; setP
   const half = Math.ceil(words.length / 2);
   const line1 = words.slice(0, half).join(' ');
   const line2 = words.slice(half).join(' ');
-  const [map3DReady, setMap3DReady] = useState(false);
+  // "settled", not "ready": set on success OR on honest failure. Drives the hero's
+  // loading overlay, which must come down either way.
+  const [map3DSettled, setMap3DSettled] = useState(false);
 
   const heroButtons = [
     { label: t.heroCta1, page: 'buy-for-me' as Page, primary: true },
@@ -1419,20 +1421,29 @@ function HeroSection({ t, setPage, isRTL }: { t: typeof translations['en']; setP
     <section style={{ height: '100vh' }} className="relative overflow-hidden bg-[#04070f]">
       {/* Map3D globe — sole background */}
       <div className="absolute inset-0 z-0">
-        <Map3DGlobe className="w-full h-full" onReady={() => setMap3DReady(true)} />
+        {/* onFailed also clears the overlay: "settled" is what matters here, not
+            "succeeded". If the 3D map cannot load we show the hero without it rather
+            than pulsing loading dots at a map that is never going to arrive. */}
+        <Map3DGlobe className="w-full h-full"
+          onReady={() => setMap3DSettled(true)}
+          onFailed={() => setMap3DSettled(true)} />
       </div>
 
       {/* Dark loading overlay — covers the hero until Map3D tiles are ready */}
       <div
         className="absolute inset-0 z-[1] flex items-end justify-center pb-16 pointer-events-none"
-        style={{ background: '#04070f', opacity: map3DReady ? 0 : 1, transition: 'opacity 0.8s ease' }}
+        style={{ background: '#04070f', opacity: map3DSettled ? 0 : 1, transition: 'opacity 0.8s ease' }}
       >
-        <div className="flex gap-1.5">
-          {[0, 1, 2].map(i => (
-            <div key={i} className="w-1.5 h-1.5 rounded-full bg-cyan-500/50 animate-pulse"
-              style={{ animationDelay: `${i * 0.18}s` }} />
-          ))}
-        </div>
+        {/* Unmounted once settled, not just faded: an opacity-0 element still runs its
+            CSS animation, which kept this page animating forever while idle. */}
+        {!map3DSettled && (
+          <div className="flex gap-1.5">
+            {[0, 1, 2].map(i => (
+              <div key={i} className="w-1.5 h-1.5 rounded-full bg-cyan-500/50 animate-pulse"
+                style={{ animationDelay: `${i * 0.18}s` }} />
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Directional gradient — subtle overlay, globe visible behind text */}
@@ -1450,12 +1461,17 @@ function HeroSection({ t, setPage, isRTL }: { t: typeof translations['en']; setP
 
       {/* Content panel — text floats above globe */}
       <div className="absolute inset-0 z-10 flex items-center pointer-events-none">
-        <div className={`w-full lg:w-[40%] px-8 lg:px-16 pt-20 pb-24 pointer-events-auto`}>
+        {/* pointer-events-none on the panel, auto on the content block below it. At 375px
+            this panel is w-full and its pt-20/pb-24 padding is empty space — but it was
+            pointer-events-auto, so it swallowed taps aimed at the map's tracking form
+            underneath. The form stayed visible and simply did nothing when tapped. Desktop
+            never hit this (lg:w-[40%], no overlap). */}
+        <div className={`w-full lg:w-[40%] px-8 lg:px-16 pt-20 pb-24 pointer-events-none`}>
           {/* Mobile dark overlay — lighter, preserves globe visibility */}
           <div className="absolute inset-0 lg:hidden pointer-events-none"
             style={{ background: 'rgba(4,7,15,0.70)' }} />
 
-          <div className="relative z-10">
+          <div className="relative z-10 pointer-events-auto">
             {/* Badge */}
             <motion.div
               initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.1 }}
