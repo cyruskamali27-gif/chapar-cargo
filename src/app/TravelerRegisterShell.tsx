@@ -11,6 +11,7 @@ import AirportCityAutocomplete, { type AirportOption } from './AirportCityAutoco
 import GuidedCapture from './GuidedCapture';
 import TravelerAssistant, { type AssistSuggestion } from './TravelerAssistant';
 import PreferredChannelStep from './PreferredChannelStep';
+import RequiredHint from './RequiredHint';   // CMD-66: names what step 2 is still missing
 import { publishTrip, toISO2, COUNTRIES, type TripMode } from '../lib/tripPublish';
 import { PROHIBITED_CATEGORIES } from '../lib/prohibited';
 
@@ -123,9 +124,10 @@ export default function TravelerRegisterShell({
   // The assistant reports its own unavailability (env flag or a failed /api/ai/chat call). The
   // shell reacts by revealing the inline capacity field — it never waits on, or blocks for, the AI.
   const [aiDown, setAiDown]           = useState(!AI_ENABLED);
-  // Set when the traveler tries to advance without a capacity. Reveals the same inline field, so a
-  // traveler who simply never asked the assistant is never stuck.
-  const [capacityNudge, setCapacityNudge] = useState(false);
+  // CMD-66: `capacityNudge` state removed. It existed to reveal the inline capacity field after a
+  // failed «بعدی» tap; the field is now revealed by the absence of a capacity itself (see
+  // showInlineCapacity at step 2), which is strictly earlier and needs no state. One trigger for
+  // one behaviour — a nudge flag alongside an auto-reveal would be two.
 
   // ── step 3 (احراز هویت) ──
   const [docType,   setDocType]   = useState<KycDocType | null>(null);
@@ -193,21 +195,39 @@ export default function TravelerRegisterShell({
   function step4Valid(): boolean {
     return isVerified && carry.length > 0 && prohibitedAck && !!payoutMethod && accountName.trim().length > 0;
   }
+  // ── CMD-66 — step-2 capacity gate ───────────────────────────────────────────
+  //
+  // Step 2 used to advance on `!!date` alone: capacity was "nudged, not gated". «بعدی» looked
+  // enabled, the tap was swallowed by go(), and only THEN did the capacity field appear — the
+  // one interaction CMD-65 set out to remove everywhere else. Capacity is not optional
+  // (doPublish() and step2Valid() both demand it, and the matcher cannot evaluate a trip's
+  // remaining capacity without it), so it belongs in the gate, not in a nudge.
+  //
+  // A gate alone would be worse than the nudge, though: it would disable «بعدی» over a field
+  // that was not on screen. It is paired with the auto-reveal below — the two ship together or
+  // not at all.
   const canAdvance =
     step === 0 ? mode !== null :
     step === 1 ? step1Valid()  :
-    step === 2 ? !!date        :   // capacity is nudged, not gated at the button — see go()
+    step === 2 ? step2Valid()  :
     step === 3 ? step3Valid()  :
     step === 4 ? step4Valid()  :
     true;
+
+  // Named exactly as step 2 labels them on screen, per RequiredHint's contract.
+  const missingStep2: string[] = [];
+  if (!date)                          missingStep2.push('تاریخ حرکت');
+  if (!(parseFloat(capacityKg) > 0))  missingStep2.push('ظرفیت قابل حمل');
 
   function go(next: number) {
     setValidationErr('');
     if (next > step) {
       if (step === 1 && !step1Valid()) { setValidationErr('مبدأ و مقصد را کامل کنید.'); return; }
+      // CMD-66: the reveal-on-failed-tap that used to live here is gone — the field is now on
+      // screen from the moment it is needed (see showInlineCapacity), and canAdvance blocks the
+      // tap that used to trigger it, so this branch is a defensive belt only. Kept, like the
+      // step-1 and step-3 guards beside it, so go() never depends on the button being correct.
       if (step === 2 && !step2Valid()) {
-        // Never a dead end: reveal the compact capacity field right here and say why.
-        if (!(parseFloat(capacityKg) > 0)) setCapacityNudge(true);
         setValidationErr(!date ? 'تاریخ حرکت الزامی است.' : 'ظرفیت (کیلوگرم) را وارد کنید یا از دستیار کمک بگیرید.');
         return;
       }
@@ -378,7 +398,14 @@ export default function TravelerRegisterShell({
                 ref1={ref1} setRef1={setRef1} ref2={ref2} setRef2={setRef2}
                 onApply={applyAssist}
                 aiEnabled={AI_ENABLED} aiDown={aiDown} onAiDown={() => setAiDown(true)}
-                showInlineCapacity={aiDown || capacityNudge} />
+                // CMD-66 auto-reveal — was `aiDown || capacityNudge`, i.e. the field only
+                // appeared once the assistant had failed OR the traveler had already tapped a
+                // dead «بعدی». Now that capacity gates the button, that tap can never happen, so
+                // the field reveals itself the moment it is what's missing. The assistant stays
+                // mounted above it: propose-or-type, both offered at once, neither blocking the
+                // other. Once a capacity exists this flips false and StepDate swaps to the
+                // compact «ظرفیت اعلام‌شده» readout — which is still editable, so nothing is lost.
+                showInlineCapacity={aiDown || !(parseFloat(capacityKg) > 0)} />
             )}
 
             {step === 3 && (
@@ -400,6 +427,12 @@ export default function TravelerRegisterShell({
             )}
           </motion.div>
         </AnimatePresence>
+
+        {/* CMD-66 — step 2's «بعدی» is now gated on capacity, and design-system.css sets
+            pointer-events:none on a disabled .ds-btn-primary, so the button itself can carry no
+            explanation. Same component, same wording as the buy and send flows. Only step 2 is
+            hinted: steps 1, 3 and 4 were gated before this command and are out of its scope. */}
+        {step === 2 && <RequiredHint missing={missingStep2} />}
 
         {validationErr && (
           <div className="mt-4 px-4 py-2.5 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700 font-medium">

@@ -3,6 +3,7 @@ import { useState, useRef, useEffect } from "react";
 import { Send, Mic, Paperclip, X, Check, RotateCw, ExternalLink, ShoppingBag, Volume2, VolumeX, ScanLine } from "lucide-react";
 import ChaparStorePanel from "./ChaparStorePanel";
 import ChaparGrid from "./ChaparGrid";
+import RequiredHint from "./RequiredHint";   // CMD-66: same gate presentation as the main buy flow
 
 const LANGS = {
   fa: { name: "Persian (Farsi)", tts: "fa-IR", greet: "خوش آمدید. چه چیزی برایتان بخرم؟" },
@@ -568,6 +569,14 @@ export default function ChaparConcierge({ language = "fa", userName = "", userId
   async function doPublish() {
     // Ownership guard: publishing requires a logged-in user — send them to auth instead of an anonymous post.
     if (!userId) { onNeedAuth?.(); return; }
+    // CMD-66 — the same belt the main buy flow wears. BuyForMeFlow.publish() re-asserts every
+    // required field even though its button is already disabled on them; this path did not, so a
+    // publish reached over a stale/raced render (the product can be replaced by a new identify or
+    // a new search while the publish screen is mounted) would have posted a titleless order. The
+    // list is missingPublish's, restated — the button gate and this guard must never disagree.
+    if (!orderProduct?.title || orderProduct.title.trim().length <= 2) return;
+    if (priceLoading) return;
+    if (priceFailed && !noPriceAck) return;
     setPublishing(true);
     try {
       const r = await fetch("/api/marketplace/publish", { method: "POST", headers: { "Content-Type": "application/json" },
@@ -608,6 +617,24 @@ export default function ChaparConcierge({ language = "fa", userName = "", userId
   // No price and nothing in flight = it failed or found nothing verifiable. Honest dead-end
   // avoided by the explicit acknowledgement below rather than by silently publishing.
   const priceFailed = !hasPrice && !compare.loading;
+
+  // ── CMD-66 — required fields for «تأیید و انتشار در بازارگاه» ────────────────
+  //
+  // The second buy path, brought under the main flow's gate. Same shape as BuyForMeFlow's
+  // missingPublish: one list, computed in the component body, feeding BOTH the RequiredHint on
+  // the publish screen and the button's disabled state — so what the user is told and what the
+  // button does can never drift apart.
+  //
+  // Short by nature, not by omission: this path collects a product (from chat, a photo identify
+  // or a URL) plus an optional special request. Destination, recipient and declared value — the
+  // other five entries in the main flow's list — are not fields here at all, because
+  // /api/marketplace/publish does not take them; they are settled later, in the deal loop. Only
+  // fields this screen actually renders may appear in this list.
+  //
+  // `userId` is deliberately absent, matching the main flow: a signed-out user is answered with
+  // onNeedAuth (its own button, below), not with a "you forgot something".
+  const missingPublish = [];
+  if (!orderProduct?.title || orderProduct.title.trim().length <= 2) missingPublish.push("نام محصول معتبر");
 
   const _lastMsg = messages[messages.length - 1];
   // Contextual status: after the reply is shown we're fetching product results; otherwise still thinking.
@@ -738,7 +765,7 @@ export default function ChaparConcierge({ language = "fa", userName = "", userId
                       </div>
                     )}
                     <button onClick={() => confirmFromIdentify(idf)} disabled={!idf.title}
-                      className="mt-3 flex w-full items-center justify-center gap-1 rounded-xl py-2 text-sm font-bold text-white disabled:opacity-40"
+                      className="mt-3 flex w-full items-center justify-center gap-1 rounded-xl py-2 text-sm font-bold text-white disabled:opacity-40 disabled:cursor-not-allowed"
                       style={{ background: "linear-gradient(135deg,#047857,#0e7490)" }}>
                       <Check size={15} /> بله، همین است
                     </button>
@@ -820,7 +847,7 @@ export default function ChaparConcierge({ language = "fa", userName = "", userId
             <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={onPickFile} />
             <button onClick={voice} className={`grid h-10 w-10 place-items-center rounded-full ${listening ? "bg-rose-500 text-white" : "bg-white/5 text-cyan-300"}`}><Mic size={19} /></button>
             <input value={input} onChange={(e) => setInput(e.target.value)} onPaste={onPaste} onKeyDown={(e) => e.key === "Enter" && send()} placeholder={imagePreview ? "توضیحی اضافه کنید (اختیاری)…" : "بنویسید، عکس بفرستید یا حرف بزنید…"} className="flex-1 rounded-full border border-white/15 bg-white/5 px-4 py-2.5 text-sm text-white outline-none placeholder:text-white/50" />
-            <button onClick={() => send()} disabled={loading || (!input.trim() && !imageFile)} className="grid h-10 w-10 place-items-center rounded-full text-white disabled:opacity-40" style={{ background: "linear-gradient(135deg,#0e7490,#4f46e5)" }}><Send size={18} /></button>
+            <button onClick={() => send()} disabled={loading || (!input.trim() && !imageFile)} className="grid h-10 w-10 place-items-center rounded-full text-white disabled:opacity-40 disabled:cursor-not-allowed" style={{ background: "linear-gradient(135deg,#0e7490,#4f46e5)" }}><Send size={18} /></button>
           </div>
         </div>
       </div>
@@ -852,7 +879,7 @@ export default function ChaparConcierge({ language = "fa", userName = "", userId
                   {searchState === "unavailable" ? "ارتباط با فروشگاه‌ها ناپایدار است. لطفاً دوباره تلاش کنید." : "می‌توانید دوباره جست‌وجو کنید یا عبارت دیگری بنویسید."}
                 </div>
                 <div className="flex items-center justify-center gap-2">
-                  <button onClick={() => runProductSearch(lastSearchQuery)} disabled={!lastSearchQuery} className="inline-flex items-center gap-1 rounded-xl px-4 py-2 text-sm font-bold text-white disabled:opacity-40" style={{ background: "linear-gradient(135deg,#0e7490,#4f46e5)" }}><RotateCw size={15} /> تلاش دوباره</button>
+                  <button onClick={() => runProductSearch(lastSearchQuery)} disabled={!lastSearchQuery} className="inline-flex items-center gap-1 rounded-xl px-4 py-2 text-sm font-bold text-white disabled:opacity-40 disabled:cursor-not-allowed" style={{ background: "linear-gradient(135deg,#0e7490,#4f46e5)" }}><RotateCw size={15} /> تلاش دوباره</button>
                   <button onClick={() => setStage(null)} className="rounded-xl border border-white/15 px-4 py-2 text-sm text-white/70">بازگشت</button>
                 </div>
               </div>
@@ -1120,19 +1147,18 @@ export default function ChaparConcierge({ language = "fa", userName = "", userId
                   className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5 text-sm text-white placeholder:text-white/50 focus:border-cyan-400 focus:outline-none" />
               </div>
 
-              {(() => {
-                // Title is the only hard requirement left. Price is NOT listed here — it has its
-                // own three-state gate below (loading / loaded / failed+acknowledged), because a
-                // missing price is a resolvable state, not a permanent "you forgot something".
-                // Country is deliberately NOT required: only the ارزان‌ترین path names one, and
-                // on the other two the traveler's route decides.
-                const titleBad = !orderProduct?.title || orderProduct.title.trim().length <= 2;
-                return titleBad ? (
-                  <div className="mb-3 rounded-2xl border border-amber-400/30 bg-amber-400/10 p-3 text-xs text-amber-200">
-                    برای انتشار تکمیل کنید: نام محصول معتبر
-                  </div>
-                ) : null;
-              })()}
+              {/* CMD-66 — the buy flow's gate, on the buy flow's component. This screen used to
+                  say the same thing in a bespoke amber <div> with its own wording ("برای انتشار
+                  تکمیل کنید: …"), so the two buy paths told a stuck user two different things.
+                  RequiredHint is now shared by both, tone="dark" for this panel.
+
+                  The required set is unchanged and stays deliberately short: title is the only
+                  hard field this path collects. Price is NOT listed — it has its own three-state
+                  gate below (loading / loaded / failed+acknowledged), because a missing price is
+                  a resolvable state, not a "you forgot something". Country is NOT required either:
+                  only the ارزان‌ترین path names one; on the other two the traveler's route decides.
+                  Nothing new is demanded of the user — publish accepts exactly what it did. */}
+              <RequiredHint tone="dark" missing={missingPublish} />
 
               {/* PRICE GATE — publish can never auto-advance past a missing price. */}
               {priceLoading && (
@@ -1159,10 +1185,19 @@ export default function ChaparConcierge({ language = "fa", userName = "", userId
                     برای انتشار در بازارگاه، وارد شوید
                   </button>
                 : <button
-                    disabled={publishing || !orderProduct?.title || (orderProduct.title.trim().length <= 2)
+                    // CMD-66: the inline title test that used to sit here is gone — it now reads
+                    // missingPublish, the same list RequiredHint renders above, so the button and
+                    // the explanation can never disagree. The two price clauses stay as they are:
+                    // they are the three-state price gate, not required fields.
+                    disabled={publishing || missingPublish.length > 0
                       || priceLoading || (priceFailed && !noPriceAck)}
                     onClick={doPublish}
-                    className="w-full rounded-2xl bg-gradient-to-l from-cyan-700 to-indigo-600 py-3 text-sm font-bold text-white disabled:opacity-50">
+                    // disabled:cursor-not-allowed — this button is a raw gradient <button>, not a
+                    // .ds-btn-primary, so it never inherited the design-system rule that makes a
+                    // disabled primary READ disabled (CMD-49). Gated at opacity-50 alone it still
+                    // showed a pointer cursor and looked pressable. Tailwind's `disabled:` variant
+                    // is used rather than pointer-events:none precisely so the cursor CAN change.
+                    className="w-full rounded-2xl bg-gradient-to-l from-cyan-700 to-indigo-600 py-3 text-sm font-bold text-white disabled:opacity-50 disabled:cursor-not-allowed">
                     {publishing ? "در حال انتشار…" : priceLoading ? "در حال دریافت قیمت..." : "تأیید و انتشار در بازارگاه"}
                   </button>}
             </div>

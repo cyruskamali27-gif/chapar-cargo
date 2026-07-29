@@ -13,16 +13,26 @@ import { AlertCircle } from 'lucide-react';
 // i18n keys are introduced.
 //
 // Optional fields must never appear here — see the per-step required lists in each flow.
-export default function RequiredHint({ missing }: { missing: string[] }) {
+//
+// CMD-66 adds `tone`. The buy and send flows are light surfaces, so amber-50/amber-800 is the
+// default and nothing about them changes. ChaparConcierge is a dark panel, where that light box
+// would blow out; `tone="dark"` is the same component at the same amber hue, re-weighted for a
+// dark ground (amber-400/10 fill, amber-200 text) — exactly the treatment the bespoke box it
+// replaces already used there. A tone prop, not a second component: the wording, the ARIA
+// contract and the "optional fields never appear here" rule must stay single-sourced.
+export default function RequiredHint({ missing, tone = 'light' }: { missing: string[]; tone?: 'light' | 'dark' }) {
   if (!missing.length) return null;
+  const box  = tone === 'dark' ? 'border-amber-400/30 bg-amber-400/10' : 'border-amber-200 bg-amber-50';
+  const icon = tone === 'dark' ? 'text-amber-300' : 'text-amber-600';
+  const text = tone === 'dark' ? 'text-amber-200' : 'text-amber-800';
   return (
     <div
       role="status"
       aria-live="polite"
-      className="mt-3 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3"
+      className={`mt-3 flex items-start gap-2 rounded-xl border px-4 py-3 ${box}`}
     >
-      <AlertCircle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" aria-hidden />
-      <p className="text-sm text-amber-800 leading-relaxed">
+      <AlertCircle className={`w-4 h-4 flex-shrink-0 mt-0.5 ${icon}`} aria-hidden />
+      <p className={`text-sm leading-relaxed ${text}`}>
         <span className="font-semibold">برای ادامه این موارد را کامل کنید: </span>
         <span className="font-extrabold">{missing.join('، ')}</span>
       </p>
