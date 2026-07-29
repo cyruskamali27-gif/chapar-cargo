@@ -8,6 +8,7 @@ import type { Translations } from './i18n';
 import ProductFinder from './ProductFinder';
 import ChaparConcierge from './ChaparConcierge';
 import { PhoneField } from '../lib/PhoneField';
+import RequiredHint from './RequiredHint';   // CMD-65 (B): names what is still missing
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -391,6 +392,26 @@ function BuyForMeForm({ t, isRTL, onHome, onNavigate, onNeedAuth, product, setPr
     }
   }, [setProduct, setValue, value.amount]);
 
+  // ── CMD-65 (B) — required fields for «ثبت سفارش» ────────────────────────────
+  //
+  // This flow is NOT step-based: it is one scrolling form with sections, so the gate belongs on
+  // the single publish button rather than on a NEXT. The list below mirrors publish()'s own
+  // guards exactly (see the four setErr() lines directly beneath), which until now only fired
+  // AFTER a click — the user filled the form, pressed ثبت, and got a single error naming one
+  // group at a time. Same rules, stated up front, all at once.
+  //
+  // `session` is deliberately NOT part of this: a signed-out user must still be able to press
+  // the button, because publish() answers that case by opening auth (onNeedAuth), not by
+  // rejecting input.
+  const missingPublish: string[] = [];
+  if (!product.title.trim())  missingPublish.push(t.bfm2ProdTitleLabel);
+  if (!product.store.trim())  missingPublish.push(t.bfm2ProdStore);
+  if (!dest.country.trim())   missingPublish.push(t.bfm2DestCountry);
+  if (!dest.city.trim())      missingPublish.push(t.bfm2DestCity);
+  if (!value.amount)          missingPublish.push(t.bfm2ReviewValue);
+  if (!recip.firstName.trim()) missingPublish.push(t.spRecFirstName);
+  if (!recip.phone.trim())     missingPublish.push(t.spRecPhone);
+
   async function publish() {
     if (!session) { onNeedAuth?.(); return; }
     if (!product.title.trim() || !product.store.trim()) { setErr(t.bfm2ErrProduct); return; }
@@ -553,10 +574,11 @@ function BuyForMeForm({ t, isRTL, onHome, onNavigate, onNeedAuth, product, setPr
           ))}
         </div>
         <Err msg={err} />
+        <RequiredHint missing={publishing ? [] : missingPublish} />
         <button
           onClick={() => { setErr(''); publish(); }}
-          disabled={publishing}
-          className="ds-btn-primary w-full py-3 mt-4 disabled:opacity-60"
+          disabled={publishing || (!!session && missingPublish.length > 0)}
+          className="ds-btn-primary w-full py-3 mt-4"
         >
           {publishing
             ? <span className="flex items-center justify-center gap-2"><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />{t.bfm2Publishing}</span>

@@ -186,7 +186,10 @@ export default function StageTimeline({ orderId, control = false }: { orderId: s
                 {busy ? <Loader2 className="w-4 h-4 animate-spin" aria-hidden /> : <Upload className="w-4 h-4" aria-hidden />}
                 {t.tkAttachReceipt}
               </button>
-              <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={onReceiptPicked} />
+              {/* CMD-65 (A): a purchase receipt is a PHYSICAL item the traveler is holding when
+                  they hit this button, so the phone should open the rear camera rather than the
+                  gallery. Desktop ignores `capture` and keeps the file dialog. */}
+              <input ref={fileRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={onReceiptPicked} />
               {/* allow skipping the optional receipt straight to in_transit */}
               <button onClick={() => advance('in_transit')} disabled={busy}
                 className="mt-2 text-[12px] font-semibold text-gray-500 w-full text-center">

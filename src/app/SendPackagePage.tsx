@@ -11,6 +11,7 @@ import { PROHIBITED_KEYWORDS } from '../lib/prohibited';   // CMD-24: shared, de
 import { Store, getLiveRate } from '../lib/store';
 import PreferredChannelStep from './PreferredChannelStep';
 import SendAssistant, { type SendApplyField, type SendApplyValue } from './SendAssistant';
+import RequiredHint from './RequiredHint';   // CMD-65 (B): names what is still missing
 
 // ── Send («ثبت کالا») flow — 5-step light skeleton, structural parity with the buy flow ──────────
 //
@@ -321,6 +322,43 @@ export default function SendPackagePage({ onHome, cargoType = 'personal', onNavi
 
   const canPublish = !!(session && title.trim() && origin && dest && parseFloat(weight) > 0 && !illegalBlocked);
 
+  // ── CMD-65 (B) — per-step required fields ───────────────────────────────────
+  //
+  // Steps 2, 3 and 4 previously had NO gate at all: «ادامه» always advanced, and the first time
+  // the user learned that weight or route was missing was at step 5, where publish sat disabled
+  // with nothing explaining why. The required set below is exactly the set doPublish() already
+  // enforces (canPublish, above), pushed forward to the step that owns each field — so this
+  // tightens WHEN the user is told, never WHAT is accepted. No new server contract.
+  //
+  // Labels are the same t.* strings rendered as each field's own <label>, so the hint names the
+  // field the way the user just read it.
+  //
+  // Step 4 (PreferredChannelStep) contributes NOTHING: that component documents itself as
+  // "additive by construction... never a gate" — the account default ('email') is always valid,
+  // so there is no required field to enforce and the button stays open.
+  function missingForStep(n: number): string[] {
+    const m: string[] = [];
+    if (n === 1) {
+      if (!title.trim()) m.push(t.spConfirmItemName);
+    } else if (n === 2) {
+      if (!origin) m.push(t.spOrigin);
+      if (!dest)   m.push(t.spDest);
+      if (!date)   m.push(t.spShipDate);
+    } else if (n === 3) {
+      if (!(parseFloat(weight) > 0)) m.push(t.spWeightLabel);
+    } else if (n === 5) {
+      if (!title.trim())             m.push(t.spConfirmItemName);
+      if (!origin)                   m.push(t.spOrigin);
+      if (!dest)                     m.push(t.spDest);
+      if (!(parseFloat(weight) > 0)) m.push(t.spWeightLabel);
+    }
+    return m;
+  }
+  const missing1 = missingForStep(1);
+  const missing2 = missingForStep(2);
+  const missing3 = missingForStep(3);
+  const missing5 = missingForStep(5);
+
   // ── Publish — adapted from ChaparConcierge.doPublish (no retail price/compare) ──────────────
   async function doPublish() {
     if (!session) { setErr(t.spErrNeedLogin); return; }
@@ -576,10 +614,16 @@ export default function SendPackagePage({ onHome, cargoType = 'personal', onNavi
               {/* NOTE: contact info a sender might put in the title/description is sanitized SERVER-SIDE. */}
             </div>
 
-            {/* Optional single photo */}
+            {/* Optional single photo — CMD-65 (A): camera-first.
+                `capture="environment"` makes a phone open the REAR camera directly instead of the
+                gallery picker; desktop browsers ignore the attribute entirely and still show the
+                normal file dialog, which is exactly the required desktop fallback. This is the
+                spec's first sanctioned option and needs no second capture path — GuidedCapture
+                stays the one getUserMedia implementation, unforked.
+                Still OPTIONAL: it is not part of step 1's required set. */}
             <div className="mb-4">
               <label className="ds-label">{t.spPhotoAdd}</label>
-              <input ref={photoRef} type="file" accept="image/*" className="hidden" onChange={onPhoto} />
+              <input ref={photoRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={onPhoto} />
               {photo ? (
                 <div className="relative inline-block">
                   <img src={photo} alt="" className="w-28 h-28 rounded-xl object-cover border border-gray-200" />
@@ -605,8 +649,9 @@ export default function SendPackagePage({ onHome, cargoType = 'personal', onNavi
             )}
 
             <Err msg={err} />
-            <button onClick={() => goStep(2)} disabled={illegalBlocked}
-              className="ds-btn-primary w-full mt-4 py-3 disabled:opacity-50">{t.wizardContinue}</button>
+            <RequiredHint missing={illegalBlocked ? [] : missing1} />
+            <button onClick={() => goStep(2)} disabled={illegalBlocked || missing1.length > 0}
+              className="ds-btn-primary w-full mt-4 py-3">{t.wizardContinue}</button>
           </motion.div>
         )}
 
@@ -652,9 +697,11 @@ export default function SendPackagePage({ onHome, cargoType = 'personal', onNavi
             )}
 
             <Err msg={err} />
+            <RequiredHint missing={missing2} />
             <div className="flex gap-3 mt-4">
               <button onClick={() => goStep(1)} className="ds-btn-secondary flex-shrink-0 px-5 py-3">{t.wizardPrev}</button>
-              <button onClick={() => goStep(3)} className="ds-btn-primary flex-1 py-3">{t.wizardContinue}</button>
+              <button onClick={() => goStep(3)} disabled={missing2.length > 0}
+                className="ds-btn-primary flex-1 py-3">{t.wizardContinue}</button>
             </div>
           </motion.div>
         )}
@@ -728,9 +775,11 @@ export default function SendPackagePage({ onHome, cargoType = 'personal', onNavi
             </div>
 
             <Err msg={err} />
+            <RequiredHint missing={missing3} />
             <div className="flex gap-3 mt-4">
               <button onClick={() => goStep(2)} className="ds-btn-secondary flex-shrink-0 px-5 py-3">{t.wizardPrev}</button>
-              <button onClick={() => goStep(4)} className="ds-btn-primary flex-1 py-3">{t.wizardContinue}</button>
+              <button onClick={() => goStep(4)} disabled={missing3.length > 0}
+                className="ds-btn-primary flex-1 py-3">{t.wizardContinue}</button>
             </div>
           </motion.div>
         )}
@@ -792,10 +841,11 @@ export default function SendPackagePage({ onHome, cargoType = 'personal', onNavi
             <p className="text-xs text-gray-500 leading-relaxed mb-4">{t.spSuccessDesc}</p>
 
             <Err msg={err} />
+            <RequiredHint missing={publishing ? [] : missing5} />
             <div className="flex gap-3 mt-2">
               <button onClick={() => goStep(4)} className="ds-btn-secondary flex-shrink-0 px-5 py-3" disabled={publishing}>{t.wizardPrev}</button>
               <button onClick={doPublish} disabled={!canPublish || publishing}
-                className="ds-btn-primary flex-1 py-3 disabled:opacity-50">
+                className="ds-btn-primary flex-1 py-3">
                 {publishing ? t.spPublishing : t.spPublish}
               </button>
             </div>
