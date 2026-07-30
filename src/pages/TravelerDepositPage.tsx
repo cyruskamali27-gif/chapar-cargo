@@ -12,6 +12,8 @@ import { CreditCard, Landmark, Coins, Wallet, Search, CheckCircle2, Clock, Party
 import { Store, getLiveRate, getSession, genId } from '../lib/store';
 import { useLang } from '../lib/LangContext';
 import { useVerifyGate } from '../lib/useVerifyGate';
+import TestModeBanner from '../app/TestModeBanner';               // CMD-68 (1): honesty guard
+import { allowedPayMethods } from '../lib/testModeEscrow';       // CMD-68: mainnet rails closed for the test window
 
 declare global {
   interface Window {
@@ -801,18 +803,26 @@ export default function TravelerDepositPage() {
               </div>
             </div>
 
+            {/* CMD-68 (1): sits directly above the method picker and the pay button. */}
+            <TestModeBanner />
+
             {/* Method picker */}
             <div>
               <div className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">{t.tdepMethodLabel}</div>
               <div className="grid grid-cols-3 gap-2">
-                {[
+                {allowedPayMethods([
                   { key: 'card',    Icon: CreditCard, label: 'کارت بانکی' },
                   { key: 'toman',   Icon: Landmark,   label: 'واریز تومانی' },
-                  { key: 'usdt',    icon: '₮',  label: 'USDT' },
+                  // CMD-68: was `icon: '₮'` (lowercase) while every sibling uses `Icon`. The map below
+                  // rendered <m.Icon/>, which was undefined for this one entry — React error #130,
+                  // "Element type is invalid", crashing the WHOLE payment screen to the error boundary
+                  // the moment the method picker mounted. Renamed to `glyph` and rendered as text, so
+                  // the ₮ mark is kept rather than swapped for a lucide icon it never used.
+                  { key: 'usdt',    glyph: '₮',       label: 'USDT' },
                   { key: 'paypal',  Icon: Landmark,   label: 'PayPal' },
                   { key: 'polygon', Icon: Hexagon, label: 'USDC Polygon' },
                   { key: 'tron',    Icon: Coins,      label: 'USDT Tron' },
-                ].map(m => (
+                ]).map(m => (
                   <button
                     key={m.key}
                     onClick={() => selectMethod(m.key as PayMethod)}
@@ -820,7 +830,9 @@ export default function TravelerDepositPage() {
                       method === m.key ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
                     }`}
                   >
-                    <m.Icon className="w-5 h-5 flex-shrink-0" aria-hidden />
+                    {m.Icon
+                      ? <m.Icon className="w-5 h-5 flex-shrink-0" aria-hidden />
+                      : <span className="w-5 h-5 grid place-items-center text-base font-bold leading-none" aria-hidden>{m.glyph}</span>}
                     <span className="text-[10px] font-bold text-center leading-tight">{m.label}</span>
                   </button>
                 ))}
